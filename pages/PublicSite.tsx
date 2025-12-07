@@ -520,7 +520,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              <div 
                                 key={member.id} 
                                 onClick={() => setSelectedTeamMember(member)}
-                                className="flex-shrink-0 w-[calc(25%-18px)] snap-start group cursor-pointer bg-slate-800 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all hover:-translate-y-1 border border-slate-700 hover:border-[#2EB0D9]/50"
+                                className="flex-shrink-0 w-[85vw] md:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer bg-slate-800 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all hover:-translate-y-1 border border-slate-700 hover:border-[#2EB0D9]/50"
                              >
                                  <div className="h-64 w-full overflow-hidden">
                                      {/* Added animation class here + Grayscale Logic */}
