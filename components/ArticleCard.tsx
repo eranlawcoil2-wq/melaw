@@ -15,10 +15,11 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick }) =>
     >
       {/* Media Header - Reduced height for compact view */}
       <div className="relative h-28 md:h-32 bg-slate-200 overflow-hidden flex-shrink-0">
+        {/* Added animate-ken-burns class here */}
         <img 
           src={article.imageUrl} 
           alt={article.title} 
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+          className="w-full h-full object-cover animate-ken-burns" 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
         {article.videoUrl && (

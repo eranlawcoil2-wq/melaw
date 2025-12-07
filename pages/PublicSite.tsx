@@ -31,6 +31,16 @@ const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: 
     );
 };
 
+// --- Reusable Section Title Component ---
+const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
+    <div className="mb-8">
+        <h3 className="text-3xl font-black text-slate-900 inline-block relative z-10">
+            {title}
+        </h3>
+        <div className="h-1.5 w-16 bg-[#2EB0D9] mt-2 rounded-full"></div>
+    </div>
+);
+
 interface PublicSiteProps {
   state: AppState;
   onCategoryChange: (cat: Category) => void;
@@ -69,7 +79,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % currentSlides.length);
-    }, 6000); // Slower interval for better feel
+    }, 6000); 
     return () => clearInterval(interval);
   }, [currentSlides.length]);
 
@@ -132,7 +142,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   return (
     <div className="min-h-screen flex flex-col font-sans relative bg-slate-50 overflow-x-hidden selection:bg-[#2EB0D9] selection:text-white">
       
-      {/* Background Floating Blobs - Adds subtle movement to the whole site */}
+      {/* Background Floating Blobs */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
           <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#2EB0D9]/5 rounded-full blur-3xl animate-float-slow"></div>
           <div className="absolute bottom-[20%] left-[-5%] w-[400px] h-[400px] bg-slate-200/50 rounded-full blur-3xl animate-float-slow" style={{ animationDelay: '2s' }}></div>
@@ -437,12 +447,12 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         {/* HERO SECTION - KEN BURNS EFFECT ADDED */}
         <section className="relative h-[45vh] md:h-[55vh] overflow-hidden bg-slate-900 group">
           
-          {/* Floating Logo (Left Side, Centered) */}
+          {/* Floating Logo (Left Side, Centered) - RESIZED AND COLORED */}
           <div className="absolute left-16 top-1/2 -translate-y-1/2 z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity animate-float">
               <img 
                 src={state.config.logoUrl} 
                 alt="Logo" 
-                className="h-32 w-auto object-contain drop-shadow-2xl" 
+                className="h-48 w-auto object-contain drop-shadow-2xl" 
                 style={{ filter: "drop-shadow(0 10px 8px rgb(0 0 0 / 0.5))" }}
               />
           </div>
@@ -492,10 +502,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             <Reveal className="py-12 bg-white/80 backdrop-blur-sm relative -mt-8 z-10 container mx-auto px-4">
                  <div className="bg-white shadow-xl rounded-xl p-8 border border-slate-100">
                      <div className="flex justify-between items-center mb-8">
-                        <div>
-                             <h3 className="text-2xl font-black text-slate-800">הנבחרת שלנו</h3>
-                             <div className="w-16 h-1 bg-[#2EB0D9] mt-2"></div>
-                        </div>
+                        {/* New Styled Title */}
+                        <SectionTitle title="הנבחרת שלנו" />
+                        
                         <div className="flex gap-2">
                             <button onClick={() => scrollContainer(teamScrollRef, 'right')} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600"><ChevronRight size={20}/></button>
                             <button onClick={() => scrollContainer(teamScrollRef, 'left')} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600"><ChevronLeft size={20}/></button>
@@ -513,7 +522,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                 className="flex-shrink-0 w-[260px] md:w-[280px] snap-start group cursor-pointer bg-slate-50 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 border border-slate-100"
                              >
                                  <div className="h-64 w-full overflow-hidden">
-                                     <img src={member.imageUrl} alt={member.fullName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                     {/* Added animation class here */}
+                                     <img src={member.imageUrl} alt={member.fullName} className="w-full h-full object-cover animate-ken-burns" />
                                  </div>
                                  <div className="p-5 text-center">
                                      <h4 className="font-bold text-xl text-slate-900 group-hover:text-[#2EB0D9] transition-colors">{member.fullName}</h4>
@@ -529,9 +539,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         {/* TIMELINE (SCROLLABLE) - With Reveal */}
         <Reveal className="py-12 relative border-b border-slate-200" delay={200}>
            <div className="container mx-auto px-4 mb-6 flex justify-between items-end">
-              <h3 className="text-xl font-bold text-slate-800 border-r-4 border-slate-900 pr-3 inline-block">
-                 {state.currentCategory === Category.HOME ? 'חדשות ועדכונים' : 'מדריכים ומידע מקצועי'}
-              </h3>
+              <SectionTitle title={state.currentCategory === Category.HOME ? 'חדשות ועדכונים' : 'מדריכים ומידע מקצועי'} />
+              
               <div className="flex gap-2">
                   <button onClick={() => scrollContainer(timelineScrollRef, 'right')} className="p-2 rounded-full bg-white shadow hover:bg-slate-100 text-slate-600"><ChevronRight size={20}/></button>
                   <button onClick={() => scrollContainer(timelineScrollRef, 'left')} className="p-2 rounded-full bg-white shadow hover:bg-slate-100 text-slate-600"><ChevronLeft size={20}/></button>
@@ -707,7 +716,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
               {/* Articles Grid / Carousel */}
               <Reveal delay={300}>
                   <div className="flex items-center justify-between mb-8">
-                     <h3 className="text-3xl font-bold text-slate-800">מאמרים נבחרים</h3>
+                     <SectionTitle title="מאמרים נבחרים" />
                      <div className="flex gap-2">
                          <button onClick={() => scrollContainer(articlesScrollRef, 'right')} className="p-2 border rounded-full hover:bg-slate-100 text-slate-400"><ChevronRight size={20}/></button>
                          <button onClick={() => scrollContainer(articlesScrollRef, 'left')} className="p-2 border rounded-full hover:bg-slate-100 text-slate-400"><ChevronLeft size={20}/></button>
@@ -744,7 +753,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-12 items-start text-right" dir="rtl">
                 
                 {/* Brand Column (Rightmost) */}
-                <div className="col-span-1">
+                <div className="col-span-1 flex flex-col items-start">
                     <h2 className="text-xl font-black text-white mb-6 font-serif leading-tight">
                        <span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO
                     </h2>
@@ -765,7 +774,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 </div>
                 
                 {/* Navigation Column */}
-                <div className="col-span-1">
+                <div className="col-span-1 flex flex-col items-start">
                     <h4 className="text-white font-bold mb-4 text-lg border-r-4 border-[#2EB0D9] pr-3">ניווט מהיר</h4>
                     <ul className="space-y-2 w-full">
                         <li><button onClick={() => onCategoryChange(Category.WILLS)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right hover:translate-x-1 transform duration-200">צוואות וירושות</button></li>
@@ -775,8 +784,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                     </ul>
                 </div>
                 
-                {/* Contact Column */}
-                <div className="col-span-1">
+                {/* Contact Column - Fixed Alignment */}
+                <div className="col-span-1 flex flex-col items-start">
                     <h4 className="text-white font-bold mb-4 text-lg border-r-4 border-[#2EB0D9] pr-3">פרטי התקשרות</h4>
                     <ul className="space-y-4 w-full">
                         <li className="flex items-start gap-3">
@@ -792,11 +801,12 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             <span className="leading-snug font-sans">{state.config.contactEmail}</span>
                         </li>
                     </ul>
+                    {/* Waze Button Aligned Under Contact Info */}
                     <a 
                        href={`https://waze.com/ul?q=${encodeURIComponent(state.config.address)}`} 
                        target="_blank" 
                        rel="noopener noreferrer"
-                       className="inline-flex items-center gap-2 bg-[#2EB0D9] hover:bg-[#259cc0] text-white px-4 py-2.5 rounded-lg font-bold transition-colors w-full justify-center mt-6 hover:shadow-lg transform hover:-translate-y-1"
+                       className="inline-flex items-center gap-2 bg-[#2EB0D9] hover:bg-[#259cc0] text-white px-4 py-2.5 rounded-lg font-bold transition-colors mt-6 hover:shadow-lg transform hover:-translate-y-1 w-full justify-center"
                     >
                         <Navigation size={18} /> נווט למשרד
                     </a>
@@ -804,7 +814,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 
                 {/* Map Column (Leftmost) */}
                 <div className="col-span-1">
-                    <div className="w-full h-48 bg-slate-800 rounded-lg overflow-hidden border border-slate-700 shadow-inner group">
+                     {/* Map container same height as content roughly */}
+                    <div className="w-full h-56 bg-slate-800 rounded-lg overflow-hidden border border-slate-700 shadow-inner group">
                         <iframe 
                             title="Office Location"
                             width="100%" 

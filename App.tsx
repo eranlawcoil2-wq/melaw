@@ -141,8 +141,8 @@ const App: React.FC = () => {
     isAdminLoggedIn: false,
     config: {
         officeName: 'MOR ERAN KAGAN & CO',
-        // Updated Logo Placeholder to Wide Text Format
-        logoUrl: 'https://placehold.co/600x120/transparent/000000?text=MOR+ERAN+KAGAN+%26+CO&font=playfair-display', 
+        // Updated Logo: Cyan color to pop on dark background
+        logoUrl: 'https://placehold.co/600x120/transparent/2EB0D9?text=MOR+ERAN+KAGAN+%26+CO&font=playfair-display', 
         contactEmail: 'office@melaw.co.il',
         willsEmail: 'wills@melaw.co.il',
         poaEmail: 'poa@melaw.co.il',
