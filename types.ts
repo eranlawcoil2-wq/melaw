@@ -71,6 +71,7 @@ export interface SiteConfig {
   poaEmail: string;
   phone: string;
   address: string;
+  theme: 'dark' | 'light'; // NEW: Theme preference
 }
 
 export interface MenuItem {

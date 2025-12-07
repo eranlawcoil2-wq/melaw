@@ -33,9 +33,9 @@ const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: 
 };
 
 // --- Reusable Section Title Component ---
-const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
+const SectionTitle: React.FC<{ title: string; isDark: boolean }> = ({ title, isDark }) => (
     <div className="mb-8">
-        <h3 className="text-3xl font-black text-white inline-block relative z-10">
+        <h3 className={`text-3xl font-black inline-block relative z-10 ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {title}
         </h3>
         <div className="h-1.5 w-16 bg-[#2EB0D9] mt-2 rounded-full"></div>
@@ -64,6 +64,23 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const [activeDynamicFormId, setActiveDynamicFormId] = useState<string | null>(null);
   const [dynamicFormValues, setDynamicFormValues] = useState<Record<string, any>>({});
   
+  // Theme Helper Logic
+  const isDark = state.config.theme === 'dark'; // Check theme preference
+  
+  // Theme Classes Mapping
+  const theme = {
+      bgMain: isDark ? 'bg-slate-950' : 'bg-slate-50',
+      textMain: isDark ? 'text-slate-200' : 'text-slate-800',
+      headerBg: isDark ? 'bg-slate-950/90 shadow-black/20 border-slate-800' : 'bg-white/90 shadow-slate-200/50 border-slate-200',
+      cardBg: isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm',
+      cardHover: isDark ? 'hover:border-[#2EB0D9]/50' : 'hover:border-[#2EB0D9]/50 hover:shadow-lg',
+      inputBg: isDark ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400',
+      modalBg: isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100',
+      textTitle: isDark ? 'text-white' : 'text-slate-900',
+      textMuted: isDark ? 'text-slate-400' : 'text-slate-500',
+      border: isDark ? 'border-slate-800' : 'border-slate-200',
+  };
+
   // Refs
   const dynamicFormRef = useRef<HTMLDivElement>(null);
   const timelineScrollRef = useRef<HTMLDivElement>(null);
@@ -134,20 +151,17 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
     }));
   };
   
-  // Handle Wills Submission with Real Service
+  // Handle Wills Submission
   const handleRealWillsSubmit = async () => {
       setIsSubmittingWill(true);
       try {
-          // Use the centralized email service
           await emailService.sendWillsForm(willsData);
-          // Also call the parent prop for App state update
           onWillsFormSubmit(willsData);
-          
-          alert("טופס נשלח בהצלחה! מסמך PDF ישלח למייל שלך."); 
+          alert("הטופס נקלט בהצלחה! קובץ הצוואה יורד כעת למחשב שלך."); 
           setShowWillsModal(false);
           setFormStep(0);
       } catch (error) {
-          alert("אירעה שגיאה בשליחת הטופס, אנא נסה שנית.");
+          alert("אירעה שגיאה, אנא נסה שנית.");
       } finally {
           setIsSubmittingWill(false);
       }
@@ -164,27 +178,27 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   if (state.currentCategory === Category.STORE) {
       const products = storeService.getProducts();
       return (
-          <div className="min-h-screen bg-slate-950 pt-24 pb-12 px-4">
+          <div className={`min-h-screen pt-24 pb-12 px-4 ${theme.bgMain} ${theme.textMain}`}>
               {/* Reuse Header logic for consistency */}
-              <header className="fixed top-0 left-0 right-0 bg-slate-950/90 backdrop-blur-md shadow-lg shadow-black/20 z-40 h-20 transition-all border-b border-slate-800">
+              <header className={`fixed top-0 left-0 right-0 backdrop-blur-md shadow-lg z-40 h-20 transition-all border-b ${theme.headerBg}`}>
                 <div className="container mx-auto px-4 h-full flex items-center justify-between">
-                  <h1 className="text-lg md:text-xl font-black text-white tracking-wide cursor-pointer font-serif leading-none" onClick={() => onCategoryChange(Category.HOME)}>
+                  <h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer font-serif leading-none" onClick={() => onCategoryChange(Category.HOME)}>
                        <span className="block text-[#2EB0D9]">MOR ERAN KAGAN</span>
-                       <span className="text-slate-400 text-sm tracking-widest font-sans font-normal">& CO</span>
+                       <span className={`${theme.textMuted} text-sm tracking-widest font-sans font-normal`}>& CO</span>
                   </h1>
                   <nav className="hidden md:flex items-center gap-6">
                     {state.menuItems.map(item => (
-                      <button key={item.id} onClick={() => onCategoryChange(item.cat)} className={`text-sm font-medium transition-colors hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-400'}`}>
+                      <button key={item.id} onClick={() => onCategoryChange(item.cat)} className={`text-sm font-medium transition-colors hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : theme.textMuted}`}>
                         {item.label}
                       </button>
                     ))}
                   </nav>
-                  <button className="md:hidden text-slate-200" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}</button>
+                  <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}</button>
                 </div>
                 {mobileMenuOpen && (
-                   <div className="md:hidden absolute top-20 left-0 w-full bg-slate-900 shadow-xl border-t border-slate-800 p-4 flex flex-col gap-4 animate-fade-in-up">
+                   <div className={`md:hidden absolute top-20 left-0 w-full shadow-xl border-t p-4 flex flex-col gap-4 animate-fade-in-up ${theme.modalBg}`}>
                       {state.menuItems.map(item => (
-                        <button key={item.id} onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }} className="text-right p-2 hover:bg-slate-800 rounded-lg text-slate-300 font-medium">{item.label}</button>
+                        <button key={item.id} onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }} className={`text-right p-2 rounded-lg font-medium hover:bg-black/5 ${theme.textMain}`}>{item.label}</button>
                       ))}
                    </div>
                 )}
@@ -195,28 +209,32 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                       <div className="inline-block p-4 bg-[#2EB0D9]/10 rounded-full mb-4 border border-[#2EB0D9]/30">
                           <ShoppingBag size={48} className="text-[#2EB0D9]" />
                       </div>
-                      <h2 className="text-4xl font-black text-white mb-4">החנות המשפטית</h2>
-                      <p className="text-xl text-slate-400 max-w-2xl mx-auto">רכשו שירותים משפטיים ומוצרים דיגיטליים בצורה מאובטחת, מהירה ונגישה.</p>
+                      <h2 className={`text-4xl font-black mb-4 ${theme.textTitle}`}>החנות המשפטית</h2>
+                      <p className={`text-xl max-w-2xl mx-auto ${theme.textMuted}`}>רכשו שירותים משפטיים ומוצרים דיגיטליים בצורה מאובטחת, מהירה ונגישה.</p>
                   </div>
 
                   <div className="grid md:grid-cols-3 gap-8">
                       {products.map(product => (
-                          <div key={product.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-[#2EB0D9]/50 transition-all hover:-translate-y-2 hover:shadow-2xl shadow-black/50 group">
-                              <div className="h-48 bg-slate-800 flex items-center justify-center relative overflow-hidden">
+                          <div key={product.id} className={`${theme.cardBg} border rounded-2xl overflow-hidden transition-all hover:-translate-y-2 hover:shadow-2xl shadow-black/10 group ${theme.cardHover}`}>
+                              <div className={`h-48 flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
                                   <div className="absolute inset-0 bg-[#2EB0D9]/5 group-hover:bg-[#2EB0D9]/10 transition-colors"></div>
-                                  <FileText size={64} className="text-slate-600 group-hover:text-[#2EB0D9] transition-colors duration-500 transform group-hover:scale-110"/>
+                                  <FileText size={64} className="text-slate-500 group-hover:text-[#2EB0D9] transition-colors duration-500 transform group-hover:scale-110"/>
                               </div>
                               <div className="p-8">
                                   <div className="mb-4">
                                       <span className="text-xs font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-1 rounded border border-[#2EB0D9]/20">{product.category}</span>
                                   </div>
-                                  <h3 className="text-2xl font-bold text-white mb-2">{product.title}</h3>
-                                  <p className="text-slate-400 mb-6 text-sm">המוצר כולל ליווי ראשוני, הכנת מסמכים והגשה לגורמים הרלוונטיים.</p>
+                                  <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>{product.title}</h3>
+                                  <p className={`${theme.textMuted} mb-6 text-sm`}>המוצר כולל ליווי ראשוני, הכנת מסמכים והגשה לגורמים הרלוונטיים.</p>
                                   <div className="flex items-center justify-between mt-auto">
-                                      <span className="text-3xl font-black text-white">₪{product.price}</span>
+                                      <span className={`text-3xl font-black ${theme.textTitle}`}>₪{product.price}</span>
                                       <Button onClick={() => {
-                                          alert(`מעבר לעמוד תשלום מאובטח עבור: ${product.title}`);
-                                          // storeService.createCheckoutSession(product.id).then(url => window.location.href = url);
+                                          const link = storeService.getCheckoutLink(product.id);
+                                          if (link && link !== "#" && !link.includes("buy.stripe.com/test")) {
+                                              window.open(link, '_blank');
+                                          } else {
+                                              alert(`כאן יפתח חלון תשלום של Stripe עבור: ${product.title}\n(כרגע במצב דמו)`);
+                                          }
                                       }} className="px-6">רכוש כעת</Button>
                                   </div>
                               </div>
@@ -231,72 +249,72 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
   // --- REGULAR SITE RENDER ---
   return (
-    <div className="min-h-screen flex flex-col font-sans relative bg-slate-950 text-slate-200 overflow-x-hidden selection:bg-[#2EB0D9] selection:text-white">
+    <div className={`min-h-screen flex flex-col font-sans relative overflow-x-hidden selection:bg-[#2EB0D9] selection:text-white ${theme.bgMain} ${theme.textMain}`}>
       
       {/* Background Floating Blobs */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-50">
           <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#2EB0D9]/10 rounded-full blur-[100px] animate-float-slow"></div>
-          <div className="absolute bottom-[20%] left-[-5%] w-[400px] h-[400px] bg-slate-800/50 rounded-full blur-[100px] animate-float-slow" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute bottom-[20%] left-[-5%] w-[400px] h-[400px] bg-slate-500/10 rounded-full blur-[100px] animate-float-slow" style={{ animationDelay: '2s' }}></div>
           <div className="absolute top-[40%] right-[20%] w-[200px] h-[200px] bg-[#2EB0D9]/5 rounded-full blur-[80px] animate-float" style={{ animationDelay: '4s' }}></div>
       </div>
 
       {/* --- Article Modal Overlay --- */}
       {selectedArticle && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
-            <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setSelectedArticle(null)}></div>
-            <div className="bg-slate-900 md:rounded-2xl shadow-2xl w-full max-w-6xl h-full md:h-[90vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border border-slate-800">
-                <div className="hidden md:block w-1/4 h-full relative bg-slate-800 overflow-hidden">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setSelectedArticle(null)}></div>
+            <div className={`md:rounded-2xl shadow-2xl w-full max-w-6xl h-full md:h-[90vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
+                <div className={`hidden md:block w-1/4 h-full relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                     <img src={selectedArticle.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-70" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
+                    <div className={`absolute inset-0 bg-gradient-to-t ${isDark ? 'from-slate-900' : 'from-white'} to-transparent`}></div>
                     {selectedArticle.quote && (
-                        <div className="absolute bottom-8 left-4 right-4 text-white">
+                        <div className={`absolute bottom-8 left-4 right-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                             <Quote size={24} className="mb-2 text-[#2EB0D9] opacity-80" />
                             <p className="font-serif italic text-lg leading-relaxed shadow-sm">"{selectedArticle.quote}"</p>
                         </div>
                     )}
                 </div>
-                <div className="flex-1 flex flex-col h-full bg-slate-900 relative">
-                    <div className="bg-slate-900 p-6 md:p-8 border-b border-slate-800 flex justify-between items-start flex-shrink-0">
+                <div className={`flex-1 flex flex-col h-full relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+                    <div className={`p-6 md:p-8 border-b flex justify-between items-start flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div>
                             <span className="inline-block px-3 py-1 bg-[#2EB0D9]/10 text-[#2EB0D9] text-xs font-bold rounded-full mb-3">{selectedArticle.category}</span>
-                            <h2 className="text-2xl md:text-4xl font-black text-white leading-tight">{selectedArticle.title}</h2>
+                            <h2 className={`text-2xl md:text-4xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
                         </div>
-                        <button onClick={() => setSelectedArticle(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors"><X size={24} className="text-slate-400" /></button>
+                        <button onClick={() => setSelectedArticle(null)} className={`p-2 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={24} /></button>
                     </div>
-                    <div className="px-6 md:px-8 pt-6 bg-slate-900 flex-shrink-0">
-                        <div className="flex gap-2 border-b border-slate-800 overflow-x-auto">
+                    <div className={`px-6 md:px-8 pt-6 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+                        <div className={`flex gap-2 border-b overflow-x-auto ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                             {selectedArticle.tabs.map((tab, idx) => (
-                                <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-6 py-3 text-sm md:text-base font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white shadow-lg shadow-[#2EB0D9]/20 translate-y-[1px]' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>{tab.title}</button>
+                                <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-6 py-3 text-sm md:text-base font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white shadow-lg shadow-[#2EB0D9]/20 translate-y-[1px]' : `${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'} hover:opacity-80`}`}>{tab.title}</button>
                             ))}
                         </div>
                     </div>
-                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto bg-slate-900">
+                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto">
                         <div className="p-6 md:p-12 min-h-full flex flex-col">
                             <div className="md:hidden mb-6 rounded-xl overflow-hidden h-48 relative flex-shrink-0">
                                 <img src={selectedArticle.imageUrl} className="w-full h-full object-cover" alt=""/>
                             </div>
-                            <div className="prose max-w-none text-slate-300 leading-relaxed text-lg md:text-xl mb-12">
+                            <div className={`prose max-w-none leading-relaxed text-lg md:text-xl mb-12 ${theme.textMain}`}>
                                 {activeTabContent.split('\n').map((paragraph, i) => (
                                     <p key={i} className="mb-4">{paragraph}</p>
                                 ))}
                             </div>
                             {relatedArticles.length > 0 && (
-                                <div className="mt-auto border-t border-slate-800 pt-8">
-                                    <h4 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <div className={`mt-auto border-t pt-8 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+                                    <h4 className={`text-xl font-bold mb-6 flex items-center gap-2 ${theme.textTitle}`}>
                                         <span className="w-1 h-6 bg-[#2EB0D9] rounded-full"></span>
                                         עוד בנושא {selectedArticle.category}
                                     </h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {relatedArticles.map(relArticle => (
-                                            <div key={relArticle.id} onClick={() => setSelectedArticle(relArticle)} className="group cursor-pointer flex gap-3 items-center bg-slate-800 p-2 rounded-lg hover:bg-slate-700 transition-colors border border-slate-700 hover:border-[#2EB0D9]/50">
+                                            <div key={relArticle.id} onClick={() => setSelectedArticle(relArticle)} className={`group cursor-pointer flex gap-3 items-center p-2 rounded-lg hover:bg-black/5 transition-colors border ${theme.cardBg} hover:border-[#2EB0D9]/50`}>
                                                 <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
                                                     <img src={relArticle.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform opacity-80 group-hover:opacity-100" alt=""/>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <h5 className="font-bold text-sm text-white leading-tight mb-1 truncate group-hover:text-[#2EB0D9] transition-colors">{relArticle.title}</h5>
-                                                    <p className="text-xs text-slate-400 line-clamp-1">לחץ לקריאה</p>
+                                                    <h5 className={`font-bold text-sm leading-tight mb-1 truncate group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{relArticle.title}</h5>
+                                                    <p className={`text-xs line-clamp-1 ${theme.textMuted}`}>לחץ לקריאה</p>
                                                 </div>
-                                                <ArrowLeft size={16} className="text-slate-500 group-hover:text-[#2EB0D9] group-hover:-translate-x-1 transition-all"/>
+                                                <ArrowLeft size={16} className={`group-hover:text-[#2EB0D9] group-hover:-translate-x-1 transition-all ${theme.textMuted}`}/>
                                             </div>
                                         ))}
                                     </div>
@@ -312,8 +330,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       {/* --- Wills Generator Modal --- */}
       {showWillsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
-             <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowWillsModal(false)}></div>
-             <div className="bg-slate-900 md:rounded-2xl shadow-2xl w-full max-w-5xl h-full md:h-[85vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border border-slate-800">
+             <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setShowWillsModal(false)}></div>
+             <div className={`md:rounded-2xl shadow-2xl w-full max-w-5xl h-full md:h-[85vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
                  <div className="hidden md:flex w-1/3 bg-black text-white flex-col justify-between p-8 relative overflow-hidden">
                      <img src="https://picsum.photos/id/452/800/1200" alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 animate-ken-burns" />
                      <div className="relative z-10">
@@ -340,26 +358,26 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                  </div>
 
                  {/* Left Side - Form Wizard */}
-                 <div className="flex-1 bg-slate-900 flex flex-col h-full">
-                     <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-                         <span className="text-sm font-bold text-slate-500">שלב {formStep + 1} מתוך 3</span>
-                         <button onClick={() => setShowWillsModal(false)} className="p-2 hover:bg-slate-800 rounded-full"><X size={24} className="text-slate-400"/></button>
+                 <div className={`flex-1 flex flex-col h-full ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+                     <div className={`p-4 border-b flex justify-between items-center ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+                         <span className={`text-sm font-bold ${theme.textMuted}`}>שלב {formStep + 1} מתוך 3</span>
+                         <button onClick={() => setShowWillsModal(false)} className={`p-2 rounded-full hover:bg-black/10 ${theme.textMuted}`}><X size={24}/></button>
                      </div>
-                     <div className="flex-1 overflow-y-auto p-8 md:p-12 text-slate-200">
+                     <div className={`flex-1 overflow-y-auto p-8 md:p-12 ${theme.textMain}`}>
                          {formStep === 0 && (
                             <div className="space-y-6 animate-fade-in">
                                <div>
-                                   <h3 className="text-2xl font-bold text-white mb-2">נתחיל בפרטים אישיים</h3>
-                                   <p className="text-slate-400">אנא מלא את פרטי המצווה</p>
+                                   <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>נתחיל בפרטים אישיים</h3>
+                                   <p className={theme.textMuted}>אנא מלא את פרטי המצווה</p>
                                </div>
                                <div className="space-y-4">
                                    <div>
-                                       <label className="block text-sm font-bold text-slate-400 mb-2">שם מלא</label>
-                                       <input type="text" className="w-full p-4 border border-slate-700 rounded-lg bg-slate-800 focus:bg-slate-700 focus:ring-2 focus:ring-[#2EB0D9] outline-none transition text-white placeholder-slate-500" value={willsData.fullName} onChange={e => setWillsData({...willsData, fullName: e.target.value})} placeholder="ישראל ישראלי" />
+                                       <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>שם מלא</label>
+                                       <input type="text" className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} value={willsData.fullName} onChange={e => setWillsData({...willsData, fullName: e.target.value})} placeholder="ישראל ישראלי" />
                                    </div>
                                    <div>
-                                       <label className="block text-sm font-bold text-slate-400 mb-2">שם בן/בת הזוג (אם יש)</label>
-                                       <input type="text" className="w-full p-4 border border-slate-700 rounded-lg bg-slate-800 focus:bg-slate-700 focus:ring-2 focus:ring-[#2EB0D9] outline-none transition text-white placeholder-slate-500" value={willsData.spouseName} onChange={e => setWillsData({...willsData, spouseName: e.target.value})} placeholder="פלונית אלמונית" />
+                                       <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>שם בן/בת הזוג (אם יש)</label>
+                                       <input type="text" className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} value={willsData.spouseName} onChange={e => setWillsData({...willsData, spouseName: e.target.value})} placeholder="פלונית אלמונית" />
                                    </div>
                                </div>
                                <Button size="lg" onClick={() => setFormStep(1)} className="w-full mt-8">המשך לשלב הבא</Button>
@@ -369,24 +387,24 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                          {formStep === 1 && (
                             <div className="space-y-6 animate-fade-in">
                                <div>
-                                   <h3 className="text-2xl font-bold text-white mb-2">היורשים והילדים</h3>
-                                   <p className="text-slate-400">מי הם היורשים החוקיים?</p>
+                                   <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>היורשים והילדים</h3>
+                                   <p className={theme.textMuted}>מי הם היורשים החוקיים?</p>
                                </div>
-                               <div className="flex items-center gap-4 bg-slate-800 p-4 rounded-lg border border-slate-700">
-                                  <label className="font-bold text-slate-300">מספר ילדים:</label>
+                               <div className={`flex items-center gap-4 p-4 rounded-lg border ${theme.cardBg}`}>
+                                  <label className={`font-bold ${theme.textTitle}`}>מספר ילדים:</label>
                                   <div className="flex items-center gap-2">
-                                      <button onClick={() => handleChildrenCountChange(Math.max(0, willsData.childrenCount - 1))} className="w-8 h-8 rounded-full bg-slate-700 border border-slate-600 hover:bg-slate-600 text-white">-</button>
-                                      <span className="w-8 text-center font-bold text-white">{willsData.childrenCount}</span>
-                                      <button onClick={() => handleChildrenCountChange(Math.min(10, willsData.childrenCount + 1))} className="w-8 h-8 rounded-full bg-slate-700 border border-slate-600 hover:bg-slate-600 text-white">+</button>
+                                      <button onClick={() => handleChildrenCountChange(Math.max(0, willsData.childrenCount - 1))} className={`w-8 h-8 rounded-full border hover:opacity-80 flex items-center justify-center ${theme.textTitle} ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-200 border-slate-300'}`}>-</button>
+                                      <span className={`w-8 text-center font-bold ${theme.textTitle}`}>{willsData.childrenCount}</span>
+                                      <button onClick={() => handleChildrenCountChange(Math.min(10, willsData.childrenCount + 1))} className={`w-8 h-8 rounded-full border hover:opacity-80 flex items-center justify-center ${theme.textTitle} ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-200 border-slate-300'}`}>+</button>
                                   </div>
                                </div>
                                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                                   {willsData.childrenNames.map((name, idx) => (
                                       <div key={idx}>
-                                          <label className="block text-xs font-bold text-slate-500 mb-1">שם הילד/ה {idx+1}</label>
+                                          <label className={`block text-xs font-bold mb-1 ${theme.textMuted}`}>שם הילד/ה {idx+1}</label>
                                           <input 
                                             placeholder={`שם מלא`} 
-                                            className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white placeholder-slate-600" 
+                                            className={`w-full p-3 border rounded-lg ${theme.inputBg}`} 
                                             value={name} 
                                             onChange={e => {
                                               const newNames = [...willsData.childrenNames];
@@ -397,7 +415,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                   ))}
                                </div>
                                <div className="flex gap-3 pt-4">
-                                 <Button variant="outline" onClick={() => setFormStep(0)} className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800">חזור</Button>
+                                 <Button variant="outline" onClick={() => setFormStep(0)} className="flex-1">חזור</Button>
                                  <Button onClick={() => setFormStep(2)} className="flex-1">המשך</Button>
                                </div>
                             </div>
@@ -409,29 +427,29 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                    <div className="w-20 h-20 bg-[#2EB0D9]/20 text-[#2EB0D9] rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce-slow border border-[#2EB0D9]/30">
                                       {isSubmittingWill ? <Loader2 size={40} className="animate-spin"/> : <FileCheck size={40} />}
                                    </div>
-                                   <h3 className="text-2xl font-bold text-white">הצוואה מוכנה להפקה!</h3>
-                                   <p className="text-slate-400 max-w-sm mx-auto mt-2">כדי לקבל את מסמך הצוואה הרשמי ולאשר אותו, אנא מלא את פרטי ההתקשרות הסופיים.</p>
+                                   <h3 className={`text-2xl font-bold ${theme.textTitle}`}>הצוואה מוכנה להפקה!</h3>
+                                   <p className={`max-w-sm mx-auto mt-2 ${theme.textMuted}`}>כדי לקבל את מסמך הצוואה הרשמי ולאשר אותו, אנא מלא את פרטי ההתקשרות הסופיים.</p>
                                </div>
-                               <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
-                                   <h4 className="font-bold border-b border-slate-700 pb-2 mb-2 text-slate-200">טופס פרטי קשר וסיום</h4>
+                               <div className={`p-6 rounded-xl border space-y-4 ${theme.cardBg}`}>
+                                   <h4 className={`font-bold border-b pb-2 mb-2 ${theme.textTitle} ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>טופס פרטי קשר וסיום</h4>
                                    <div>
-                                       <label className="block text-sm font-bold text-slate-400 mb-1">טלפון נייד</label>
-                                       <input type="tel" className="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white" value={willsData.contactPhone} onChange={e => setWillsData({...willsData, contactPhone: e.target.value})} placeholder="050-0000000"/>
+                                       <label className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>טלפון נייד</label>
+                                       <input type="tel" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactPhone} onChange={e => setWillsData({...willsData, contactPhone: e.target.value})} placeholder="050-0000000"/>
                                    </div>
                                    <div>
-                                       <label className="block text-sm font-bold text-slate-400 mb-1">דואר אלקטרוני (לשליחת המסמך)</label>
-                                       <input type="email" className="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white" value={willsData.contactEmail} onChange={e => setWillsData({...willsData, contactEmail: e.target.value})} placeholder="name@example.com"/>
+                                       <label className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>דואר אלקטרוני (לשליחת המסמך)</label>
+                                       <input type="email" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactEmail} onChange={e => setWillsData({...willsData, contactEmail: e.target.value})} placeholder="name@example.com"/>
                                    </div>
                                </div>
                                <div className="flex gap-3 mt-auto">
-                                   <Button variant="outline" onClick={() => setFormStep(1)} className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800" disabled={isSubmittingWill}>חזור</Button>
+                                   <Button variant="outline" onClick={() => setFormStep(1)} className="flex-1" disabled={isSubmittingWill}>חזור</Button>
                                    <Button 
                                     variant="secondary" 
                                     onClick={handleRealWillsSubmit} 
                                     className="flex-[2] font-bold text-lg"
                                     disabled={isSubmittingWill}
                                    >
-                                       {isSubmittingWill ? 'שולח נתונים...' : 'שלח וקבל צוואה'}
+                                       {isSubmittingWill ? 'הורד צוואה למחשב' : 'הורד צוואה למחשב'}
                                    </Button>
                                </div>
                             </div>
@@ -445,34 +463,34 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       {/* --- Team Member Modal --- */}
       {selectedTeamMember && (
          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
-             <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setSelectedTeamMember(null)}></div>
-             <div className="bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border border-slate-800">
+             <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setSelectedTeamMember(null)}></div>
+             <div className={`rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
                  <button onClick={() => setSelectedTeamMember(null)} className="absolute top-4 left-4 z-20 p-2 bg-black/50 rounded-full hover:bg-black/70 text-white"><X size={20} /></button>
                  
                  <div className="md:w-2/5 h-64 md:h-auto relative">
                      <img src={selectedTeamMember.imageUrl} alt={selectedTeamMember.fullName} className="w-full h-full object-cover animate-ken-burns opacity-90" />
                  </div>
-                 <div className="md:w-3/5 p-8 flex flex-col justify-center text-slate-200">
+                 <div className={`md:w-3/5 p-8 flex flex-col justify-center ${theme.textMain}`}>
                      <span className="text-[#2EB0D9] font-bold text-sm mb-1">{selectedTeamMember.role}</span>
-                     <h2 className="text-3xl font-black text-white mb-2">{selectedTeamMember.fullName}</h2>
+                     <h2 className={`text-3xl font-black mb-2 ${theme.textTitle}`}>{selectedTeamMember.fullName}</h2>
                      <div className="w-16 h-1 bg-[#2EB0D9] mb-6"></div>
                      
-                     <div className="space-y-4 mb-8">
-                         <div className="flex items-center gap-3 text-slate-400">
+                     <div className={`space-y-4 mb-8 ${theme.textMuted}`}>
+                         <div className="flex items-center gap-3">
                              <Briefcase size={18} className="text-[#2EB0D9]"/>
                              <span>{selectedTeamMember.specialization}</span>
                          </div>
-                         <div className="flex items-center gap-3 text-slate-400">
+                         <div className="flex items-center gap-3">
                              <Mail size={18} className="text-[#2EB0D9]"/>
                              <span>{selectedTeamMember.email}</span>
                          </div>
-                         <div className="flex items-center gap-3 text-slate-400">
+                         <div className="flex items-center gap-3">
                              <Phone size={18} className="text-[#2EB0D9]"/>
                              <span>{selectedTeamMember.phone}</span>
                          </div>
                      </div>
                      
-                     <p className="text-slate-300 leading-relaxed text-sm bg-slate-800 p-4 rounded-lg border border-slate-700">
+                     <p className={`leading-relaxed text-sm p-4 rounded-lg border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
                          {selectedTeamMember.bio}
                      </p>
                  </div>
@@ -481,13 +499,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       )}
 
       {/* --- Header --- */}
-      <header className="fixed top-0 left-0 right-0 bg-slate-950/90 backdrop-blur-md shadow-lg shadow-black/20 z-40 h-20 transition-all border-b border-slate-800">
+      <header className={`fixed top-0 left-0 right-0 backdrop-blur-md shadow-lg z-40 h-20 transition-all border-b ${theme.headerBg}`}>
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Header Text Logo */}
-            <h1 className="text-lg md:text-xl font-black text-white tracking-wide cursor-pointer font-serif leading-none" onClick={() => onCategoryChange(Category.HOME)}>
+            <h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer font-serif leading-none" onClick={() => onCategoryChange(Category.HOME)}>
                <span className="block text-[#2EB0D9]">MOR ERAN KAGAN</span>
-               <span className="text-slate-400 text-sm tracking-widest font-sans font-normal">& CO</span>
+               <span className={`${theme.textMuted} text-sm tracking-widest font-sans font-normal`}>& CO</span>
             </h1>
           </div>
 
@@ -497,29 +515,29 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
               <button 
                 key={item.id} 
                 onClick={() => onCategoryChange(item.cat)}
-                className={`text-sm font-medium transition-colors hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-400'}`}
+                className={`text-sm font-medium transition-colors hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : theme.textMuted}`}
               >
                 {item.label}
               </button>
             ))}
-            <div className="w-px h-6 bg-slate-800 mx-2"></div>
-            <button className="text-slate-400 hover:text-[#2EB0D9]"><Search size={20}/></button>
+            <div className={`w-px h-6 mx-2 ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
+            <button className={`${theme.textMuted} hover:text-[#2EB0D9]`}><Search size={20}/></button>
           </nav>
 
           {/* Mobile Menu Toggle */}
-          <button className="md:hidden text-slate-200" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button className={`md:hidden ${theme.textTitle}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
 
         {/* Mobile Nav Dropdown */}
         {mobileMenuOpen && (
-           <div className="md:hidden absolute top-20 left-0 w-full bg-slate-900 shadow-xl border-t border-slate-800 p-4 flex flex-col gap-4 animate-fade-in-up">
+           <div className={`md:hidden absolute top-20 left-0 w-full shadow-xl border-t p-4 flex flex-col gap-4 animate-fade-in-up ${theme.modalBg}`}>
               {state.menuItems.map(item => (
                 <button 
                     key={item.id}
                     onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }}
-                    className="text-right p-2 hover:bg-slate-800 rounded-lg text-slate-300 font-medium"
+                    className={`text-right p-2 rounded-lg font-medium hover:bg-black/5 ${theme.textMain}`}
                 >
                     {item.label}
                 </button>
@@ -539,7 +557,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
               <img 
                 src={state.config.logoUrl} 
                 alt="Logo" 
-                className="h-48 w-auto object-contain drop-shadow-2xl" 
+                className="h-28 w-auto object-contain drop-shadow-2xl" 
                 style={{ filter: "drop-shadow(0 10px 8px rgb(0 0 0 / 0.8))" }}
               />
           </div>
@@ -587,15 +605,15 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
         {/* TEAM SECTION (HOME ONLY) - With Reveal */}
         {state.currentCategory === Category.HOME && (
-            <Reveal className="py-12 bg-slate-900/80 backdrop-blur-sm relative -mt-8 z-10 container mx-auto px-4">
-                 <div className="bg-slate-900 shadow-xl rounded-xl p-8 border border-slate-800">
+            <Reveal className={`py-12 relative -mt-8 z-10 container mx-auto px-4 ${isDark ? 'bg-slate-900/80' : 'bg-white/80'} backdrop-blur-sm rounded-t-xl`}>
+                 <div className={`shadow-xl rounded-xl p-8 border ${theme.cardBg}`}>
                      <div className="flex justify-between items-center mb-8">
                         {/* New Styled Title */}
-                        <SectionTitle title="הנבחרת שלנו" />
+                        <SectionTitle title="הנבחרת שלנו" isDark={isDark} />
                         
                         <div className="flex gap-2">
-                            <button onClick={() => scrollContainer(teamScrollRef, 'right')} className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"><ChevronRight size={20}/></button>
-                            <button onClick={() => scrollContainer(teamScrollRef, 'left')} className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"><ChevronLeft size={20}/></button>
+                            <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={20}/></button>
+                            <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={20}/></button>
                         </div>
                      </div>
                      
@@ -607,7 +625,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              <div 
                                 key={member.id} 
                                 onClick={() => setSelectedTeamMember(member)}
-                                className="flex-shrink-0 w-[85vw] md:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer bg-slate-800 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all hover:-translate-y-1 border border-slate-700 hover:border-[#2EB0D9]/50"
+                                className={`flex-shrink-0 w-[85vw] md:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-md transition-all hover:-translate-y-1 border ${theme.cardBg} ${theme.cardHover}`}
                              >
                                  <div className="h-64 w-full overflow-hidden">
                                      {/* Added animation class here + Grayscale Logic */}
@@ -618,8 +636,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                      />
                                  </div>
                                  <div className="p-5 text-center">
-                                     <h4 className="font-bold text-xl text-white group-hover:text-[#2EB0D9] transition-colors">{member.fullName}</h4>
-                                     <p className="text-sm text-slate-400 font-medium">{member.role}</p>
+                                     <h4 className={`font-bold text-xl group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{member.fullName}</h4>
+                                     <p className={`text-sm font-medium ${theme.textMuted}`}>{member.role}</p>
                                  </div>
                              </div>
                          ))}
@@ -633,13 +651,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         )}
 
         {/* TIMELINE (SCROLLABLE) - RESTORED TO CARD STYLE WITHOUT TOP IMAGES */}
-        <Reveal className="py-12 relative border-b border-slate-900" delay={200}>
+        <Reveal className={`py-12 relative border-b ${isDark ? 'border-slate-900' : 'border-slate-100'}`} delay={200}>
            <div className="container mx-auto px-4 mb-6 flex justify-between items-end">
-              <SectionTitle title={state.currentCategory === Category.HOME ? 'חדשות ועדכונים' : 'מדריכים ומידע מקצועי'} />
+              <SectionTitle title={state.currentCategory === Category.HOME ? 'חדשות ועדכונים' : 'מדריכים ומידע מקצועי'} isDark={isDark} />
               
               <div className="flex gap-2">
-                  <button onClick={() => scrollContainer(timelineScrollRef, 'right')} className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 shadow"><ChevronRight size={20}/></button>
-                  <button onClick={() => scrollContainer(timelineScrollRef, 'left')} className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 shadow"><ChevronLeft size={20}/></button>
+                  <button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={20}/></button>
+                  <button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={20}/></button>
               </div>
            </div>
            
@@ -665,10 +683,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                       // Apply varied colored backgrounds for generator cards, clean style for others
                       const bgClass = isGenerator 
                         ? `bg-gradient-to-br ${selectedGradient} text-white shadow-lg shadow-cyan-500/10` 
-                        : 'bg-slate-900 border-slate-800 border text-slate-200 hover:bg-slate-800';
+                        : `${theme.cardBg} border ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`;
                       
-                      const textClass = isGenerator ? 'text-white' : 'text-white';
-                      const descClass = isGenerator ? 'text-white/90' : 'text-slate-400';
+                      const textClass = isGenerator ? 'text-white' : theme.textTitle;
+                      const descClass = isGenerator ? 'text-white/90' : theme.textMuted;
 
                       return (
                           <div 
@@ -679,7 +697,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                           >
                               <div className="p-6 flex flex-col h-full relative">
                                   {/* Icon - Positioned absolutely or in flow */}
-                                   <div className={`absolute top-4 left-4 p-2 rounded-full ${isGenerator ? 'bg-white/20' : 'bg-slate-800 text-[#2EB0D9]'}`}>
+                                   <div className={`absolute top-4 left-4 p-2 rounded-full ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>
                                       {isGenerator ? <FileText size={24} className="text-white"/> : <ArrowLeft size={24} className=""/>}
                                    </div>
 
@@ -709,21 +727,21 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
               
               {/* --- DYNAMIC FORM RENDERER --- */}
               {currentDynamicForm && (
-                  <div ref={dynamicFormRef} className="mb-16 bg-slate-900 rounded-2xl p-8 md:p-12 shadow-lg border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b border-slate-800">
+                  <div ref={dynamicFormRef} className={`mb-16 rounded-2xl p-8 md:p-12 shadow-lg border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
                        <div className="max-w-2xl mx-auto">
                            <div className="flex justify-between items-start mb-6">
                                 <div>
-                                    <h3 className="text-2xl font-bold text-white mb-2">{currentDynamicForm.title}</h3>
-                                    <p className="text-slate-400">נא למלא את כל השדות הנדרשים</p>
+                                    <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3>
+                                    <p className={theme.textMuted}>נא למלא את כל השדות הנדרשים</p>
                                 </div>
-                                <button onClick={() => setActiveDynamicFormId(null)} className="text-slate-500 hover:text-slate-300"><X/></button>
+                                <button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X/></button>
                            </div>
 
-                           <div className="space-y-6 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-sm">
+                           <div className={`space-y-6 p-6 rounded-xl border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                                {currentDynamicForm.fields.map(field => (
                                    <div key={field.id} className="space-y-2">
                                        <div className="flex items-center gap-2">
-                                           <label className="block text-sm font-bold text-slate-300">
+                                           <label className={`block text-sm font-bold ${theme.textMuted}`}>
                                                {field.label} {field.required && <span className="text-red-400">*</span>}
                                            </label>
                                            {field.helpArticleId && (
@@ -744,7 +762,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                        {field.type === 'text' && (
                                            <input 
                                              type="text" 
-                                             className="w-full p-3 border border-slate-600 rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition bg-slate-900 text-white placeholder-slate-500" 
+                                             className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} 
                                              value={dynamicFormValues[field.id] || ''}
                                              onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}
                                            />
@@ -752,7 +770,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                        
                                        {field.type === 'boolean' && (
                                            <div className="flex gap-4">
-                                               <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                                               <label className={`flex items-center gap-2 cursor-pointer ${theme.textMain}`}>
                                                    <input 
                                                      type="radio" 
                                                      name={field.id} 
@@ -760,7 +778,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                                      onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: true})}
                                                    /> כן
                                                </label>
-                                               <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                                               <label className={`flex items-center gap-2 cursor-pointer ${theme.textMain}`}>
                                                    <input 
                                                      type="radio" 
                                                      name={field.id} 
@@ -773,7 +791,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
                                        {field.type === 'select' && (
                                            <select 
-                                              className="w-full p-3 border border-slate-600 rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition bg-slate-900 text-white"
+                                              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`}
                                               value={dynamicFormValues[field.id] || ''}
                                               onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}
                                            >
@@ -783,12 +801,12 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                        )}
 
                                        {field.type === 'repeater' && (
-                                           <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
+                                           <div className={`p-4 rounded-lg border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                                                <div className="space-y-2 mb-2">
                                                    {(dynamicFormValues[field.id] || []).map((val: string, i: number) => (
                                                        <div key={i} className="flex gap-2">
                                                            <input 
-                                                             className="flex-1 p-2 border border-slate-600 rounded text-sm bg-slate-800 text-white" 
+                                                             className={`flex-1 p-2 border rounded text-sm ${theme.inputBg}`} 
                                                              value={val}
                                                              onChange={(e) => {
                                                                  const newArr = [...(dynamicFormValues[field.id] || [])];
@@ -802,7 +820,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                                <Button size="sm" variant="outline" onClick={() => {
                                                    const newArr = [...(dynamicFormValues[field.id] || []), ''];
                                                    setDynamicFormValues({...dynamicFormValues, [field.id]: newArr});
-                                               }} className="text-slate-300 border-slate-600 hover:bg-slate-800">+ הוסף שורה</Button>
+                                               }} className="">+ הוסף שורה</Button>
                                            </div>
                                        )}
                                    </div>
@@ -821,10 +839,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
               {/* Articles Grid / Carousel */}
               <Reveal delay={300}>
                   <div className="flex items-center justify-between mb-8">
-                     <SectionTitle title="מאמרים נבחרים" />
+                     <SectionTitle title="מאמרים נבחרים" isDark={isDark} />
                      <div className="flex gap-2">
-                         <button onClick={() => scrollContainer(articlesScrollRef, 'right')} className="p-2 border border-slate-700 rounded-full hover:bg-slate-800 text-slate-400 bg-slate-900"><ChevronRight size={20}/></button>
-                         <button onClick={() => scrollContainer(articlesScrollRef, 'left')} className="p-2 border border-slate-700 rounded-full hover:bg-slate-800 text-slate-400 bg-slate-900"><ChevronLeft size={20}/></button>
+                         <button onClick={() => scrollContainer(articlesScrollRef, 'right')} className={`p-2 border rounded-full hover:opacity-80 ${theme.cardBg} ${theme.textMuted} ${theme.border}`}><ChevronRight size={20}/></button>
+                         <button onClick={() => scrollContainer(articlesScrollRef, 'left')} className={`p-2 border rounded-full hover:opacity-80 ${theme.cardBg} ${theme.textMuted} ${theme.border}`}><ChevronLeft size={20}/></button>
                      </div>
                   </div>
 
@@ -844,7 +862,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                         </div>
                      ))}
                      {currentArticles.length === 0 && (
-                         <div className="w-full text-center py-12 text-slate-500 bg-slate-900 rounded-xl border border-slate-800">
+                         <div className={`w-full text-center py-12 rounded-xl border ${theme.cardBg} ${theme.textMuted}`}>
                              אין מאמרים להצגה בקטגוריה זו.
                          </div>
                      )}

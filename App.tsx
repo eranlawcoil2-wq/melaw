@@ -147,7 +147,8 @@ const App: React.FC = () => {
         willsEmail: 'wills@melaw.co.il',
         poaEmail: 'poa@melaw.co.il',
         phone: '03-1234567',
-        address: 'דרך מנחם בגין 144, תל אביב'
+        address: 'דרך מנחם בגין 144, תל אביב',
+        theme: 'dark' // DEFAULT THEME
     },
     slides: initialSlides,
     timelines: initialTimelines,

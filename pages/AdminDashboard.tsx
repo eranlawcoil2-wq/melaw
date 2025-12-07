@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
-import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -723,13 +723,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* --- Config Tab (NEW) --- */}
+        {/* --- Config Tab (Updated with Theme Selector) --- */}
         {activeTab === 'config' && (
             <div className="space-y-6">
                 <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800 max-w-2xl">
                     <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-white"><Monitor/> הגדרות כלליות לאתר</h3>
                     
                     <div className="space-y-6">
+                         {/* --- THEME SELECTOR --- */}
+                        <div className="border-b border-slate-800 pb-6 mb-6">
+                            <label className="block text-sm font-bold mb-3 text-slate-400">ערכת נושא (עיצוב)</label>
+                            <div className="flex gap-4">
+                                <button 
+                                    onClick={() => updateState({ config: { ...state.config, theme: 'dark' }})}
+                                    className={`flex-1 p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${state.config.theme === 'dark' ? 'border-[#2EB0D9] bg-slate-800' : 'border-slate-700 hover:bg-slate-800'}`}
+                                >
+                                    <Moon size={24} className={state.config.theme === 'dark' ? 'text-[#2EB0D9]' : 'text-slate-400'} />
+                                    <span className={state.config.theme === 'dark' ? 'text-white font-bold' : 'text-slate-400'}>עיצוב כהה (ברירת מחדל)</span>
+                                </button>
+                                <button 
+                                    onClick={() => updateState({ config: { ...state.config, theme: 'light' }})}
+                                    className={`flex-1 p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${state.config.theme === 'light' ? 'border-[#2EB0D9] bg-white text-slate-900' : 'border-slate-700 hover:bg-slate-800'}`}
+                                >
+                                    <Sun size={24} className={state.config.theme === 'light' ? 'text-orange-500' : 'text-slate-400'} />
+                                    <span className={state.config.theme === 'light' ? 'text-slate-900 font-bold' : 'text-slate-400'}>עיצוב בהיר</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <div>
                              <label className="block text-sm font-bold mb-2 text-slate-400">שם המשרד (יופיע בלוגו)</label>
                              <input 
