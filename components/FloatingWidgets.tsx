@@ -57,28 +57,28 @@ export const FloatingWidgets: React.FC = () => {
 
       {/* Accessibility Panel */}
       {showAccess && (
-        <div className="absolute bottom-16 left-0 w-64 bg-white rounded-lg shadow-2xl p-4 border border-slate-200 animate-fade-in-up">
+        <div className="absolute bottom-16 left-0 w-64 bg-slate-900 rounded-lg shadow-2xl p-4 border border-slate-700 animate-fade-in-up">
             <div className="flex justify-between items-center mb-2">
-                <h3 className="font-bold text-slate-800">נגישות</h3>
-                <button onClick={() => setShowAccess(false)}><X size={18} /></button>
+                <h3 className="font-bold text-white">נגישות</h3>
+                <button onClick={() => setShowAccess(false)} className="text-slate-400 hover:text-white"><X size={18} /></button>
             </div>
-            <p className="text-xs text-slate-500 mb-4">הצהרת נגישות: אתר זה מותאם לקוראי מסך ותומך בניווט מקלדת.</p>
+            <p className="text-xs text-slate-400 mb-4">הצהרת נגישות: אתר זה מותאם לקוראי מסך ותומך בניווט מקלדת.</p>
             <div className="space-y-2">
                 <button 
                     onClick={handleLargeText}
-                    className={`w-full text-right text-sm p-2 rounded flex items-center gap-2 ${largeText ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-50 text-slate-700'}`}
+                    className={`w-full text-right text-sm p-2 rounded flex items-center gap-2 ${largeText ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-800 text-slate-300'}`}
                 >
                     <Type size={16} /> הגדל טקסט
                 </button>
                 <button 
                     onClick={handleHighContrast}
-                    className={`w-full text-right text-sm p-2 rounded flex items-center gap-2 ${highContrast ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-50 text-slate-700'}`}
+                    className={`w-full text-right text-sm p-2 rounded flex items-center gap-2 ${highContrast ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-800 text-slate-300'}`}
                 >
                     <Eye size={16} /> ניגודיות גבוהה
                 </button>
                 <button 
                     onClick={handleStopAnimations}
-                    className={`w-full text-right text-sm p-2 rounded flex items-center gap-2 ${stopAnimations ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-50 text-slate-700'}`}
+                    className={`w-full text-right text-sm p-2 rounded flex items-center gap-2 ${stopAnimations ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-800 text-slate-300'}`}
                 >
                     <PauseCircle size={16} /> עצור אנימציות
                 </button>

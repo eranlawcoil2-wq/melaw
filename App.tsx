@@ -182,20 +182,20 @@ const App: React.FC = () => {
   // --- Admin Login Modal ---
   if (!appState.isAdminLoggedIn && isAdminView) {
       return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4" dir="rtl">
-            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
-                <h2 className="text-2xl font-bold mb-6 text-center text-slate-800">כניסה למערכת ניהול</h2>
+        <div className="min-h-screen bg-black flex items-center justify-center p-4" dir="rtl">
+            <div className="bg-slate-900 p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-800 animate-fade-in-up">
+                <h2 className="text-2xl font-bold mb-6 text-center text-white">כניסה למערכת ניהול</h2>
                 <input 
                     type="email" 
                     placeholder="אימייל מנהל" 
-                    className="w-full p-3 border rounded mb-4" 
+                    className="w-full p-3 border border-slate-700 rounded mb-4 bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9] outline-none" 
                     value={loginEmail}
                     onChange={e => setLoginEmail(e.target.value)}
                 />
                 <input 
                     type="password" 
                     placeholder="סיסמא" 
-                    className="w-full p-3 border rounded mb-6" 
+                    className="w-full p-3 border border-slate-700 rounded mb-6 bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9] outline-none" 
                     value={loginPass}
                     onChange={e => setLoginPass(e.target.value)}
                 />
@@ -207,11 +207,11 @@ const App: React.FC = () => {
                             alert("פרטי התחברות שגויים (דמו: הזן כל מייל וסיסמא)");
                         }
                     }}
-                    className="w-full bg-[#2EB0D9] text-white py-3 rounded font-bold hover:bg-[#259cc0] transition"
+                    className="w-full bg-[#2EB0D9] text-white py-3 rounded font-bold hover:bg-[#259cc0] transition shadow-lg shadow-[#2EB0D9]/20"
                 >
                     התחבר
                 </button>
-                <button onClick={() => setIsAdminView(false)} className="w-full mt-4 text-slate-500 text-sm">חזרה לאתר</button>
+                <button onClick={() => setIsAdminView(false)} className="w-full mt-4 text-slate-500 hover:text-white text-sm transition-colors">חזרה לאתר</button>
             </div>
         </div>
       );
