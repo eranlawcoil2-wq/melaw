@@ -3,7 +3,8 @@ import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember 
 import { Button } from '../components/Button.tsx';
 import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
-import { Search, Phone, MapPin, Mail, Menu, X, Check, ArrowLeft, Navigation, FileText, Quote, Lock, Settings, Briefcase, User, ArrowRight, ChevronLeft, ChevronRight, FileCheck, HelpCircle } from 'lucide-react';
+import { emailService, storeService } from '../services/api.ts'; // IMPORT SERVICES
+import { Search, Phone, MapPin, Mail, Menu, X, Check, ArrowLeft, Navigation, FileText, Quote, Lock, Settings, Briefcase, User, ArrowRight, ChevronLeft, ChevronRight, FileCheck, HelpCircle, Loader2, ShoppingBag } from 'lucide-react';
 
 // --- Scroll Reveal Helper Component ---
 const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = "", delay = 0 }) => {
@@ -55,6 +56,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   // Modal State
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showWillsModal, setShowWillsModal] = useState(false); 
+  const [isSubmittingWill, setIsSubmittingWill] = useState(false); // Loading state
   const [activeArticleTab, setActiveArticleTab] = useState(0); 
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
 
@@ -132,6 +134,25 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
     }));
   };
   
+  // Handle Wills Submission with Real Service
+  const handleRealWillsSubmit = async () => {
+      setIsSubmittingWill(true);
+      try {
+          // Use the centralized email service
+          await emailService.sendWillsForm(willsData);
+          // Also call the parent prop for App state update
+          onWillsFormSubmit(willsData);
+          
+          alert("טופס נשלח בהצלחה! מסמך PDF ישלח למייל שלך."); 
+          setShowWillsModal(false);
+          setFormStep(0);
+      } catch (error) {
+          alert("אירעה שגיאה בשליחת הטופס, אנא נסה שנית.");
+      } finally {
+          setIsSubmittingWill(false);
+      }
+  };
+
   const currentDynamicForm = state.forms.find(f => f.id === activeDynamicFormId);
   const activeTabContent = selectedArticle?.tabs?.[activeArticleTab]?.content || "";
   
@@ -139,6 +160,76 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
     ? state.articles.filter(a => a.category === selectedArticle.category && a.id !== selectedArticle.id).slice(0, 3)
     : [];
 
+  // --- STORE VIEW RENDERER ---
+  if (state.currentCategory === Category.STORE) {
+      const products = storeService.getProducts();
+      return (
+          <div className="min-h-screen bg-slate-950 pt-24 pb-12 px-4">
+              {/* Reuse Header logic for consistency */}
+              <header className="fixed top-0 left-0 right-0 bg-slate-950/90 backdrop-blur-md shadow-lg shadow-black/20 z-40 h-20 transition-all border-b border-slate-800">
+                <div className="container mx-auto px-4 h-full flex items-center justify-between">
+                  <h1 className="text-lg md:text-xl font-black text-white tracking-wide cursor-pointer font-serif leading-none" onClick={() => onCategoryChange(Category.HOME)}>
+                       <span className="block text-[#2EB0D9]">MOR ERAN KAGAN</span>
+                       <span className="text-slate-400 text-sm tracking-widest font-sans font-normal">& CO</span>
+                  </h1>
+                  <nav className="hidden md:flex items-center gap-6">
+                    {state.menuItems.map(item => (
+                      <button key={item.id} onClick={() => onCategoryChange(item.cat)} className={`text-sm font-medium transition-colors hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-400'}`}>
+                        {item.label}
+                      </button>
+                    ))}
+                  </nav>
+                  <button className="md:hidden text-slate-200" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}</button>
+                </div>
+                {mobileMenuOpen && (
+                   <div className="md:hidden absolute top-20 left-0 w-full bg-slate-900 shadow-xl border-t border-slate-800 p-4 flex flex-col gap-4 animate-fade-in-up">
+                      {state.menuItems.map(item => (
+                        <button key={item.id} onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }} className="text-right p-2 hover:bg-slate-800 rounded-lg text-slate-300 font-medium">{item.label}</button>
+                      ))}
+                   </div>
+                )}
+              </header>
+
+              <div className="container mx-auto max-w-6xl animate-fade-in-up">
+                  <div className="text-center mb-16">
+                      <div className="inline-block p-4 bg-[#2EB0D9]/10 rounded-full mb-4 border border-[#2EB0D9]/30">
+                          <ShoppingBag size={48} className="text-[#2EB0D9]" />
+                      </div>
+                      <h2 className="text-4xl font-black text-white mb-4">החנות המשפטית</h2>
+                      <p className="text-xl text-slate-400 max-w-2xl mx-auto">רכשו שירותים משפטיים ומוצרים דיגיטליים בצורה מאובטחת, מהירה ונגישה.</p>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-8">
+                      {products.map(product => (
+                          <div key={product.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-[#2EB0D9]/50 transition-all hover:-translate-y-2 hover:shadow-2xl shadow-black/50 group">
+                              <div className="h-48 bg-slate-800 flex items-center justify-center relative overflow-hidden">
+                                  <div className="absolute inset-0 bg-[#2EB0D9]/5 group-hover:bg-[#2EB0D9]/10 transition-colors"></div>
+                                  <FileText size={64} className="text-slate-600 group-hover:text-[#2EB0D9] transition-colors duration-500 transform group-hover:scale-110"/>
+                              </div>
+                              <div className="p-8">
+                                  <div className="mb-4">
+                                      <span className="text-xs font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-1 rounded border border-[#2EB0D9]/20">{product.category}</span>
+                                  </div>
+                                  <h3 className="text-2xl font-bold text-white mb-2">{product.title}</h3>
+                                  <p className="text-slate-400 mb-6 text-sm">המוצר כולל ליווי ראשוני, הכנת מסמכים והגשה לגורמים הרלוונטיים.</p>
+                                  <div className="flex items-center justify-between mt-auto">
+                                      <span className="text-3xl font-black text-white">₪{product.price}</span>
+                                      <Button onClick={() => {
+                                          alert(`מעבר לעמוד תשלום מאובטח עבור: ${product.title}`);
+                                          // storeService.createCheckoutSession(product.id).then(url => window.location.href = url);
+                                      }} className="px-6">רכוש כעת</Button>
+                                  </div>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+              <FloatingWidgets />
+          </div>
+      );
+  }
+
+  // --- REGULAR SITE RENDER ---
   return (
     <div className="min-h-screen flex flex-col font-sans relative bg-slate-950 text-slate-200 overflow-x-hidden selection:bg-[#2EB0D9] selection:text-white">
       
@@ -316,7 +407,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             <div className="space-y-6 animate-fade-in flex flex-col h-full justify-center">
                                <div className="text-center mb-6">
                                    <div className="w-20 h-20 bg-[#2EB0D9]/20 text-[#2EB0D9] rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce-slow border border-[#2EB0D9]/30">
-                                      <FileCheck size={40} />
+                                      {isSubmittingWill ? <Loader2 size={40} className="animate-spin"/> : <FileCheck size={40} />}
                                    </div>
                                    <h3 className="text-2xl font-bold text-white">הצוואה מוכנה להפקה!</h3>
                                    <p className="text-slate-400 max-w-sm mx-auto mt-2">כדי לקבל את מסמך הצוואה הרשמי ולאשר אותו, אנא מלא את פרטי ההתקשרות הסופיים.</p>
@@ -333,18 +424,14 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                    </div>
                                </div>
                                <div className="flex gap-3 mt-auto">
-                                   <Button variant="outline" onClick={() => setFormStep(1)} className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800">חזור</Button>
+                                   <Button variant="outline" onClick={() => setFormStep(1)} className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800" disabled={isSubmittingWill}>חזור</Button>
                                    <Button 
                                     variant="secondary" 
-                                    onClick={() => { 
-                                        onWillsFormSubmit(willsData); 
-                                        alert("טופס נשלח בהצלחה! מסמך PDF ישלח למייל שלך."); 
-                                        setShowWillsModal(false);
-                                        setFormStep(0); 
-                                    }} 
+                                    onClick={handleRealWillsSubmit} 
                                     className="flex-[2] font-bold text-lg"
+                                    disabled={isSubmittingWill}
                                    >
-                                       שלח וקבל צוואה
+                                       {isSubmittingWill ? 'שולח נתונים...' : 'שלח וקבל צוואה'}
                                    </Button>
                                </div>
                             </div>
