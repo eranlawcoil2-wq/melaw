@@ -262,7 +262,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             <div className="space-y-4">
                                 <label className="block text-sm font-bold text-slate-700">תוכן הטאבים (פסקאות)</label>
                                 {editingArticle.tabs.map((tab, idx) => (
-                                    <div key={idx} className="border p-3 rounded bg-slate-50">
+                                    <div key={idx} className="border p-3 rounded bg-slate-50 relative group">
+                                        <button 
+                                            onClick={() => {
+                                                if(confirm('למחוק טאב זה?')) {
+                                                    const newTabs = editingArticle.tabs.filter((_, i) => i !== idx);
+                                                    setEditingArticle({...editingArticle, tabs: newTabs});
+                                                }
+                                            }}
+                                            className="absolute top-2 left-2 p-1.5 text-red-500 hover:bg-red-50 rounded-full opacity-50 group-hover:opacity-100 transition-opacity"
+                                            title="מחק טאב"
+                                        >
+                                            <Trash size={16} />
+                                        </button>
                                         <input 
                                             type="text" 
                                             className="w-full p-1 border-b mb-2 bg-transparent font-bold text-base text-[#2EB0D9]" 
@@ -272,9 +284,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                                 newTabs[idx].title = e.target.value;
                                                 setEditingArticle({...editingArticle, tabs: newTabs});
                                             }}
+                                            placeholder="כותרת הטאב"
                                         />
                                         <textarea 
-                                            rows={12} 
+                                            rows={8} 
                                             className="w-full p-3 border bg-white rounded text-base font-sans leading-relaxed" 
                                             value={tab.content}
                                             onChange={(e) => {
@@ -282,9 +295,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                                 newTabs[idx].content = e.target.value;
                                                 setEditingArticle({...editingArticle, tabs: newTabs});
                                             }}
+                                            placeholder="תוכן הטאב..."
                                         />
                                     </div>
                                 ))}
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => setEditingArticle({
+                                        ...editingArticle,
+                                        tabs: [...editingArticle.tabs, { title: 'טאב חדש', content: '' }]
+                                    })}
+                                    className="w-full border-dashed border-2"
+                                >
+                                    <Plus size={16} className="ml-2" /> הוסף טאב
+                                </Button>
                             </div>
                        </div>
                        <div className="mt-6 flex justify-end gap-2">
@@ -745,137 +770,4 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                     type="text" 
                                     className="w-full p-3 border rounded-lg bg-slate-50" 
                                     value={state.config.address} 
-                                    onChange={e => updateState({ config: { ...state.config, address: e.target.value }})}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="border-t pt-6">
-                            <h4 className="font-bold mb-4">כתובות אימייל למערכת</h4>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm text-slate-600 mb-1">אימייל ראשי (צור קשר)</label>
-                                    <input 
-                                        type="email" 
-                                        className="w-full p-2 border rounded bg-slate-50" 
-                                        value={state.config.contactEmail} 
-                                        onChange={e => updateState({ config: { ...state.config, contactEmail: e.target.value }})}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-600 mb-1">אימייל לצוואות</label>
-                                    <input 
-                                        type="email" 
-                                        className="w-full p-2 border rounded bg-slate-50" 
-                                        value={state.config.willsEmail} 
-                                        onChange={e => updateState({ config: { ...state.config, willsEmail: e.target.value }})}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-600 mb-1">אימייל לייפוי כוח</label>
-                                    <input 
-                                        type="email" 
-                                        className="w-full p-2 border rounded bg-slate-50" 
-                                        value={state.config.poaEmail} 
-                                        onChange={e => updateState({ config: { ...state.config, poaEmail: e.target.value }})}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end pt-4">
-                            <Button className="w-full md:w-auto" onClick={() => alert('ההגדרות נשמרו בהצלחה!')}>
-                                <Save size={18} className="ml-2"/> שמור הגדרות
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* --- Team Management Tab --- */}
-        {activeTab === 'team' && (
-             // ... Team Content (No Change) ...
-             <div className="space-y-8">
-                 {editingMember ? (
-                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold flex items-center gap-2 text-[#2EB0D9]"><Users size={20}/> {editingMember.fullName ? 'עריכת איש צוות' : 'הוספת איש צוות'}</h3>
-                            <button onClick={() => setEditingMember(null)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button>
-                         </div>
-                         <div className="grid md:grid-cols-2 gap-6">
-                             <div>
-                                 <label className="block text-sm font-medium mb-1">שם מלא</label>
-                                 <input type="text" className="w-full p-2 border rounded" value={editingMember.fullName} onChange={e => setEditingMember({...editingMember, fullName: e.target.value})} />
-                             </div>
-                             <div>
-                                 <label className="block text-sm font-medium mb-1">תפקיד</label>
-                                 <input type="text" className="w-full p-2 border rounded" value={editingMember.role} onChange={e => setEditingMember({...editingMember, role: e.target.value})} />
-                             </div>
-                             <div>
-                                 <label className="block text-sm font-medium mb-1">התמחות</label>
-                                 <input type="text" className="w-full p-2 border rounded" value={editingMember.specialization} onChange={e => setEditingMember({...editingMember, specialization: e.target.value})} />
-                             </div>
-                             <div>
-                                 <label className="block text-sm font-medium mb-1">טלפון</label>
-                                 <input type="text" className="w-full p-2 border rounded" value={editingMember.phone} onChange={e => setEditingMember({...editingMember, phone: e.target.value})} />
-                             </div>
-                             <div>
-                                 <label className="block text-sm font-medium mb-1">אימייל</label>
-                                 <input type="text" className="w-full p-2 border rounded" value={editingMember.email} onChange={e => setEditingMember({...editingMember, email: e.target.value})} />
-                             </div>
-                             <div>
-                                 <label className="block text-sm font-medium mb-1">קישור לתמונה</label>
-                                 <div className="flex gap-2">
-                                    <input type="text" className="w-full p-2 border rounded" value={editingMember.imageUrl} onChange={e => setEditingMember({...editingMember, imageUrl: e.target.value})} />
-                                    <img src={editingMember.imageUrl} alt="" className="w-10 h-10 rounded-full object-cover border" />
-                                 </div>
-                             </div>
-                             <div className="md:col-span-2">
-                                 <label className="block text-sm font-medium mb-1">ביוגרפיה (יוצג בחלונית קופצת)</label>
-                                 <textarea rows={4} className="w-full p-2 border rounded" value={editingMember.bio} onChange={e => setEditingMember({...editingMember, bio: e.target.value})} />
-                             </div>
-                         </div>
-                         <div className="mt-6 flex justify-end gap-2">
-                             <Button variant="outline" onClick={() => setEditingMember(null)}>ביטול</Button>
-                             <Button onClick={handleSaveMember}>שמור שינויים</Button>
-                         </div>
-                     </div>
-                 ) : (
-                     <div>
-                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-slate-800">צוות המשרד</h3>
-                            <Button onClick={() => setEditingMember({
-                                id: Date.now().toString(),
-                                fullName: '', role: '', specialization: '', email: '', phone: '', imageUrl: 'https://picsum.photos/400/400', bio: ''
-                            })}>
-                                <Plus size={18} className="ml-2"/> הוסף איש צוות
-                            </Button>
-                         </div>
-                         <div className="grid md:grid-cols-2 gap-4">
-                             {state.teamMembers.map(member => (
-                                 <div key={member.id} className="bg-white p-4 rounded-xl border flex gap-4 items-center">
-                                     <img src={member.imageUrl} alt={member.fullName} className="w-16 h-16 rounded-full object-cover" />
-                                     <div className="flex-1">
-                                         <h4 className="font-bold">{member.fullName}</h4>
-                                         <p className="text-sm text-slate-500">{member.role}</p>
-                                     </div>
-                                     <div className="flex gap-2">
-                                         <button onClick={() => setEditingMember(member)} className="p-2 text-blue-600 hover:bg-blue-50 rounded"><Edit size={18}/></button>
-                                         <button onClick={() => {
-                                             if(confirm('למחוק איש צוות זה?')) {
-                                                 updateState({ teamMembers: state.teamMembers.filter(m => m.id !== member.id) });
-                                             }
-                                         }} className="p-2 text-red-600 hover:bg-red-50 rounded"><Trash size={18}/></button>
-                                     </div>
-                                 </div>
-                             ))}
-                         </div>
-                     </div>
-                 )}
-             </div>
-        )}
-      </main>
-    </div>
-  );
-};
+                                    onChange
