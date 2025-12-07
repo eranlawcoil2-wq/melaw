@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType } from '../types.ts';
+import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
-import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -11,8 +11,11 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'config' | 'articles' | 'timelines' | 'forms'>('articles');
+  const [activeTab, setActiveTab] = useState<'config' | 'articles' | 'timelines' | 'forms' | 'team'>('articles');
   
+  // Timeline/Slider Sub-tab
+  const [timelineSubTab, setTimelineSubTab] = useState<'slider' | 'cards'>('slider');
+
   // Global Admin State
   const [selectedCategory, setSelectedCategory] = useState<Category>(Category.WILLS);
 
@@ -23,6 +26,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
   // Forms State
   const [editingForm, setEditingForm] = useState<FormDefinition | null>(null);
+
+  // Team State
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+
+  // Slider State
+  const [editingSlide, setEditingSlide] = useState<SliderSlide | null>(null);
 
   // Generate Article (AI)
   const handleGenerateArticle = async () => {
@@ -100,12 +109,55 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       setEditingForm({ ...editingForm, fields: newFields });
   };
 
-  const filteredTimelines = state.timelines.filter(t => t.category.includes(selectedCategory));
+  const handleSaveMember = () => {
+      if (!editingMember) return;
+      const exists = state.teamMembers.find(m => m.id === editingMember.id);
+      let newMembers;
+      if (exists) {
+          newMembers = state.teamMembers.map(m => m.id === editingMember.id ? editingMember : m);
+      } else {
+          newMembers = [...state.teamMembers, editingMember];
+      }
+      updateState({ teamMembers: newMembers });
+      setEditingMember(null);
+  };
+
+  const handleSaveSlide = () => {
+      if (!editingSlide) return;
+      const exists = state.slides.find(s => s.id === editingSlide.id);
+      let newSlides;
+      if (exists) {
+          newSlides = state.slides.map(s => s.id === editingSlide.id ? editingSlide : s);
+      } else {
+          newSlides = [...state.slides, editingSlide];
+      }
+      updateState({ slides: newSlides });
+      setEditingSlide(null);
+  };
+
+  // Helper to toggle category in timeline item
+  const toggleTimelineCategory = (itemId: string, category: Category) => {
+      const item = state.timelines.find(t => t.id === itemId);
+      if (!item) return;
+
+      let newCategories;
+      if (item.category.includes(category)) {
+          newCategories = item.category.filter(c => c !== category);
+      } else {
+          newCategories = [...item.category, category];
+      }
+      
+      const newTimelines = state.timelines.map(t => t.id === itemId ? { ...t, category: newCategories } : t);
+      updateState({ timelines: newTimelines });
+  };
+
+  // Filter for display in "Timelines" tab (Cards view)
+  const filteredTimelines = state.timelines; 
 
   return (
     <div className="min-h-screen bg-slate-100 flex font-sans">
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 text-white flex flex-col fixed h-full right-0">
+      <aside className="w-64 bg-slate-900 text-white flex flex-col fixed h-full right-0 z-50">
         <div className="p-6">
           <h2 className="text-2xl font-bold"><span className="text-[#2EB0D9]">Me</span>Law Admin</h2>
         </div>
@@ -119,6 +171,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
           <button onClick={() => setActiveTab('forms')} className={`w-full flex items-center gap-3 p-3 rounded transition-colors ${activeTab === 'forms' ? 'bg-[#2EB0D9]' : 'hover:bg-slate-800'}`}>
             <ClipboardList size={20} /> ניהול טפסים
           </button>
+          <button onClick={() => setActiveTab('team')} className={`w-full flex items-center gap-3 p-3 rounded transition-colors ${activeTab === 'team' ? 'bg-[#2EB0D9]' : 'hover:bg-slate-800'}`}>
+            <Users size={20} /> ניהול צוות
+          </button>
           <button onClick={() => setActiveTab('config')} className={`w-full flex items-center gap-3 p-3 rounded transition-colors ${activeTab === 'config' ? 'bg-[#2EB0D9]' : 'hover:bg-slate-800'}`}>
             <Settings size={20} /> הגדרות אתר ותפריט
           </button>
@@ -131,30 +186,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       {/* Main Content */}
       <main className="flex-1 mr-64 p-8 overflow-y-auto min-h-screen">
         
-        {/* Global Category Selector Header */}
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-8 flex items-center justify-between sticky top-0 z-20 border border-slate-200">
-             <div className="flex items-center gap-4">
-                <span className="font-bold text-slate-700 text-lg">אזור עריכה:</span>
-                <select 
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value as Category)}
-                    className="p-2 border-2 border-[#2EB0D9]/20 rounded-lg text-[#2EB0D9] font-bold focus:outline-none focus:border-[#2EB0D9] bg-slate-50"
-                >
-                    {Object.values(Category).map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                </select>
-             </div>
-             <div className="text-slate-400 text-sm">
-                מציג תכנים עבור: <b>{selectedCategory}</b>
-             </div>
-        </div>
+        {/* Global Category Selector Header (Only for Articles/Forms where filtering is primary) */}
+        {activeTab === 'articles' || activeTab === 'forms' ? (
+            <div className="bg-white p-4 rounded-xl shadow-sm mb-8 flex items-center justify-between sticky top-0 z-20 border border-slate-200">
+                <div className="flex items-center gap-4">
+                    <span className="font-bold text-slate-700 text-lg">אזור עריכה:</span>
+                    <select 
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value as Category)}
+                        className="p-2 border-2 border-[#2EB0D9]/20 rounded-lg text-[#2EB0D9] font-bold focus:outline-none focus:border-[#2EB0D9] bg-slate-50 font-sans"
+                    >
+                        {Object.values(Category).map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="text-slate-400 text-sm">
+                    מציג תכנים עבור: <b>{selectedCategory}</b>
+                </div>
+            </div>
+        ) : null}
         
         {/* --- Articles Tab --- */}
         {activeTab === 'articles' && (
-          <div className="space-y-8 animate-fade-in">
-             
-             {/* Create/Edit Area */}
+          <div className="space-y-6 animate-fade-in">
+             {/* ... Articles Content ... */}
              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 {editingArticle ? (
                    /* Edit Mode */
@@ -167,35 +223,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                        <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">כותרת המאמר</label>
-                                    <input type="text" className="w-full p-2 border rounded" value={editingArticle.title} onChange={e => setEditingArticle({...editingArticle, title: e.target.value})} />
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">כותרת המאמר</label>
+                                    <input type="text" className="w-full p-2 border rounded font-sans text-lg font-bold" value={editingArticle.title} onChange={e => setEditingArticle({...editingArticle, title: e.target.value})} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">תקציר</label>
-                                    <textarea rows={3} className="w-full p-2 border rounded" value={editingArticle.abstract} onChange={e => setEditingArticle({...editingArticle, abstract: e.target.value})} />
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">תקציר</label>
+                                    <textarea rows={4} className="w-full p-2 border rounded font-sans" value={editingArticle.abstract} onChange={e => setEditingArticle({...editingArticle, abstract: e.target.value})} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">קישור לתמונה (URL)</label>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">קישור לתמונה (URL)</label>
                                     <div className="flex gap-2">
-                                        <input type="text" className="w-full p-2 border rounded" value={editingArticle.imageUrl} onChange={e => setEditingArticle({...editingArticle, imageUrl: e.target.value})} />
+                                        <input type="text" className="w-full p-2 border rounded font-sans" value={editingArticle.imageUrl} onChange={e => setEditingArticle({...editingArticle, imageUrl: e.target.value})} />
                                         <div className="w-10 h-10 bg-slate-100 rounded overflow-hidden flex-shrink-0">
                                             <img src={editingArticle.imageUrl} className="w-full h-full object-cover" alt="" />
                                         </div>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">ציטוט</label>
-                                    <input type="text" className="w-full p-2 border rounded" value={editingArticle.quote || ''} onChange={e => setEditingArticle({...editingArticle, quote: e.target.value})} />
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">ציטוט</label>
+                                    <input type="text" className="w-full p-2 border rounded font-sans" value={editingArticle.quote || ''} onChange={e => setEditingArticle({...editingArticle, quote: e.target.value})} />
                                 </div>
                             </div>
                             
                             <div className="space-y-4">
-                                <label className="block text-sm font-medium">תוכן הטאבים (פסקאות)</label>
+                                <label className="block text-sm font-bold text-slate-700">תוכן הטאבים (פסקאות)</label>
                                 {editingArticle.tabs.map((tab, idx) => (
                                     <div key={idx} className="border p-3 rounded bg-slate-50">
                                         <input 
                                             type="text" 
-                                            className="w-full p-1 border-b mb-2 bg-transparent font-bold" 
+                                            className="w-full p-1 border-b mb-2 bg-transparent font-bold text-base text-[#2EB0D9]" 
                                             value={tab.title} 
                                             onChange={(e) => {
                                                 const newTabs = [...editingArticle.tabs];
@@ -204,8 +260,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                             }}
                                         />
                                         <textarea 
-                                            rows={3} 
-                                            className="w-full p-1 border bg-white rounded text-sm" 
+                                            rows={12} 
+                                            className="w-full p-3 border bg-white rounded text-base font-sans leading-relaxed" 
                                             value={tab.content}
                                             onChange={(e) => {
                                                 const newTabs = [...editingArticle.tabs];
@@ -225,27 +281,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 ) : (
                    /* Create Mode (AI) */
                    <div>
-                       <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Sparkles className="text-[#2EB0D9]"/> יצירת מאמר חדש עם AI</h3>
-                       <div className="flex gap-4 items-end">
+                       <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-800"><Sparkles className="text-[#2EB0D9]"/> יצירת מאמר חדש עם AI GENERATOR</h3>
+                       <div className="flex flex-col md:flex-row gap-4 items-stretch">
                            <div className="flex-1">
-                                <label className="block text-sm font-medium text-slate-700 mb-1">נושא המאמר (ייווצר בקטגוריה: {selectedCategory})</label>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">נושא המאמר (ייווצר בקטגוריה: {selectedCategory})</label>
                                 <input 
                                     type="text" 
                                     value={newArticleTopic}
                                     onChange={(e) => setNewArticleTopic(e.target.value)}
-                                    placeholder="לדוגמא: טיפים לרכישת דירה מקבלן" 
-                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-[#2EB0D9] outline-none"
+                                    placeholder="לדוגמא: 5 טיפים חשובים לפני חתימה על חוזה לרכישת דירה" 
+                                    className="w-full p-4 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-[#2EB0D9] focus:border-[#2EB0D9] outline-none text-xl font-bold text-slate-800 placeholder-slate-300"
                                 />
                            </div>
-                           <Button onClick={handleGenerateArticle} disabled={isGenerating || !newArticleTopic} className="w-48">
-                                {isGenerating ? <><Loader2 className="animate-spin mr-2"/> יוצר...</> : 'צור מאמר'}
+                           <Button size="lg" onClick={handleGenerateArticle} disabled={isGenerating || !newArticleTopic} className="md:w-64 flex-shrink-0 self-end h-[60px] text-lg">
+                                {isGenerating ? <><Loader2 className="animate-spin mr-2"/> מייצר תוכן...</> : <><Sparkles className="mr-2" size={20}/> צור מאמר אוטומטי</>}
                            </Button>
                        </div>
                    </div>
                 )}
              </div>
 
-             {/* Articles List */}
              <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
                 <div className="p-4 border-b bg-slate-50 font-bold text-slate-700">מאמרים קיימים ({selectedCategory})</div>
                 <table className="w-full text-right">
@@ -254,7 +309,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                          <th className="p-4 w-20">תמונה</th>
                          <th className="p-4">כותרת</th>
                          <th className="p-4">תקציר</th>
-                         <th className="p-4 w-32">פעולות</th>
+                         <th className="p-4 w-48">פעולות</th>
                       </tr>
                    </thead>
                    <tbody>
@@ -263,10 +318,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             <td className="p-4">
                                 <img src={article.imageUrl} alt="" className="w-12 h-12 rounded object-cover border" />
                             </td>
-                            <td className="p-4 font-medium">{article.title}</td>
+                            <td className="p-4 font-bold text-slate-800">{article.title}</td>
                             <td className="p-4 text-sm text-slate-500 max-w-xs truncate">{article.abstract}</td>
                             <td className="p-4">
                                <div className="flex gap-2">
+                                   <button 
+                                     onClick={() => {
+                                        navigator.clipboard.writeText(article.id);
+                                        alert('מזהה הועתק: ' + article.id);
+                                     }}
+                                     className="p-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded flex items-center gap-1 text-xs"
+                                     title="העתק מזהה לקישור בטפסים"
+                                   >
+                                     <Copy size={14} /> העתק מזהה
+                                   </button>
                                    <button 
                                      onClick={() => setEditingArticle(article)}
                                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
@@ -300,6 +365,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
         {/* --- Forms Management Tab --- */}
         {activeTab === 'forms' && (
+           // ... Forms Content ... 
             <div className="space-y-8 animate-fade-in">
                 {editingForm ? (
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
@@ -353,6 +419,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                                </div>
                                            )}
                                             
+                                           <div className="md:col-span-2">
+                                               <label className="text-xs text-slate-500 flex items-center gap-1"><HelpCircle size={10}/> מזהה מאמר להסבר (אופציונלי)</label>
+                                               <input 
+                                                  type="text" 
+                                                  className="w-full p-2 border rounded font-mono text-sm" 
+                                                  value={field.helpArticleId || ''} 
+                                                  onChange={e => updateFormField(idx, { helpArticleId: e.target.value })}
+                                                  placeholder="הדבק כאן מזהה מאמר"
+                                               />
+                                           </div>
+
                                            <div className="flex items-center gap-2">
                                                <input type="checkbox" checked={field.required} onChange={e => updateFormField(idx, { required: e.target.checked })} />
                                                <label className="text-sm">שדה חובה</label>
@@ -438,173 +515,88 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* --- Timelines Tab --- */}
-        {activeTab === 'timelines' && (
-           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 animate-fade-in">
-              <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold">ניהול כרטיסי טיים-ליין עבור {selectedCategory}</h3>
-                  <span className="text-sm bg-[#2EB0D9]/10 text-[#2EB0D9] px-3 py-1 rounded-full">מציג רק כרטיסים ששייכים לקטגוריה הנבחרת</span>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                 {filteredTimelines.map(item => (
-                    <div key={item.id} className="border p-4 rounded-lg relative group bg-white hover:shadow-md transition-shadow">
-                        <div className="relative h-40 mb-3 bg-slate-100 rounded overflow-hidden group/img">
-                            <img src={item.imageUrl} className="w-full h-full object-cover" alt=""/>
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center p-4">
-                                <div className="w-full">
-                                    <label className="text-white text-xs mb-1 block">כתובת תמונה URL</label>
-                                    <input 
-                                        type="text" 
-                                        value={item.imageUrl}
-                                        className="w-full p-1 text-xs text-black rounded"
-                                        onChange={(e) => {
-                                             const newTimelines = state.timelines.map(t => t.id === item.id ? { ...t, imageUrl: e.target.value } : t);
-                                             updateState({ timelines: newTimelines });
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 uppercase">כותרת</label>
-                            <input type="text" value={item.title} className="font-bold w-full p-2 border rounded focus:border-[#2EB0D9] outline-none bg-slate-50" onChange={(e) => {
-                                 const newTimelines = state.timelines.map(t => t.id === item.id ? { ...t, title: e.target.value } : t);
-                                 updateState({ timelines: newTimelines });
-                            }} />
-                            
-                            <label className="text-xs font-bold text-slate-500 uppercase">תיאור</label>
-                            <textarea value={item.description} rows={3} className="w-full text-sm resize-none p-2 border rounded focus:border-[#2EB0D9] outline-none bg-slate-50" onChange={(e) => {
-                                 const newTimelines = state.timelines.map(t => t.id === item.id ? { ...t, description: e.target.value } : t);
-                                 updateState({ timelines: newTimelines });
-                            }} />
-
-                            <div className="flex justify-between items-center">
-                                <label className="text-xs font-bold text-slate-500 uppercase">קישור</label>
-                                <span className="text-[10px] text-slate-400">הדבק כאן מזהה טופס (form-id)</span>
-                            </div>
-                            <input type="text" value={item.linkTo || ''} placeholder="wills-generator / http... / form-123" className="w-full text-sm p-2 border rounded focus:border-[#2EB0D9] outline-none bg-slate-50" onChange={(e) => {
-                                 const newTimelines = state.timelines.map(t => t.id === item.id ? { ...t, linkTo: e.target.value } : t);
-                                 updateState({ timelines: newTimelines });
-                            }} />
-                        </div>
-                        
-                        <div className="mt-4 pt-4 border-t flex justify-end">
-                             <button 
-                                onClick={() => {
-                                    if(confirm('למחוק כרטיס זה?')) {
-                                        updateState({ timelines: state.timelines.filter(t => t.id !== item.id) });
-                                    }
-                                }}
-                                className="text-red-500 hover:text-red-700 text-sm flex items-center gap-1"
-                             >
-                                <Trash size={14}/> מחק כרטיס
-                             </button>
-                        </div>
-                    </div>
-                 ))}
-                 
-                 {/* Add New Timeline Card */}
-                 <div className="border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center p-6 text-slate-400 cursor-pointer hover:border-[#2EB0D9] hover:text-[#2EB0D9] transition-colors bg-slate-50 min-h-[300px]" onClick={() => {
-                     const newItem: TimelineItem = {
-                         id: Date.now().toString(),
-                         title: "פריט חדש",
-                         description: "תיאור הפריט כאן...",
-                         imageUrl: "https://picsum.photos/400/300",
-                         category: [selectedCategory, Category.HOME] // Add to current + Home by default
-                     };
-                     updateState({ timelines: [...state.timelines, newItem] });
-                 }}>
-                    <Plus size={48} className="mb-2" />
-                    <span className="font-bold">הוסף כרטיס ל-{selectedCategory}</span>
-                 </div>
-              </div>
-           </div>
+        {/* --- Team Management Tab --- */}
+        {activeTab === 'team' && (
+             // ... Team Content (No Change) ...
+             <div className="space-y-8 animate-fade-in">
+                 {editingMember ? (
+                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                         <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold flex items-center gap-2 text-[#2EB0D9]"><Users size={20}/> {editingMember.fullName ? 'עריכת איש צוות' : 'הוספת איש צוות'}</h3>
+                            <button onClick={() => setEditingMember(null)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button>
+                         </div>
+                         <div className="grid md:grid-cols-2 gap-6">
+                             <div>
+                                 <label className="block text-sm font-medium mb-1">שם מלא</label>
+                                 <input type="text" className="w-full p-2 border rounded" value={editingMember.fullName} onChange={e => setEditingMember({...editingMember, fullName: e.target.value})} />
+                             </div>
+                             <div>
+                                 <label className="block text-sm font-medium mb-1">תפקיד</label>
+                                 <input type="text" className="w-full p-2 border rounded" value={editingMember.role} onChange={e => setEditingMember({...editingMember, role: e.target.value})} />
+                             </div>
+                             <div>
+                                 <label className="block text-sm font-medium mb-1">התמחות</label>
+                                 <input type="text" className="w-full p-2 border rounded" value={editingMember.specialization} onChange={e => setEditingMember({...editingMember, specialization: e.target.value})} />
+                             </div>
+                             <div>
+                                 <label className="block text-sm font-medium mb-1">טלפון</label>
+                                 <input type="text" className="w-full p-2 border rounded" value={editingMember.phone} onChange={e => setEditingMember({...editingMember, phone: e.target.value})} />
+                             </div>
+                             <div>
+                                 <label className="block text-sm font-medium mb-1">אימייל</label>
+                                 <input type="text" className="w-full p-2 border rounded" value={editingMember.email} onChange={e => setEditingMember({...editingMember, email: e.target.value})} />
+                             </div>
+                             <div>
+                                 <label className="block text-sm font-medium mb-1">קישור לתמונה</label>
+                                 <div className="flex gap-2">
+                                    <input type="text" className="w-full p-2 border rounded" value={editingMember.imageUrl} onChange={e => setEditingMember({...editingMember, imageUrl: e.target.value})} />
+                                    <img src={editingMember.imageUrl} alt="" className="w-10 h-10 rounded-full object-cover border" />
+                                 </div>
+                             </div>
+                             <div className="md:col-span-2">
+                                 <label className="block text-sm font-medium mb-1">ביוגרפיה (יוצג בחלונית קופצת)</label>
+                                 <textarea rows={4} className="w-full p-2 border rounded" value={editingMember.bio} onChange={e => setEditingMember({...editingMember, bio: e.target.value})} />
+                             </div>
+                         </div>
+                         <div className="mt-6 flex justify-end gap-2">
+                             <Button variant="outline" onClick={() => setEditingMember(null)}>ביטול</Button>
+                             <Button onClick={handleSaveMember}>שמור שינויים</Button>
+                         </div>
+                     </div>
+                 ) : (
+                     <div>
+                         <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-slate-800">צוות המשרד</h3>
+                            <Button onClick={() => setEditingMember({
+                                id: Date.now().toString(),
+                                fullName: '', role: '', specialization: '', email: '', phone: '', imageUrl: 'https://picsum.photos/400/400', bio: ''
+                            })}>
+                                <Plus size={18} className="ml-2"/> הוסף איש צוות
+                            </Button>
+                         </div>
+                         <div className="grid md:grid-cols-2 gap-4">
+                             {state.teamMembers.map(member => (
+                                 <div key={member.id} className="bg-white p-4 rounded-xl border flex gap-4 items-center">
+                                     <img src={member.imageUrl} alt={member.fullName} className="w-16 h-16 rounded-full object-cover" />
+                                     <div className="flex-1">
+                                         <h4 className="font-bold">{member.fullName}</h4>
+                                         <p className="text-sm text-slate-500">{member.role}</p>
+                                     </div>
+                                     <div className="flex gap-2">
+                                         <button onClick={() => setEditingMember(member)} className="p-2 text-blue-600 hover:bg-blue-50 rounded"><Edit size={18}/></button>
+                                         <button onClick={() => {
+                                             if(confirm('למחוק איש צוות זה?')) {
+                                                 updateState({ teamMembers: state.teamMembers.filter(m => m.id !== member.id) });
+                                             }
+                                         }} className="p-2 text-red-600 hover:bg-red-50 rounded"><Trash size={18}/></button>
+                                     </div>
+                                 </div>
+                             ))}
+                         </div>
+                     </div>
+                 )}
+             </div>
         )}
-
-        {/* --- Config Tab --- */}
-        {activeTab === 'config' && (
-           <div className="grid lg:grid-cols-2 gap-8 animate-fade-in">
-               {/* General Settings */}
-               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
-                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Settings size={20}/> הגדרות כלליות</h3>
-                  <div className="space-y-4">
-                     <div>
-                        <label className="block text-sm font-medium mb-1">שם המשרד</label>
-                        <input type="text" value={state.config.officeName} onChange={e => updateState({ config: { ...state.config, officeName: e.target.value } })} className="w-full p-2 border rounded"/>
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium mb-1">אימייל ראשי (צור קשר)</label>
-                        <input type="email" value={state.config.contactEmail} onChange={e => updateState({ config: { ...state.config, contactEmail: e.target.value } })} className="w-full p-2 border rounded"/>
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium mb-1">אימייל לצוואות</label>
-                        <input type="email" value={state.config.willsEmail} onChange={e => updateState({ config: { ...state.config, willsEmail: e.target.value } })} className="w-full p-2 border rounded"/>
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium mb-1">טלפון</label>
-                        <input type="text" value={state.config.phone} onChange={e => updateState({ config: { ...state.config, phone: e.target.value } })} className="w-full p-2 border rounded"/>
-                     </div>
-                  </div>
-               </div>
-
-               {/* Menu Management */}
-               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
-                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Layout size={20}/> ניהול תפריט עליון</h3>
-                  <div className="space-y-3">
-                      {state.menuItems.map((item, index) => (
-                          <div key={item.id} className="flex gap-2 items-center">
-                              <span className="text-slate-400 text-sm font-mono w-6">{index + 1}.</span>
-                              <input 
-                                type="text" 
-                                value={item.label} 
-                                className="flex-1 p-2 border rounded"
-                                onChange={(e) => {
-                                    const newMenu = state.menuItems.map(m => m.id === item.id ? { ...m, label: e.target.value } : m);
-                                    updateState({ menuItems: newMenu });
-                                }}
-                              />
-                              <select 
-                                value={item.cat}
-                                onChange={(e) => {
-                                    const newMenu = state.menuItems.map(m => m.id === item.id ? { ...m, cat: e.target.value as Category } : m);
-                                    updateState({ menuItems: newMenu });
-                                }}
-                                className="p-2 border rounded bg-white"
-                              >
-                                  {Object.values(Category).map(cat => (
-                                      <option key={cat} value={cat}>{cat}</option>
-                                  ))}
-                              </select>
-                              <button 
-                                onClick={() => {
-                                    if(state.menuItems.length > 1) {
-                                        updateState({ menuItems: state.menuItems.filter(m => m.id !== item.id) });
-                                    } else {
-                                        alert("חייב להישאר לפחות פריט אחד בתפריט");
-                                    }
-                                }}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded"
-                              >
-                                  <X size={18} />
-                              </button>
-                          </div>
-                      ))}
-                      <button 
-                        onClick={() => {
-                            const newItem: MenuItem = { id: Date.now().toString(), label: 'פריט חדש', cat: Category.HOME };
-                            updateState({ menuItems: [...state.menuItems, newItem] });
-                        }}
-                        className="w-full py-2 border-2 border-dashed border-slate-300 rounded text-slate-500 hover:border-[#2EB0D9] hover:text-[#2EB0D9] font-medium mt-4"
-                      >
-                          + הוסף פריט לתפריט
-                      </button>
-                  </div>
-               </div>
-           </div>
-        )}
-
       </main>
     </div>
   );

@@ -41,6 +41,17 @@ export interface Article {
   tabs: ArticleTab[];
 }
 
+export interface TeamMember {
+  id: string;
+  fullName: string;
+  role: string; // e.g., "Founder & Partner"
+  specialization: string;
+  email: string;
+  phone: string;
+  imageUrl: string;
+  bio: string;
+}
+
 export interface WillsFormData {
   fullName: string;
   spouseName: string;
@@ -77,6 +88,7 @@ export interface FormField {
     label: string;
     options?: string[]; // For 'select' type
     required: boolean;
+    helpArticleId?: string; // Optional: Link to an article ID for explanation popup
 }
 
 export interface FormDefinition {
@@ -96,6 +108,7 @@ export interface AppState {
   articles: Article[];
   menuItems: MenuItem[];
   forms: FormDefinition[];
+  teamMembers: TeamMember[];
   // Simple auth simulation
   isAdminLoggedIn: boolean;
 }

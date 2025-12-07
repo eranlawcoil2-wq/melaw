@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PublicSite } from './pages/PublicSite.tsx';
 import { AdminDashboard } from './pages/AdminDashboard.tsx';
-import { AppState, Category, WillsFormData, FormDefinition } from './types.ts';
+import { AppState, Category, WillsFormData, FormDefinition, TeamMember } from './types.ts';
 
 // Mock Initial Data
 const initialArticles = [
@@ -13,9 +13,9 @@ const initialArticles = [
     imageUrl: 'https://picsum.photos/id/1015/800/600',
     quote: 'הצוואה היא המצפן של רצונך האחרון',
     tabs: [
-        { title: 'החוק בישראל', content: 'סעיף 8א לחוק הירושה קובע את הכללים לגבי צוואות הדדיות. החידוש העיקרי הוא ההגבלה על יכולת הביטול החד-צדדית של הצוואה לאחר מות אחד מבני הזוג.' },
-        { title: 'יתרונות', content: 'הבטחת עתידו הכלכלי של בן הזוג הנותר בחיים ומניעת סכסוכים משפחתיים עתידיים על ידי קביעה ברורה של חלוקת הרכוש.' },
-        { title: 'סיכונים', content: 'קושי בשינוי הצוואה בעתיד אם הנסיבות משתנות, במיוחד לאחר פטירת אחד מבני הזוג.' }
+        { title: 'החוק בישראל', content: 'סעיף 8א לחוק הירושה קובע את הכללים לגבי צוואות הדדיות. החידוש העיקרי הוא ההגבלה על יכולת הביטול החד-צדדית של הצוואה לאחר מות אחד מבני הזוג. החוק נועד לאזן בין רצון המצווה לבין הסתמכות בן הזוג.' },
+        { title: 'יתרונות', content: 'הבטחת עתידו הכלכלי של בן הזוג הנותר בחיים ומניעת סכסוכים משפחתיים עתידיים על ידי קביעה ברורה של חלוקת הרכוש. זה מעניק שקט נפשי רב לשני הצדדים.' },
+        { title: 'סיכונים', content: 'קושי בשינוי הצוואה בעתיד אם הנסיבות משתנות, במיוחד לאחר פטירת אחד מבני הזוג. יש צורך בפרוצדורה מורכבת של ביטול והודעה בכתב.' }
     ]
   },
   {
@@ -25,18 +25,41 @@ const initialArticles = [
     abstract: 'רכישת דירה היא העסקה הגדולה בחייו של אדם. הבנת היבטי המיסוי יכולה לחסוך עשרות אלפי שקלים.',
     imageUrl: 'https://picsum.photos/id/1031/800/600',
     tabs: [
-        { title: 'מס רכישה', content: 'דירה יחידה עד סכום מסוים פטורה ממס רכישה. מעל הסכום, ישנן מדרגות מס מדורגות.' },
-        { title: 'טיפים', content: 'בדקו תמיד זכאות להנחות נוספות (עולה חדש, נכה) לפני הדיווח לרשויות המס.' }
+        { title: 'מס רכישה', content: 'דירה יחידה עד סכום מסוים פטורה ממס רכישה. מעל הסכום, ישנן מדרגות מס מדורגות המתעדכנות מדי שנה על ידי רשות המיסים.' },
+        { title: 'טיפים', content: 'בדקו תמיד זכאות להנחות נוספות (עולה חדש, נכה) לפני הדיווח לרשויות המס. תכנון מס נכון יכול לחסוך הון.' }
     ]
+  },
+  {
+      id: '3',
+      category: Category.WILLS,
+      title: 'יפוי כוח מתמשך - למה זה חשוב?',
+      abstract: 'הכלי המשפטי שמאפשר לכם לקבוע מי יטפל בענייניכם אם חלילה לא תוכלו לעשות זאת בעצמכם.',
+      imageUrl: 'https://picsum.photos/id/1016/800/600',
+      tabs: [
+          { title: 'מה זה?', content: 'מסמך משפטי המאפשר לאדם בגיר למנות מיופה כוח שיהיה מוסמך לקבל החלטות בעניינו אם יאבד את כשירותו.' },
+          { title: 'התהליך', content: 'חתימה בפני עורך דין שעבר הכשרה מיוחדת, והפקדת המסמך אצל האפוטרופוס הכללי.' }
+      ]
+  },
+  {
+      id: '4',
+      category: Category.REAL_ESTATE,
+      title: 'הסכם ממון - לא רק לעשירים',
+      abstract: 'כיצד הסכם ממון יכול למנוע סכסוכים ולהגן על נכסים שנצברו לפני הנישואין.',
+      imageUrl: 'https://picsum.photos/id/1005/800/600',
+      tabs: [
+          { title: 'מתי עושים?', content: 'מומלץ לערוך הסכם לפני הנישואין או המעבר למגורים משותפים, אך ניתן גם לאחר מכן.' },
+          { title: 'אישור', content: 'ההסכם חייב לקבל אישור של בית משפט או נוטריון (לפני הנישואין) כדי שיהיה לו תוקף משפטי מחייב.' }
+      ]
   }
 ];
 
 const initialTimelines = [
-    { id: 'gen-wills', title: 'מחולל הצוואות הדיגיטלי', description: 'ערכו צוואה תקפה משפטית ב-5 דקות ללא עלות ראשונית. נסו עכשיו.', imageUrl: 'https://picsum.photos/id/452/400/300', category: [Category.HOME, Category.WILLS], linkTo: 'wills-generator' },
+    { id: 'gen-wills', title: 'מחולל הצוואות הדיגיטלי', description: 'ערכו צוואה תקפה משפטית ב-5 דקות ללא עלות ראשונית.', imageUrl: 'https://picsum.photos/id/452/400/300', category: [Category.HOME, Category.WILLS], linkTo: 'wills-generator' },
     { id: '1', title: 'עדכון פסיקה: ירושה', description: 'בית המשפט העליון קבע הלכה חדשה בנוגע לפרשנות צוואות שנערכו בכתב יד.', imageUrl: 'https://picsum.photos/id/106/400/300', category: [Category.HOME, Category.WILLS] },
-    { id: '2', title: 'המדריך לייפוי כוח', description: 'כל מה שצריך לדעת לפני שממנים מיופה כוח מתמשך. השלבים, העלויות והמשמעויות.', imageUrl: 'https://picsum.photos/id/109/400/300', category: [Category.HOME, Category.POA] },
+    { id: '2', title: 'המדריך לייפוי כוח', description: 'כל מה שצריך לדעת לפני שממנים מיופה כוח מתמשך.', imageUrl: 'https://picsum.photos/id/109/400/300', category: [Category.HOME, Category.POA] },
     { id: '3', title: 'מיסוי דירות מגורים', description: 'האם כדאי להעביר דירה במתנה לילדים? שיקולי מס שבח ומס רכישה.', imageUrl: 'https://picsum.photos/id/123/400/300', category: [Category.HOME, Category.REAL_ESTATE] },
     { id: '4', title: 'צו קיום צוואה', description: 'כמה זמן לוקח התהליך ומה עושים במקרה של התנגדות?', imageUrl: 'https://picsum.photos/id/133/400/300', category: [Category.WILLS] },
+    { id: '5', title: 'התנגדות לצוואה', description: 'באילו מקרים ניתן לפסול צוואה? השפעה בלתי הוגנת ומעורבות בעריכה.', imageUrl: 'https://picsum.photos/id/200/400/300', category: [Category.WILLS] },
 ];
 
 const initialSlides = [
@@ -69,14 +92,57 @@ const initialForms: FormDefinition[] = [
     }
 ];
 
+const initialTeamMembers: TeamMember[] = [
+    {
+        id: '1',
+        fullName: 'עו"ד מור כגן',
+        role: 'מייסדת ושותפה בכירה',
+        specialization: 'צוואות, ירושות וניהול הון משפחתי',
+        email: 'mor@melaw.co.il',
+        phone: '050-1111111',
+        imageUrl: 'https://picsum.photos/id/338/400/400',
+        bio: 'בעלת ותק של 15 שנה בתחום דיני המשפחה והירושה. מתמחה בפתרון סכסוכים מורכבים וגישור.'
+    },
+    {
+        id: '2',
+        fullName: 'עו"ד ערן לוי',
+        role: 'שותף - מחלקת נדל"ן',
+        specialization: 'מקרקעין, תמ"א 38 וקבוצות רכישה',
+        email: 'eran@melaw.co.il',
+        phone: '050-2222222',
+        imageUrl: 'https://picsum.photos/id/237/400/400',
+        bio: 'מומחה במיסוי מקרקעין וליווי יזמים בפרויקטים רחבי היקף. חבר בוועדת המקרקעין של לשכת עורכי הדין.'
+    },
+    {
+        id: '3',
+        fullName: 'עו"ד דנה כהן',
+        role: 'ראש תחום ייפוי כוח',
+        specialization: 'ייפוי כוח מתמשך ואפוטרופסות',
+        email: 'dana@melaw.co.il',
+        phone: '050-3333333',
+        imageUrl: 'https://picsum.photos/id/64/400/400',
+        bio: 'מוסמכת מטעם האפוטרופוס הכללי לעריכת ייפוי כוח מתמשך. בעלת גישה רגישה ואנושית ללקוחות בגיל השלישי.'
+    },
+    {
+        id: '4',
+        fullName: 'עו"ד רון שחר',
+        role: 'עורך דין בכיר - ליטיגציה',
+        specialization: 'ליטיגציה מסחרית ואזרחית',
+        email: 'ron@melaw.co.il',
+        phone: '050-4444444',
+        imageUrl: 'https://picsum.photos/id/91/400/400',
+        bio: 'מייצג לקוחות בערכאות השונות בתיקים אזרחיים מורכבים. בעל תואר שני במשפטים מאוניברסיטת תל אביב.'
+    }
+];
+
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>({
     currentCategory: Category.HOME,
     isAdminLoggedIn: false,
     config: {
         officeName: 'MOR ERAN KAGAN & CO',
-        // In a real app, replace this URL with the actual path to the logo image file
-        logoUrl: 'https://placehold.co/600x150/ffffff/000000?text=MOR+ERAN+KAGAN+%26+CO&font=playfair-display', 
+        // Updated Logo Placeholder to Wide Text Format
+        logoUrl: 'https://placehold.co/600x120/transparent/000000?text=MOR+ERAN+KAGAN+%26+CO&font=playfair-display', 
         contactEmail: 'office@melaw.co.il',
         willsEmail: 'wills@melaw.co.il',
         poaEmail: 'poa@melaw.co.il',
@@ -88,6 +154,7 @@ const App: React.FC = () => {
     articles: initialArticles,
     menuItems: initialMenuItems,
     forms: initialForms,
+    teamMembers: initialTeamMembers,
   });
 
   const [isAdminView, setIsAdminView] = useState(false);

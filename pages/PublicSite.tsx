@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppState, Article, Category, WillsFormData, FormDefinition } from '../types.ts';
+import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
-import { Search, Phone, MapPin, Mail, Menu, X, Check, ArrowLeft, ArrowRight, Navigation, FileText, Quote, Lock, Settings } from 'lucide-react';
+import { Search, Phone, MapPin, Mail, Menu, X, Check, ArrowLeft, Navigation, FileText, Quote, Lock, Settings, Briefcase, User, ArrowRight, ChevronLeft, ChevronRight, FileCheck, HelpCircle } from 'lucide-react';
 
 interface PublicSiteProps {
   state: AppState;
@@ -15,23 +15,29 @@ interface PublicSiteProps {
 export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange, onWillsFormSubmit, onAdminClick }) => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [timelineIndex, setTimelineIndex] = useState(0);
   
   // Modal State
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  
+  const [showWillsModal, setShowWillsModal] = useState(false); // New State for Wills Generator Modal
+  const [activeArticleTab, setActiveArticleTab] = useState(0); 
+  const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
+
   // Dynamic Form State
   const [activeDynamicFormId, setActiveDynamicFormId] = useState<string | null>(null);
   const [dynamicFormValues, setDynamicFormValues] = useState<Record<string, any>>({});
   
-  // Refs for scrolling
-  const willsFormRef = useRef<HTMLDivElement>(null);
+  // Refs
   const dynamicFormRef = useRef<HTMLDivElement>(null);
+  const timelineScrollRef = useRef<HTMLDivElement>(null);
+  const teamScrollRef = useRef<HTMLDivElement>(null);
+  const articlesScrollRef = useRef<HTMLDivElement>(null);
+  const articleContentTopRef = useRef<HTMLDivElement>(null);
 
-  // Filter content based on current category
+  // Filter content
   const currentSlides = state.slides.filter(s => s.category === state.currentCategory || s.category === Category.HOME);
   const currentArticles = state.articles.filter(a => a.category === state.currentCategory || state.currentCategory === Category.HOME);
   const currentTimelines = state.timelines.filter(t => t.category.includes(state.currentCategory) || state.currentCategory === Category.HOME);
+  const teamMembers = state.teamMembers;
 
   // Slider Auto-play
   useEffect(() => {
@@ -41,13 +47,19 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
     return () => clearInterval(interval);
   }, [currentSlides.length]);
 
+  // Reset active tab and scroll when opening a new article
+  useEffect(() => {
+      if(selectedArticle) {
+          setActiveArticleTab(0);
+          if(articleContentTopRef.current) {
+              articleContentTopRef.current.scrollTop = 0;
+          }
+      }
+  }, [selectedArticle]);
+
   const handleTimelineClick = (item: any) => {
     if (item.linkTo === 'wills-generator') {
-        onCategoryChange(Category.WILLS);
-        // Slight timeout to allow render
-        setTimeout(() => {
-            willsFormRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+        setShowWillsModal(true); // Open modal instead of scrolling
     } else if (item.linkTo && item.linkTo.startsWith('form-')) {
         const formId = item.linkTo.replace('form-', '');
         setActiveDynamicFormId(formId);
@@ -56,9 +68,18 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
     } else {
-        // Standard link or just info
         console.log("Clicked timeline item", item.title);
     }
+  };
+
+  const scrollContainer = (ref: React.RefObject<HTMLDivElement>, direction: 'left' | 'right') => {
+      if (ref.current) {
+          const scrollAmount = 300;
+          ref.current.scrollBy({
+              left: direction === 'left' ? -scrollAmount : scrollAmount,
+              behavior: 'smooth'
+          });
+      }
   };
 
   // Wills Form State
@@ -75,78 +96,266 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
     }));
   };
   
-  // Helper to find dynamic form
   const currentDynamicForm = state.forms.find(f => f.id === activeDynamicFormId);
+  const activeTabContent = selectedArticle?.tabs?.[activeArticleTab]?.content || "";
+  
+  const relatedArticles = selectedArticle 
+    ? state.articles.filter(a => a.category === selectedArticle.category && a.id !== selectedArticle.id).slice(0, 3)
+    : [];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative">
+    <div className="min-h-screen flex flex-col font-sans relative bg-slate-50">
       
       {/* --- Article Modal Overlay --- */}
       {selectedArticle && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 animate-fade-in">
-            {/* Backdrop */}
-            <div 
-                className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"
-                onClick={() => setSelectedArticle(null)}
-            ></div>
-            
-            {/* Modal Content */}
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative z-10 flex flex-col md:flex-row">
-                <button 
-                    onClick={() => setSelectedArticle(null)}
-                    className="absolute top-4 left-4 z-20 p-2 bg-white/80 rounded-full hover:bg-slate-100 transition-colors"
-                >
-                    <X size={24} className="text-slate-800" />
-                </button>
-
-                {/* Left Side: Image & Meta */}
-                <div className="md:w-1/3 h-64 md:h-auto relative bg-slate-100">
-                    <img 
-                        src={selectedArticle.imageUrl} 
-                        alt={selectedArticle.title} 
-                        className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent flex items-end p-6 md:hidden">
-                        <h2 className="text-2xl font-bold text-white">{selectedArticle.title}</h2>
-                    </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
+            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setSelectedArticle(null)}></div>
+            <div className="bg-white md:rounded-2xl shadow-2xl w-full max-w-6xl h-full md:h-[90vh] overflow-hidden relative z-10 flex flex-col md:flex-row">
+                <div className="hidden md:block w-1/4 h-full relative bg-slate-200">
+                    <img src={selectedArticle.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
+                    {selectedArticle.quote && (
+                        <div className="absolute bottom-8 left-4 right-4 text-white">
+                            <Quote size={24} className="mb-2 text-[#2EB0D9] opacity-80" />
+                            <p className="font-serif italic text-lg leading-relaxed shadow-sm">"{selectedArticle.quote}"</p>
+                        </div>
+                    )}
                 </div>
-
-                {/* Right Side: Content */}
-                <div className="md:w-2/3 p-6 md:p-10 bg-white">
-                     <span className="hidden md:inline-block px-3 py-1 bg-[#2EB0D9]/10 text-[#2EB0D9] text-xs font-bold rounded-full mb-4">
-                        {selectedArticle.category}
-                     </span>
-                     <h2 className="text-3xl font-black text-slate-900 mb-6 hidden md:block leading-tight">
-                        {selectedArticle.title}
-                     </h2>
-                     
-                     {selectedArticle.quote && (
-                         <div className="bg-slate-50 p-6 rounded-xl border-r-4 border-[#2EB0D9] mb-8">
-                             <Quote className="text-[#2EB0D9] mb-2" size={24} />
-                             <p className="text-lg italic font-serif text-slate-700">"{selectedArticle.quote}"</p>
-                         </div>
-                     )}
-
-                     <div className="space-y-8">
-                         {selectedArticle.tabs.map((tab, idx) => (
-                             <div key={idx} className="border-b border-slate-100 pb-6 last:border-0">
-                                 <h3 className="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
-                                     <FileText size={20} className="text-[#2EB0D9]" />
-                                     {tab.title}
-                                 </h3>
-                                 <p className="text-slate-600 leading-relaxed text-lg">
-                                     {tab.content}
-                                 </p>
-                             </div>
-                         ))}
-                     </div>
-
-                     <div className="mt-8 pt-8 border-t border-slate-100 flex justify-end">
-                         <Button onClick={() => setSelectedArticle(null)}>סגור מאמר</Button>
-                     </div>
+                <div className="flex-1 flex flex-col h-full bg-slate-50 relative">
+                    <div className="bg-white p-6 md:p-8 border-b border-slate-100 flex justify-between items-start flex-shrink-0">
+                        <div>
+                            <span className="inline-block px-3 py-1 bg-[#2EB0D9]/10 text-[#2EB0D9] text-xs font-bold rounded-full mb-3">{selectedArticle.category}</span>
+                            <h2 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight">{selectedArticle.title}</h2>
+                        </div>
+                        <button onClick={() => setSelectedArticle(null)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"><X size={24} className="text-slate-600" /></button>
+                    </div>
+                    <div className="px-6 md:px-8 pt-6 bg-white flex-shrink-0">
+                        <div className="flex gap-2 border-b border-slate-200 overflow-x-auto">
+                            {selectedArticle.tabs.map((tab, idx) => (
+                                <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-6 py-3 text-sm md:text-base font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white shadow-lg translate-y-[1px]' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{tab.title}</button>
+                            ))}
+                        </div>
+                    </div>
+                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto bg-white">
+                        <div className="p-6 md:p-12 min-h-full flex flex-col">
+                            <div className="md:hidden mb-6 rounded-xl overflow-hidden h-48 relative flex-shrink-0">
+                                <img src={selectedArticle.imageUrl} className="w-full h-full object-cover" alt=""/>
+                            </div>
+                            <div className="prose max-w-none text-slate-700 leading-relaxed text-lg md:text-xl mb-12">
+                                {activeTabContent.split('\n').map((paragraph, i) => (
+                                    <p key={i} className="mb-4">{paragraph}</p>
+                                ))}
+                            </div>
+                            {relatedArticles.length > 0 && (
+                                <div className="mt-auto border-t border-slate-100 pt-8">
+                                    <h4 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                        <span className="w-1 h-6 bg-[#2EB0D9] rounded-full"></span>
+                                        עוד בנושא {selectedArticle.category}
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {relatedArticles.map(relArticle => (
+                                            <div key={relArticle.id} onClick={() => setSelectedArticle(relArticle)} className="group cursor-pointer flex gap-3 items-center bg-slate-50 p-2 rounded-lg hover:bg-slate-100 transition-colors border border-slate-100 hover:border-[#2EB0D9]/30">
+                                                <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                                                    <img src={relArticle.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt=""/>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h5 className="font-bold text-sm text-slate-800 leading-tight mb-1 truncate group-hover:text-[#2EB0D9] transition-colors">{relArticle.title}</h5>
+                                                    <p className="text-xs text-slate-500 line-clamp-1">לחץ לקריאה</p>
+                                                </div>
+                                                <ArrowLeft size={16} className="text-slate-300 group-hover:text-[#2EB0D9] group-hover:-translate-x-1 transition-all"/>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+      )}
+
+      {/* --- Wills Generator Modal (New) --- */}
+      {showWillsModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
+             <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setShowWillsModal(false)}></div>
+             <div className="bg-white md:rounded-2xl shadow-2xl w-full max-w-5xl h-full md:h-[85vh] overflow-hidden relative z-10 flex flex-col md:flex-row">
+                 
+                 {/* Right Side - Visuals */}
+                 <div className="hidden md:flex w-1/3 bg-slate-900 text-white flex-col justify-between p-8 relative overflow-hidden">
+                     <img src="https://picsum.photos/id/452/800/1200" alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" />
+                     <div className="relative z-10">
+                         <div className="w-12 h-12 bg-[#2EB0D9] rounded-lg flex items-center justify-center mb-6">
+                             <FileText size={28} className="text-white"/>
+                         </div>
+                         <h2 className="text-3xl font-black mb-4">מחולל הצוואות הדיגיטלי</h2>
+                         <p className="text-slate-300 leading-relaxed">ערוך צוואה חוקית ומקצועית ב-5 דקות באמצעות האלגוריתם המשפטי החכם שלנו.</p>
+                     </div>
+                     <div className="relative z-10 space-y-4">
+                         <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><Check size={16} className="text-[#2EB0D9]"/></div>
+                             <span className="text-sm">חיסיון עורך דין מלא</span>
+                         </div>
+                         <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><Check size={16} className="text-[#2EB0D9]"/></div>
+                             <span className="text-sm">תקף משפטית</span>
+                         </div>
+                         <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><Check size={16} className="text-[#2EB0D9]"/></div>
+                             <span className="text-sm">ללא עלות ראשונית</span>
+                         </div>
+                     </div>
+                 </div>
+
+                 {/* Left Side - Form Wizard */}
+                 <div className="flex-1 bg-white flex flex-col h-full">
+                     <div className="p-4 border-b flex justify-between items-center">
+                         <span className="text-sm font-bold text-slate-400">שלב {formStep + 1} מתוך 3</span>
+                         <button onClick={() => setShowWillsModal(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={24}/></button>
+                     </div>
+                     
+                     <div className="flex-1 overflow-y-auto p-8 md:p-12">
+                         {formStep === 0 && (
+                            <div className="space-y-6 animate-fade-in">
+                               <div>
+                                   <h3 className="text-2xl font-bold text-slate-900 mb-2">נתחיל בפרטים אישיים</h3>
+                                   <p className="text-slate-500">אנא מלא את פרטי המצווה</p>
+                               </div>
+                               <div className="space-y-4">
+                                   <div>
+                                       <label className="block text-sm font-bold text-slate-700 mb-2">שם מלא</label>
+                                       <input type="text" className="w-full p-4 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#2EB0D9] outline-none transition" value={willsData.fullName} onChange={e => setWillsData({...willsData, fullName: e.target.value})} placeholder="ישראל ישראלי" />
+                                   </div>
+                                   <div>
+                                       <label className="block text-sm font-bold text-slate-700 mb-2">שם בן/בת הזוג (אם יש)</label>
+                                       <input type="text" className="w-full p-4 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#2EB0D9] outline-none transition" value={willsData.spouseName} onChange={e => setWillsData({...willsData, spouseName: e.target.value})} placeholder="פלונית אלמונית" />
+                                   </div>
+                               </div>
+                               <Button size="lg" onClick={() => setFormStep(1)} className="w-full mt-8">המשך לשלב הבא</Button>
+                            </div>
+                         )}
+
+                         {formStep === 1 && (
+                            <div className="space-y-6 animate-fade-in">
+                               <div>
+                                   <h3 className="text-2xl font-bold text-slate-900 mb-2">היורשים והילדים</h3>
+                                   <p className="text-slate-500">מי הם היורשים החוקיים?</p>
+                               </div>
+                               
+                               <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
+                                  <label className="font-bold">מספר ילדים:</label>
+                                  <div className="flex items-center gap-2">
+                                      <button onClick={() => handleChildrenCountChange(Math.max(0, willsData.childrenCount - 1))} className="w-8 h-8 rounded-full bg-white border hover:bg-slate-100">-</button>
+                                      <span className="w-8 text-center font-bold">{willsData.childrenCount}</span>
+                                      <button onClick={() => handleChildrenCountChange(Math.min(10, willsData.childrenCount + 1))} className="w-8 h-8 rounded-full bg-white border hover:bg-slate-100">+</button>
+                                  </div>
+                               </div>
+
+                               <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                                  {willsData.childrenNames.map((name, idx) => (
+                                      <div key={idx}>
+                                          <label className="block text-xs font-bold text-slate-500 mb-1">שם הילד/ה {idx+1}</label>
+                                          <input 
+                                            placeholder={`שם מלא`} 
+                                            className="w-full p-3 border rounded-lg" 
+                                            value={name} 
+                                            onChange={e => {
+                                              const newNames = [...willsData.childrenNames];
+                                              newNames[idx] = e.target.value;
+                                              setWillsData({...willsData, childrenNames: newNames});
+                                          }}/>
+                                      </div>
+                                  ))}
+                               </div>
+
+                               <div className="flex gap-3 pt-4">
+                                 <Button variant="outline" onClick={() => setFormStep(0)} className="flex-1">חזור</Button>
+                                 <Button onClick={() => setFormStep(2)} className="flex-1">המשך</Button>
+                               </div>
+                            </div>
+                         )}
+
+                         {formStep === 2 && (
+                            <div className="space-y-6 animate-fade-in flex flex-col h-full justify-center">
+                               <div className="text-center mb-6">
+                                   <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce-slow">
+                                      <FileCheck size={40} />
+                                   </div>
+                                   <h3 className="text-2xl font-bold text-slate-900">הצוואה מוכנה להפקה!</h3>
+                                   <p className="text-slate-500 max-w-sm mx-auto mt-2">כדי לקבל את מסמך הצוואה הרשמי ולאשר אותו, אנא מלא את פרטי ההתקשרות הסופיים.</p>
+                               </div>
+                               
+                               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-4">
+                                   <h4 className="font-bold border-b pb-2 mb-2 text-slate-800">טופס פרטי קשר וסיום</h4>
+                                   <div>
+                                       <label className="block text-sm font-bold text-slate-700 mb-1">טלפון נייד</label>
+                                       <input type="tel" className="w-full p-3 border rounded-lg bg-white" value={willsData.contactPhone} onChange={e => setWillsData({...willsData, contactPhone: e.target.value})} placeholder="050-0000000"/>
+                                   </div>
+                                   <div>
+                                       <label className="block text-sm font-bold text-slate-700 mb-1">דואר אלקטרוני (לשליחת המסמך)</label>
+                                       <input type="email" className="w-full p-3 border rounded-lg bg-white" value={willsData.contactEmail} onChange={e => setWillsData({...willsData, contactEmail: e.target.value})} placeholder="name@example.com"/>
+                                   </div>
+                               </div>
+
+                               <div className="flex gap-3 mt-auto">
+                                   <Button variant="outline" onClick={() => setFormStep(1)} className="flex-1">חזור</Button>
+                                   <Button 
+                                    variant="secondary" 
+                                    onClick={() => { 
+                                        onWillsFormSubmit(willsData); 
+                                        alert("טופס נשלח בהצלחה! מסמך PDF ישלח למייל שלך."); 
+                                        setShowWillsModal(false);
+                                        setFormStep(0); 
+                                    }} 
+                                    className="flex-[2] font-bold text-lg"
+                                   >
+                                       שלח וקבל צוואה
+                                   </Button>
+                               </div>
+                            </div>
+                         )}
+                     </div>
+                 </div>
+             </div>
+        </div>
+      )}
+
+      {/* --- Team Member Modal --- */}
+      {selectedTeamMember && (
+         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onClick={() => setSelectedTeamMember(null)}></div>
+             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10 flex flex-col md:flex-row">
+                 <button onClick={() => setSelectedTeamMember(null)} className="absolute top-4 left-4 z-20 p-2 bg-white/80 rounded-full hover:bg-slate-100"><X size={20} /></button>
+                 
+                 <div className="md:w-2/5 h-64 md:h-auto relative">
+                     <img src={selectedTeamMember.imageUrl} alt={selectedTeamMember.fullName} className="w-full h-full object-cover" />
+                 </div>
+                 <div className="md:w-3/5 p-8 flex flex-col justify-center">
+                     <span className="text-[#2EB0D9] font-bold text-sm mb-1">{selectedTeamMember.role}</span>
+                     <h2 className="text-3xl font-black text-slate-900 mb-2">{selectedTeamMember.fullName}</h2>
+                     <div className="w-16 h-1 bg-[#2EB0D9] mb-6"></div>
+                     
+                     <div className="space-y-4 mb-8">
+                         <div className="flex items-center gap-3 text-slate-600">
+                             <Briefcase size={18} className="text-[#2EB0D9]"/>
+                             <span>{selectedTeamMember.specialization}</span>
+                         </div>
+                         <div className="flex items-center gap-3 text-slate-600">
+                             <Mail size={18} className="text-[#2EB0D9]"/>
+                             <span>{selectedTeamMember.email}</span>
+                         </div>
+                         <div className="flex items-center gap-3 text-slate-600">
+                             <Phone size={18} className="text-[#2EB0D9]"/>
+                             <span>{selectedTeamMember.phone}</span>
+                         </div>
+                     </div>
+                     
+                     <p className="text-slate-600 leading-relaxed text-sm bg-slate-50 p-4 rounded-lg border border-slate-100">
+                         {selectedTeamMember.bio}
+                     </p>
+                 </div>
+             </div>
+         </div>
       )}
 
       {/* --- Header --- */}
@@ -203,11 +412,14 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         {/* HERO SECTION */}
         <section className="relative h-[45vh] md:h-[55vh] overflow-hidden bg-slate-900 group">
           
-          {/* Floating Logo (Left Side, Centered) - RECTANGULAR for Wide Logo */}
-          <div className="absolute left-8 top-1/2 -translate-y-1/2 z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity">
-             <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl p-6 border border-slate-100 max-w-sm">
-                 <img src={state.config.logoUrl} alt="Logo" className="h-20 w-auto object-contain" />
-             </div>
+          {/* Floating Logo (Left Side, Centered) - Transparent PNG Style */}
+          <div className="absolute left-16 top-1/2 -translate-y-1/2 z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity">
+              <img 
+                src={state.config.logoUrl} 
+                alt="Logo" 
+                className="h-32 w-auto object-contain drop-shadow-2xl" 
+                style={{ filter: "drop-shadow(0 10px 8px rgb(0 0 0 / 0.5))" }}
+              />
           </div>
 
           {currentSlides.map((slide, index) => (
@@ -218,14 +430,15 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover opacity-60" />
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-transparent to-transparent flex items-center">
                     <div className="container mx-auto px-6 md:px-12">
-                        <div className="max-w-2xl text-white space-y-4 animate-fade-in-up">
-                            <span className="inline-block px-3 py-1 bg-[#2EB0D9] text-xs font-bold uppercase tracking-wider rounded-full mb-2">
+                        <div className="max-w-3xl text-white space-y-6 animate-fade-in-up">
+                            <span className="inline-block px-4 py-1.5 bg-[#2EB0D9] text-sm font-bold uppercase tracking-widest rounded-full mb-2">
                                 {slide.category === Category.HOME ? 'המשרד המוביל בישראל' : 'התמחות מקצועית'}
                             </span>
-                            <h2 className="text-3xl md:text-5xl font-black leading-tight">{slide.title}</h2>
-                            <p className="text-lg text-slate-200 md:w-2/3 border-r-4 border-[#2EB0D9] pr-4 line-clamp-2">{slide.subtitle}</p>
-                            <div className="pt-4">
-                                <Button variant="secondary" size="md">קבע פגישת ייעוץ</Button>
+                            {/* Larger, Impressive Title */}
+                            <h2 className="text-5xl md:text-7xl font-black leading-tight drop-shadow-xl">{slide.title}</h2>
+                            <p className="text-xl text-slate-200 md:w-3/4 border-r-4 border-[#2EB0D9] pr-6 leading-relaxed">{slide.subtitle}</p>
+                            <div className="pt-6">
+                                <Button onClick={() => onCategoryChange(slide.category)} variant="secondary" size="lg" className="shadow-2xl shadow-[#2EB0D9]/40">קבע פגישת ייעוץ</Button>
                             </div>
                         </div>
                     </div>
@@ -234,56 +447,116 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           ))}
           
           {/* Slider Dots */}
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
+          <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-3 z-20">
             {currentSlides.map((_, idx) => (
                 <button 
                   key={idx}
                   onClick={() => setActiveSlide(idx)}
-                  className={`w-3 h-3 rounded-full transition-all ${idx === activeSlide ? 'bg-[#2EB0D9] w-8' : 'bg-white/50 hover:bg-white'}`}
+                  className={`h-2 rounded-full transition-all duration-300 ${idx === activeSlide ? 'bg-[#2EB0D9] w-12' : 'bg-white/40 w-2 hover:bg-white'}`}
                 />
             ))}
           </div>
         </section>
 
-        {/* TIMELINE CAROUSEL */}
-        <section className="py-12 bg-slate-50 overflow-hidden relative border-b border-slate-200">
+        {/* TEAM SECTION (HOME ONLY) - With Scrolling, Centered */}
+        {state.currentCategory === Category.HOME && (
+            <section className="py-12 bg-white relative -mt-8 z-10 container mx-auto px-4">
+                 <div className="bg-white shadow-xl rounded-xl p-8 border border-slate-100">
+                     <div className="flex justify-between items-center mb-8">
+                        <div>
+                             <h3 className="text-2xl font-black text-slate-800">הנבחרת שלנו</h3>
+                             <div className="w-16 h-1 bg-[#2EB0D9] mt-2"></div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => scrollContainer(teamScrollRef, 'right')} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600"><ChevronRight size={20}/></button>
+                            <button onClick={() => scrollContainer(teamScrollRef, 'left')} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600"><ChevronLeft size={20}/></button>
+                        </div>
+                     </div>
+                     
+                     {/* Scrollable Team Container - Centered */}
+                     <div 
+                        ref={teamScrollRef}
+                        className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-fit max-w-full"
+                     >
+                         {teamMembers.map(member => (
+                             <div 
+                                key={member.id} 
+                                onClick={() => setSelectedTeamMember(member)}
+                                className="flex-shrink-0 w-[260px] md:w-[280px] snap-start group cursor-pointer bg-slate-50 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 border border-slate-100"
+                             >
+                                 <div className="h-64 w-full overflow-hidden">
+                                     <img src={member.imageUrl} alt={member.fullName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                 </div>
+                                 <div className="p-5 text-center">
+                                     <h4 className="font-bold text-xl text-slate-900 group-hover:text-[#2EB0D9] transition-colors">{member.fullName}</h4>
+                                     <p className="text-sm text-slate-500 font-medium">{member.role}</p>
+                                 </div>
+                             </div>
+                         ))}
+                     </div>
+                 </div>
+            </section>
+        )}
+
+        {/* TIMELINE (SCROLLABLE, REDUCED HEIGHT, 4 SHADES OF GRAY) */}
+        <section className="py-12 bg-slate-50 relative border-b border-slate-200">
            <div className="container mx-auto px-4 mb-6 flex justify-between items-end">
-              <h3 className="text-xl font-bold text-slate-800 border-r-4 border-slate-900 pr-3">
+              <h3 className="text-xl font-bold text-slate-800 border-r-4 border-slate-900 pr-3 inline-block">
                  {state.currentCategory === Category.HOME ? 'חדשות ועדכונים' : 'מדריכים ומידע מקצועי'}
               </h3>
               <div className="flex gap-2">
-                   <button onClick={() => setTimelineIndex(Math.max(0, timelineIndex - 1))} className="p-2 rounded-full border border-slate-300 hover:bg-white"><ArrowRight size={16}/></button>
-                   <button onClick={() => setTimelineIndex(Math.min(currentTimelines.length - 1, timelineIndex + 1))} className="p-2 rounded-full border border-slate-300 hover:bg-white"><ArrowLeft size={16}/></button>
+                  <button onClick={() => scrollContainer(timelineScrollRef, 'right')} className="p-2 rounded-full bg-white shadow hover:bg-slate-100 text-slate-600"><ChevronRight size={20}/></button>
+                  <button onClick={() => scrollContainer(timelineScrollRef, 'left')} className="p-2 rounded-full bg-white shadow hover:bg-slate-100 text-slate-600"><ChevronLeft size={20}/></button>
               </div>
            </div>
            
-           <div className="relative container mx-auto px-4 overflow-x-auto scrollbar-hide">
-              <div className="flex gap-6 pb-4" style={{ minWidth: 'max-content' }}>
-                  {currentTimelines.map((item) => (
-                      <div 
-                        key={item.id} 
-                        onClick={() => handleTimelineClick(item)}
-                        className={`
-                            min-w-[280px] md:min-w-[320px] p-5 rounded-xl shadow-sm border transition-all group cursor-pointer relative top-0 hover:-top-2
-                            ${item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-')) ? 'bg-[#2EB0D9] border-[#2EB0D9] text-white' : 'bg-white border-slate-100 hover:shadow-xl'}
-                        `}
-                      >
-                          {item.linkTo !== 'wills-generator' && (!item.linkTo || !item.linkTo.startsWith('form-')) && (
-                             <div className="absolute top-0 right-8 w-1 h-full bg-slate-100 group-hover:bg-[#2EB0D9]/10 transition-colors -z-10"></div>
-                          )}
-                          
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg mb-3 z-10 relative transition-colors ${item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-')) ? 'bg-white text-[#2EB0D9]' : 'bg-slate-900 text-white group-hover:bg-[#2EB0D9]'}`}>
-                             {item.linkTo === 'wills-generator' ? <Check size={20} /> : (item.linkTo && item.linkTo.startsWith('form-') ? <FileText size={20}/> : <ArrowLeft size={18} />)}
+           <div className="container mx-auto px-4">
+              <div 
+                 ref={timelineScrollRef}
+                 className="flex gap-4 overflow-x-auto pb-8 scrollbar-hide snap-x"
+              >
+                  {currentTimelines.map((item, index) => {
+                      const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-'));
+                      
+                      // 4 Shades of Gray Logic (Cyclic)
+                      const grayShades = [
+                          'bg-white',
+                          'bg-slate-50',
+                          'bg-gray-100',
+                          'bg-[#f1f5f9]' // slate-100 equivalent slightly different
+                      ];
+                      const currentBg = grayShades[index % 4];
+
+                      return (
+                          <div 
+                            key={item.id} 
+                            onClick={() => handleTimelineClick(item)}
+                            className={`
+                                flex-shrink-0 w-[280px] md:w-[calc(25%-12px)] h-[200px]
+                                p-5 rounded-xl transition-all group cursor-pointer relative snap-start flex flex-col justify-between
+                                ${isGenerator 
+                                    ? 'bg-[#2EB0D9] shadow-lg shadow-[#2EB0D9]/30 text-white hover:-translate-y-2' 
+                                    : `${currentBg} border border-slate-200 text-slate-900 hover:shadow-2xl hover:-translate-y-2 hover:bg-white`
+                                }
+                            `}
+                          >
+                              <div>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm z-10 relative transition-colors ${isGenerator ? 'bg-white text-[#2EB0D9]' : 'bg-[#2EB0D9]/10 text-[#2EB0D9]'}`}>
+                                        {isGenerator ? <Check size={16} /> : (item.linkTo && item.linkTo.startsWith('form-') ? <FileText size={16}/> : <ArrowLeft size={16} />)}
+                                    </div>
+                                </div>
+                                
+                                <h4 className={`text-base font-bold mb-1 leading-tight ${isGenerator ? 'text-white' : 'text-[#2EB0D9]'}`}>{item.title}</h4>
+                                <p className={`text-xs line-clamp-2 ${isGenerator ? 'text-white/80' : 'text-slate-500'}`}>{item.description}</p>
+                              </div>
+                              
+                              <span className={`text-xs font-medium flex items-center gap-1 mt-auto ${isGenerator ? 'text-white underline' : 'text-[#2EB0D9]'}`}>
+                                  {isGenerator ? 'התחל עכשיו' : (item.linkTo && item.linkTo.startsWith('form-') ? 'למילוי הטופס' : 'קרא עוד')} <ArrowLeft size={12}/>
+                              </span>
                           </div>
-                          
-                          <h4 className={`text-base font-bold mb-2 ${item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-')) ? 'text-white' : 'text-slate-900'}`}>{item.title}</h4>
-                          <p className={`text-sm mb-3 line-clamp-3 ${item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-')) ? 'text-white/80' : 'text-slate-500'}`}>{item.description}</p>
-                          
-                          <span className={`text-sm font-medium flex items-center gap-1 ${item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-')) ? 'text-white underline' : 'text-[#2EB0D9]'}`}>
-                              {item.linkTo === 'wills-generator' ? 'התחל עכשיו' : (item.linkTo && item.linkTo.startsWith('form-') ? 'למילוי הטופס' : 'קרא עוד')} <ArrowLeft size={14}/>
-                          </span>
-                      </div>
-                  ))}
+                      );
+                  })}
               </div>
            </div>
         </section>
@@ -307,9 +580,24 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                            <div className="space-y-6 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                                {currentDynamicForm.fields.map(field => (
                                    <div key={field.id} className="space-y-2">
-                                       <label className="block text-sm font-bold text-slate-700">
-                                           {field.label} {field.required && <span className="text-red-500">*</span>}
-                                       </label>
+                                       <div className="flex items-center gap-2">
+                                           <label className="block text-sm font-bold text-slate-700">
+                                               {field.label} {field.required && <span className="text-red-500">*</span>}
+                                           </label>
+                                           {field.helpArticleId && (
+                                               <button 
+                                                    onClick={() => {
+                                                        const article = state.articles.find(a => a.id === field.helpArticleId);
+                                                        if (article) setSelectedArticle(article);
+                                                        else alert("המאמר המקושר לא נמצא");
+                                                    }}
+                                                    className="text-[#2EB0D9] hover:text-[#259cc0] transition-colors"
+                                                    title="לחץ להסבר נוסף"
+                                               >
+                                                   <HelpCircle size={16} />
+                                               </button>
+                                           )}
+                                       </div>
                                        
                                        {field.type === 'text' && (
                                            <input 
@@ -388,98 +676,52 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                   </div>
               )}
 
-              {/* If on Wills page and no dynamic form active, show Standard Wills Form Teaser */}
-              {state.currentCategory === Category.WILLS && !activeDynamicFormId && (
-                 <div ref={willsFormRef} id="wills-generator" className="mb-16 bg-slate-900 text-white rounded-2xl p-8 md:p-12 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#2EB0D9] rounded-full blur-[100px] opacity-20"></div>
-                    <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
-                       <div>
-                          <h3 className="text-3xl font-bold mb-4">מחולל הצוואות הדיגיטלי</h3>
-                          <p className="text-slate-300 mb-8 text-lg">ערוך צוואה חוקית ומקצועית ב-5 דקות באמצעות האלגוריתם המשפטי החכם שלנו.</p>
-                          
-                          {/* SIMPLE FORM WIZARD */}
-                          <div className="bg-white text-slate-900 p-6 rounded-xl shadow-lg">
-                             {formStep === 0 && (
-                                <div className="space-y-4">
-                                   <h4 className="font-bold text-lg border-b pb-2">שלב 1: פרטים אישיים</h4>
-                                   <input type="text" placeholder="שם מלא" className="w-full p-3 border rounded-lg bg-slate-50" value={willsData.fullName} onChange={e => setWillsData({...willsData, fullName: e.target.value})} />
-                                   <input type="text" placeholder="שם בן/בת הזוג" className="w-full p-3 border rounded-lg bg-slate-50" value={willsData.spouseName} onChange={e => setWillsData({...willsData, spouseName: e.target.value})} />
-                                   <Button onClick={() => setFormStep(1)} className="w-full mt-4">המשך לשלב הבא</Button>
-                                </div>
-                             )}
-                             {formStep === 1 && (
-                                <div className="space-y-4">
-                                   <h4 className="font-bold text-lg border-b pb-2">שלב 2: הילדים</h4>
-                                   <div className="flex items-center gap-4">
-                                      <label>מספר ילדים:</label>
-                                      <input type="number" min="0" max="10" className="w-20 p-2 border rounded" value={willsData.childrenCount} onChange={e => handleChildrenCountChange(parseInt(e.target.value))} />
-                                   </div>
-                                   <div className="space-y-2 max-h-40 overflow-y-auto">
-                                      {willsData.childrenNames.map((name, idx) => (
-                                          <input key={idx} placeholder={`שם הילד/ה ${idx+1}`} className="w-full p-2 border rounded text-sm" value={name} onChange={e => {
-                                              const newNames = [...willsData.childrenNames];
-                                              newNames[idx] = e.target.value;
-                                              setWillsData({...willsData, childrenNames: newNames});
-                                          }}/>
-                                      ))}
-                                   </div>
-                                   <div className="flex gap-2">
-                                     <Button variant="outline" onClick={() => setFormStep(0)} className="flex-1">חזור</Button>
-                                     <Button onClick={() => setFormStep(2)} className="flex-1">המשך</Button>
-                                   </div>
-                                </div>
-                             )}
-                             {formStep === 2 && (
-                                <div className="space-y-4 text-center">
-                                   <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                                      <Check size={32} />
-                                   </div>
-                                   <h4 className="font-bold text-lg">כמעט סיימנו!</h4>
-                                   <p className="text-sm text-slate-500">הזן דוא"ל לקבלת הטיוטה הראשונית</p>
-                                   <input type="email" placeholder="your@email.com" className="w-full p-3 border rounded-lg" value={willsData.contactEmail} onChange={e => setWillsData({...willsData, contactEmail: e.target.value})}/>
-                                   <Button onClick={() => { onWillsFormSubmit(willsData); alert("טופס נשלח בהצלחה! מסמך PDF ישלח למייל שלך."); setFormStep(0); }} variant="secondary" className="w-full">צור צוואה ושלח למייל</Button>
-                                </div>
-                             )}
-                          </div>
-                       </div>
-                       <div className="hidden md:block">
-                           <img src="https://picsum.photos/600/600?grayscale" alt="Family" className="rounded-xl shadow-lg rotate-2 hover:rotate-0 transition-transform duration-500 border-4 border-white/10" />
-                       </div>
-                    </div>
-                 </div>
-              )}
-
-              {/* Articles Grid */}
+              {/* Articles Grid / Carousel */}
               <div className="flex items-center justify-between mb-8">
                  <h3 className="text-3xl font-bold text-slate-800">מאמרים נבחרים</h3>
                  <div className="flex gap-2">
-                     <button className="p-2 border rounded-full hover:bg-slate-100 text-slate-400"><ArrowRight size={20}/></button>
-                     <button className="p-2 border rounded-full hover:bg-slate-100 text-slate-400"><ArrowLeft size={20}/></button>
+                     <button onClick={() => scrollContainer(articlesScrollRef, 'right')} className="p-2 border rounded-full hover:bg-slate-100 text-slate-400"><ChevronRight size={20}/></button>
+                     <button onClick={() => scrollContainer(articlesScrollRef, 'left')} className="p-2 border rounded-full hover:bg-slate-100 text-slate-400"><ChevronLeft size={20}/></button>
                  </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Articles - Now a Carousel like Timeline/Team */}
+              <div 
+                 ref={articlesScrollRef}
+                 className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide snap-x"
+              >
                  {currentArticles.map(article => (
-                    <div key={article.id} className="h-[450px]">
+                    <div 
+                        key={article.id} 
+                        className="flex-shrink-0 w-[280px] md:w-[calc(25%-12px)] h-[220px] snap-start"
+                    >
                         <ArticleCard 
                             article={article} 
                             onClick={() => setSelectedArticle(article)}
                         />
                     </div>
                  ))}
+                 {/* Empty State for Articles */}
+                 {currentArticles.length === 0 && (
+                     <div className="w-full text-center py-12 text-slate-400 bg-slate-50 rounded-xl">
+                         אין מאמרים להצגה בקטגוריה זו.
+                     </div>
+                 )}
               </div>
            </div>
         </section>
 
-        {/* CONTACT FOOTER */}
+        {/* CONTACT FOOTER - FIXED ALIGNMENT */}
         <footer className="bg-slate-900 text-slate-300 pt-16 pb-8">
-            <div className="container mx-auto px-4 grid md:grid-cols-4 gap-8 mb-12">
-                <div>
-                    <h2 className="text-xl font-black text-white mb-6 font-serif">
+            <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-12 items-start text-right" dir="rtl">
+                
+                {/* Brand Column (Rightmost) */}
+                <div className="col-span-1">
+                    <h2 className="text-xl font-black text-white mb-6 font-serif leading-tight">
                        <span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO
                     </h2>
-                    <p className="mb-4">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p>
-                    <div className="flex gap-4">
+                    <p className="mb-4 text-sm leading-relaxed max-w-xs">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי בכל תחומי המשפט האזרחי והמסחרי.</p>
+                    <div className="flex gap-4 mt-4">
                        <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] cursor-pointer transition-colors">f</div>
                        <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] cursor-pointer transition-colors">in</div>
                        {onAdminClick && (
@@ -493,37 +735,47 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                        )}
                     </div>
                 </div>
-                <div>
-                    <h4 className="text-white font-bold mb-4 text-lg">ניווט מהיר</h4>
-                    <ul className="space-y-2">
-                        <li><button onClick={() => onCategoryChange(Category.WILLS)} className="hover:text-[#2EB0D9]">צוואות וירושות</button></li>
-                        <li><button onClick={() => onCategoryChange(Category.REAL_ESTATE)} className="hover:text-[#2EB0D9]">מקרקעין ונדל"ן</button></li>
-                        <li><button onClick={() => onCategoryChange(Category.POA)} className="hover:text-[#2EB0D9]">ייפוי כוח מתמשך</button></li>
-                        <li><button onClick={() => onCategoryChange(Category.STORE)} className="hover:text-[#2EB0D9]">חנות משפטית</button></li>
+                
+                {/* Navigation Column */}
+                <div className="col-span-1">
+                    <h4 className="text-white font-bold mb-4 text-lg border-r-4 border-[#2EB0D9] pr-3">ניווט מהיר</h4>
+                    <ul className="space-y-2 w-full">
+                        <li><button onClick={() => onCategoryChange(Category.WILLS)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right">צוואות וירושות</button></li>
+                        <li><button onClick={() => onCategoryChange(Category.REAL_ESTATE)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right">מקרקעין ונדל"ן</button></li>
+                        <li><button onClick={() => onCategoryChange(Category.POA)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right">ייפוי כוח מתמשך</button></li>
+                        <li><button onClick={() => onCategoryChange(Category.STORE)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right">חנות משפטית</button></li>
                     </ul>
                 </div>
-                <div className="space-y-6">
-                    <div>
-                        <h4 className="text-white font-bold mb-4 text-lg">פרטי התקשרות</h4>
-                        <ul className="space-y-3">
-                            <li className="flex items-center gap-3"><MapPin size={18} className="text-[#2EB0D9]"/> {state.config.address}</li>
-                            <li className="flex items-center gap-3"><Phone size={18} className="text-[#2EB0D9]"/> {state.config.phone}</li>
-                            <li className="flex items-center gap-3"><Mail size={18} className="text-[#2EB0D9]"/> {state.config.contactEmail}</li>
-                        </ul>
-                    </div>
-                    
-                    {/* Navigation Button */}
+                
+                {/* Contact Column */}
+                <div className="col-span-1">
+                    <h4 className="text-white font-bold mb-4 text-lg border-r-4 border-[#2EB0D9] pr-3">פרטי התקשרות</h4>
+                    <ul className="space-y-4 w-full">
+                        <li className="flex items-start gap-3">
+                            <MapPin size={20} className="text-[#2EB0D9] mt-1 flex-shrink-0"/> 
+                            <span className="leading-snug">{state.config.address}</span>
+                        </li>
+                        <li className="flex items-center gap-3">
+                            <Phone size={20} className="text-[#2EB0D9] flex-shrink-0"/> 
+                            <span className="leading-snug" dir="ltr">{state.config.phone}</span>
+                        </li>
+                        <li className="flex items-center gap-3">
+                            <Mail size={20} className="text-[#2EB0D9] flex-shrink-0"/> 
+                            <span className="leading-snug font-sans">{state.config.contactEmail}</span>
+                        </li>
+                    </ul>
                     <a 
                        href={`https://waze.com/ul?q=${encodeURIComponent(state.config.address)}`} 
                        target="_blank" 
                        rel="noopener noreferrer"
-                       className="inline-flex items-center gap-2 bg-[#2EB0D9] hover:bg-[#259cc0] text-white px-4 py-2 rounded-lg font-bold transition-colors w-full justify-center"
+                       className="inline-flex items-center gap-2 bg-[#2EB0D9] hover:bg-[#259cc0] text-white px-4 py-2.5 rounded-lg font-bold transition-colors w-full justify-center mt-6"
                     >
-                        <Navigation size={18} /> נווט למשרד עם Waze
+                        <Navigation size={18} /> נווט למשרד
                     </a>
                 </div>
-                <div>
-                    {/* Embedded Map */}
+                
+                {/* Map Column (Leftmost) */}
+                <div className="col-span-1">
                     <div className="w-full h-48 bg-slate-800 rounded-lg overflow-hidden border border-slate-700 shadow-inner">
                         <iframe 
                             title="Office Location"
@@ -538,7 +790,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 </div>
             </div>
             
-            <div className="container mx-auto px-4 pt-8 border-t border-slate-800 text-center text-sm">
+            <div className="container mx-auto px-4 pt-8 border-t border-slate-800 text-center text-sm text-slate-500">
                 &copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO. כל הזכויות שמורות.
             </div>
         </footer>
