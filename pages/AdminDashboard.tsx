@@ -219,6 +219,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {/* --- Articles Tab --- */}
         {activeTab === 'articles' && (
           <div className="space-y-6">
+             {/* ... Articles Editor Content (Same as before) ... */}
              <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800">
                 {editingArticle ? (
                    /* Edit Mode */
@@ -406,7 +407,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
         {/* --- Forms Management Tab --- */}
         {activeTab === 'forms' && (
-           // ... Forms Content ... 
+           // ... Forms Content (Same as before) ...
             <div className="space-y-8">
                 {editingForm ? (
                     <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800">
@@ -556,7 +557,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* --- Timelines & Sliders Tab (NEW) --- */}
+        {/* --- Timelines & Sliders Tab --- */}
         {activeTab === 'timelines' && (
             <div className="space-y-6">
                 <div className="flex gap-4 mb-6 border-b border-slate-800">
@@ -599,6 +600,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                             {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
                                     </div>
+                                    <div>
+                                        <label className="block text-sm font-bold mb-1 text-slate-400">טקסט כפתור (אופציונלי)</label>
+                                        <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" placeholder="קבע פגישת ייעוץ" value={editingSlide.buttonText || ''} onChange={e => setEditingSlide({...editingSlide, buttonText: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold mb-1 text-slate-400">קישור כפתור (אופציונלי)</label>
+                                        <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" placeholder="https://..." value={editingSlide.buttonLink || ''} onChange={e => setEditingSlide({...editingSlide, buttonLink: e.target.value})} />
+                                        <p className="text-xs text-slate-500 mt-1">השאר ריק כדי שהכפתור ינווט לקטגוריה הנבחרת</p>
+                                    </div>
                                 </div>
                                 <div className="mt-6 flex justify-end gap-2 border-t border-slate-800 pt-4">
                                     <Button variant="outline" onClick={() => setEditingSlide(null)} className="border-slate-600 text-slate-400 hover:bg-slate-800">ביטול</Button>
@@ -613,7 +623,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                          title: 'כותרת חדשה',
                                          subtitle: 'תיאור השקף',
                                          imageUrl: 'https://picsum.photos/1920/1080',
-                                         category: Category.HOME
+                                         category: Category.HOME,
+                                         buttonText: 'קבע פגישת ייעוץ'
                                      })}><Plus size={16} className="ml-2"/> הוסף שקף</Button>
                                 </div>
                                 <div className="grid grid-cols-1 gap-4">
@@ -641,6 +652,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
                 {/* Sub Tab: CARDS (Timeline) */}
                 {timelineSubTab === 'cards' && (
+                     // ... Card editor content (Same as before) ...
                      <div className="space-y-8">
                         {editingTimelineItem ? (
                              <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800">
@@ -723,9 +735,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* --- Config Tab (Updated with Theme Selector) --- */}
+        {/* --- Config Tab --- */}
         {activeTab === 'config' && (
-            <div className="space-y-6">
+             // ... Config Tab Content ...
+             <div className="space-y-6">
                 <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800 max-w-2xl">
                     <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-white"><Monitor/> הגדרות כלליות לאתר</h3>
                     

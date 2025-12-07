@@ -1,6 +1,6 @@
 import React from 'react';
 import { Article } from '../types.ts';
-import { Quote, PlayCircle, ArrowLeft } from 'lucide-react';
+import { PlayCircle, ArrowLeft } from 'lucide-react';
 
 interface ArticleCardProps {
   article: Article;
@@ -13,7 +13,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick }) =>
       onClick={onClick}
       className="bg-slate-900 rounded-xl shadow-md overflow-hidden border border-slate-800 hover:border-[#2EB0D9]/50 hover:shadow-xl hover:shadow-[#2EB0D9]/10 transition-all duration-300 flex flex-col h-full cursor-pointer group transform hover:-translate-y-1"
     >
-      {/* Media Header - Reduced height for compact view */}
+      {/* Media Header */}
       <div className="relative h-48 md:h-56 bg-slate-800 overflow-hidden flex-shrink-0">
         {/* Ken Burns Animation */}
         <img 
@@ -31,21 +31,16 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick }) =>
 
       {/* Content Preview */}
       <div className="p-5 flex-1 flex flex-col bg-slate-900">
-          {/* Increased Font Size */}
           <h3 className="text-xl font-bold text-white mb-3 leading-tight line-clamp-2 group-hover:text-[#2EB0D9] transition-colors">
               {article.title}
           </h3>
           
-          {/* Increased Font Size */}
           <p className="text-slate-400 text-sm leading-relaxed line-clamp-3 mb-4 flex-1">
               {article.abstract}
           </p>
 
-          <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-800">
-               {/* Category Tag */}
-               <span className="text-xs font-bold bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700">
-                   {article.category}
-               </span>
+          <div className="flex items-center justify-end mt-auto pt-3 border-t border-slate-800">
+               {/* Category Tag Removed as requested */}
                <ArrowLeft size={18} className="text-[#2EB0D9] group-hover:-translate-x-1 transition-transform"/>
           </div>
       </div>

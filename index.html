@@ -60,6 +60,40 @@
         animation: fade-in-up 0.8s ease-out forwards;
       }
 
+      /* Animated Background Gradient */
+      @keyframes gradient-xy {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+      }
+      .animate-gradient-xy {
+          background-size: 200% 200%;
+          animation: gradient-xy 15s ease infinite;
+      }
+
+      /* Shine Effect for Buttons */
+      @keyframes shine {
+        100% { left: 125%; }
+      }
+      .shine-effect {
+        position: relative;
+        overflow: hidden;
+      }
+      .shine-effect::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        animation: shine 3s infinite;
+      }
+
       /* Scroll Reveal Classes */
       .reveal {
         opacity: 0;

@@ -32,13 +32,13 @@ const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: 
     );
 };
 
-// --- Reusable Section Title Component ---
+// --- Reusable Section Title Component (Enhanced) ---
 const SectionTitle: React.FC<{ title: string; isDark: boolean }> = ({ title, isDark }) => (
-    <div className="mb-8">
-        <h3 className={`text-3xl font-black inline-block relative z-10 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+    <div className="mb-10">
+        <h3 className={`text-4xl font-black inline-block relative z-10 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {title}
         </h3>
-        <div className="h-1.5 w-16 bg-[#2EB0D9] mt-2 rounded-full"></div>
+        <div className="h-1.5 w-24 bg-gradient-to-r from-[#2EB0D9] to-blue-600 mt-3 rounded-full"></div>
     </div>
 );
 
@@ -67,14 +67,15 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   // Theme Helper Logic
   const isDark = state.config.theme === 'dark'; // Check theme preference
   
-  // Theme Classes Mapping
+  // Theme Classes Mapping (Enhanced)
   const theme = {
       bgMain: isDark ? 'bg-slate-950' : 'bg-slate-50',
       textMain: isDark ? 'text-slate-200' : 'text-slate-800',
-      headerBg: isDark ? 'bg-slate-950/90 shadow-black/20 border-slate-800' : 'bg-white/90 shadow-slate-200/50 border-slate-200',
-      cardBg: isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm',
-      cardHover: isDark ? 'hover:border-[#2EB0D9]/50' : 'hover:border-[#2EB0D9]/50 hover:shadow-lg',
-      inputBg: isDark ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400',
+      headerBg: isDark ? 'bg-slate-950/80 shadow-black/20 border-slate-800' : 'bg-white/80 shadow-slate-200/50 border-slate-200',
+      // Cards now have a more premium border/shadow
+      cardBg: isDark ? 'bg-slate-900/90 border-slate-700/50 backdrop-blur-md' : 'bg-white/90 border-slate-200 backdrop-blur-md shadow-sm',
+      cardHover: isDark ? 'hover:border-[#2EB0D9]/50 hover:shadow-[0_0_30px_rgba(46,176,217,0.15)]' : 'hover:border-[#2EB0D9]/50 hover:shadow-2xl',
+      inputBg: isDark ? 'bg-slate-800/50 border-slate-700 text-white placeholder-slate-500' : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400',
       modalBg: isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100',
       textTitle: isDark ? 'text-white' : 'text-slate-900',
       textMuted: isDark ? 'text-slate-400' : 'text-slate-500',
@@ -215,7 +216,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
                   <div className="grid md:grid-cols-3 gap-8">
                       {products.map(product => (
-                          <div key={product.id} className={`${theme.cardBg} border rounded-2xl overflow-hidden transition-all hover:-translate-y-2 hover:shadow-2xl shadow-black/10 group ${theme.cardHover}`}>
+                          <div key={product.id} className={`${theme.cardBg} border rounded-2xl overflow-hidden transition-all hover:-translate-y-2 group ${theme.cardHover}`}>
                               <div className={`h-48 flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
                                   <div className="absolute inset-0 bg-[#2EB0D9]/5 group-hover:bg-[#2EB0D9]/10 transition-colors"></div>
                                   <FileText size={64} className="text-slate-500 group-hover:text-[#2EB0D9] transition-colors duration-500 transform group-hover:scale-110"/>
@@ -235,7 +236,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                           } else {
                                               alert(`כאן יפתח חלון תשלום של Stripe עבור: ${product.title}\n(כרגע במצב דמו)`);
                                           }
-                                      }} className="px-6">רכוש כעת</Button>
+                                      }} className="px-6 shine-effect">רכוש כעת</Button>
                                   </div>
                               </div>
                           </div>
@@ -251,11 +252,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   return (
     <div className={`min-h-screen flex flex-col font-sans relative overflow-x-hidden selection:bg-[#2EB0D9] selection:text-white ${theme.bgMain} ${theme.textMain}`}>
       
-      {/* Background Floating Blobs */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-50">
-          <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#2EB0D9]/10 rounded-full blur-[100px] animate-float-slow"></div>
-          <div className="absolute bottom-[20%] left-[-5%] w-[400px] h-[400px] bg-slate-500/10 rounded-full blur-[100px] animate-float-slow" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute top-[40%] right-[20%] w-[200px] h-[200px] bg-[#2EB0D9]/5 rounded-full blur-[80px] animate-float" style={{ animationDelay: '4s' }}></div>
+      {/* Background Gradient Mesh Animation (The WOW factor) */}
+      <div className={`fixed inset-0 pointer-events-none z-0 ${isDark ? 'opacity-30' : 'opacity-60'} overflow-hidden`}>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#2EB0D9]/20 via-transparent to-purple-500/20 animate-gradient-xy"></div>
+          {/* Floating Orbs */}
+          <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#2EB0D9]/20 rounded-full blur-[100px] animate-float-slow"></div>
+          <div className="absolute bottom-[20%] left-[-5%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] animate-float-slow" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-[40%] right-[20%] w-[200px] h-[200px] bg-cyan-400/10 rounded-full blur-[80px] animate-float" style={{ animationDelay: '4s' }}></div>
       </div>
 
       {/* --- Article Modal Overlay --- */}
@@ -276,7 +279,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 <div className={`flex-1 flex flex-col h-full relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                     <div className={`p-6 md:p-8 border-b flex justify-between items-start flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div>
-                            <span className="inline-block px-3 py-1 bg-[#2EB0D9]/10 text-[#2EB0D9] text-xs font-bold rounded-full mb-3">{selectedArticle.category}</span>
+                            {/* Tags removed from article modal header as well, keeping it clean */}
                             <h2 className={`text-2xl md:text-4xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
                         </div>
                         <button onClick={() => setSelectedArticle(null)} className={`p-2 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={24} /></button>
@@ -446,7 +449,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                    <Button 
                                     variant="secondary" 
                                     onClick={handleRealWillsSubmit} 
-                                    className="flex-[2] font-bold text-lg"
+                                    className="flex-[2] font-bold text-lg shine-effect"
                                     disabled={isSubmittingWill}
                                    >
                                        {isSubmittingWill ? 'הורד צוואה למחשב' : 'הורד צוואה למחשב'}
@@ -504,7 +507,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           <div className="flex items-center gap-4">
             {/* Header Text Logo */}
             <h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer font-serif leading-none" onClick={() => onCategoryChange(Category.HOME)}>
-               <span className="block text-[#2EB0D9]">MOR ERAN KAGAN</span>
+               <span className="block text-[#2EB0D9] drop-shadow-md">MOR ERAN KAGAN</span>
                <span className={`${theme.textMuted} text-sm tracking-widest font-sans font-normal`}>& CO</span>
             </h1>
           </div>
@@ -550,7 +553,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       <main className="flex-1 pt-20 relative z-10">
         
         {/* HERO SECTION - KEN BURNS EFFECT ADDED */}
-        <section className="relative h-[45vh] md:h-[55vh] overflow-hidden bg-black group">
+        <section className="relative h-[55vh] md:h-[65vh] overflow-hidden bg-black group">
           
           {/* Floating Logo (Left Side, Centered) - MOVED HIGHER AND LEFT AS REQUESTED */}
           <div className="absolute left-8 top-[15%] z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity animate-float">
@@ -573,18 +576,41 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                     <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover opacity-50 animate-ken-burns" />
                 </div>
                 
-                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent flex items-center">
+                {/* Content Container - Padded bottom to push text UP */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent flex items-center pb-32">
                     <div className="container mx-auto px-6 md:px-12">
-                        <div className="max-w-3xl text-white space-y-6 animate-fade-in-up">
-                            <span className="inline-block px-4 py-1.5 bg-[#2EB0D9] text-sm font-bold uppercase tracking-widest rounded-full mb-2 text-white">
+                        <div className="max-w-4xl text-white space-y-6 animate-fade-in-up">
+                            <span className="inline-block px-4 py-1.5 bg-[#2EB0D9]/90 text-sm font-bold uppercase tracking-widest rounded-full mb-2 text-white shadow-lg shadow-[#2EB0D9]/30">
                                 {slide.category === Category.HOME ? 'המשרד המוביל בישראל' : 'התמחות מקצועית'}
                             </span>
-                            {/* Larger, Impressive Title */}
-                            <h2 className="text-5xl md:text-7xl font-black leading-tight drop-shadow-xl text-white">{slide.title}</h2>
-                            <p className="text-xl text-slate-300 md:w-3/4 border-r-4 border-[#2EB0D9] pr-6 leading-relaxed">{slide.subtitle}</p>
-                            <div className="pt-6">
-                                <Button onClick={() => onCategoryChange(slide.category)} variant="secondary" size="lg" className="shadow-2xl shadow-[#2EB0D9]/40 transition-transform hover:scale-105 border-none">קבע פגישת ייעוץ</Button>
-                            </div>
+                            {/* Adjusted Title: White, smaller than previous WOW version but still impactful */}
+                            <h2 className="text-4xl md:text-6xl font-black leading-tight drop-shadow-2xl text-white">
+                                {slide.title}
+                            </h2>
+                            <p className="text-2xl text-slate-300 md:w-3/4 border-r-4 border-[#2EB0D9] pr-6 leading-relaxed font-light">
+                                {slide.subtitle}
+                            </p>
+                            
+                            {/* CTA Button - Hidden on HOME, Show on others with dynamic props */}
+                            {state.currentCategory !== Category.HOME && (
+                                <div className="pt-8">
+                                    <Button 
+                                        onClick={() => {
+                                            if (slide.buttonLink) {
+                                                window.open(slide.buttonLink, '_blank');
+                                            } else {
+                                                // Default action if no specific link
+                                                onCategoryChange(slide.category);
+                                            }
+                                        }} 
+                                        variant="secondary" 
+                                        size="lg" 
+                                        className="shadow-2xl shadow-[#2EB0D9]/40 transition-transform hover:scale-105 border-none text-lg px-10 py-4 shine-effect"
+                                    >
+                                        {slide.buttonText || 'קבע פגישת ייעוץ'}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -592,28 +618,28 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           ))}
           
           {/* Slider Dots */}
-          <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-3 z-20">
+          <div className="absolute bottom-40 left-0 right-0 flex justify-center gap-3 z-20">
             {currentSlides.map((_, idx) => (
                 <button 
                   key={idx}
                   onClick={() => setActiveSlide(idx)}
-                  className={`h-2 rounded-full transition-all duration-300 ${idx === activeSlide ? 'bg-[#2EB0D9] w-12' : 'bg-white/30 w-2 hover:bg-white'}`}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeSlide ? 'bg-[#2EB0D9] w-16' : 'bg-white/30 w-3 hover:bg-white'}`}
                 />
             ))}
           </div>
         </section>
 
-        {/* TEAM SECTION (HOME ONLY) - With Reveal */}
+        {/* TEAM SECTION (HOME ONLY) - OVERLAPPING SLIDER */}
         {state.currentCategory === Category.HOME && (
-            <Reveal className={`py-12 relative -mt-8 z-10 container mx-auto px-4 ${isDark ? 'bg-slate-900/80' : 'bg-white/80'} backdrop-blur-sm rounded-t-xl`}>
-                 <div className={`shadow-xl rounded-xl p-8 border ${theme.cardBg}`}>
+            <Reveal className="relative z-20 -mt-32 container mx-auto px-4">
+                 <div className={`shadow-2xl rounded-2xl p-8 border ${theme.cardBg}`}>
                      <div className="flex justify-between items-center mb-8">
                         {/* New Styled Title */}
                         <SectionTitle title="הנבחרת שלנו" isDark={isDark} />
                         
                         <div className="flex gap-2">
-                            <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={20}/></button>
-                            <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={20}/></button>
+                            <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
+                            <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
                         </div>
                      </div>
                      
@@ -625,19 +651,22 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              <div 
                                 key={member.id} 
                                 onClick={() => setSelectedTeamMember(member)}
-                                className={`flex-shrink-0 w-[85vw] md:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-md transition-all hover:-translate-y-1 border ${theme.cardBg} ${theme.cardHover}`}
+                                className={`flex-shrink-0 w-[85vw] md:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}
                              >
-                                 <div className="h-64 w-full overflow-hidden">
+                                 <div className="h-72 w-full overflow-hidden relative">
                                      {/* Added animation class here + Grayscale Logic */}
                                      <img 
                                         src={member.imageUrl} 
                                         alt={member.fullName} 
                                         className="w-full h-full object-cover animate-ken-burns grayscale group-hover:grayscale-0 transition-all duration-500 opacity-80 group-hover:opacity-100" 
                                      />
+                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                                         <span className="text-white font-bold text-sm bg-[#2EB0D9] px-3 py-1 rounded-full">לחץ לפרטים</span>
+                                     </div>
                                  </div>
-                                 <div className="p-5 text-center">
-                                     <h4 className={`font-bold text-xl group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{member.fullName}</h4>
-                                     <p className={`text-sm font-medium ${theme.textMuted}`}>{member.role}</p>
+                                 <div className="p-6 text-center">
+                                     <h4 className={`font-bold text-2xl mb-1 group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{member.fullName}</h4>
+                                     <p className={`text-sm font-medium uppercase tracking-wide ${theme.textMuted}`}>{member.role}</p>
                                  </div>
                              </div>
                          ))}
@@ -651,20 +680,20 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         )}
 
         {/* TIMELINE (SCROLLABLE) - RESTORED TO CARD STYLE WITHOUT TOP IMAGES */}
-        <Reveal className={`py-12 relative border-b ${isDark ? 'border-slate-900' : 'border-slate-100'}`} delay={200}>
-           <div className="container mx-auto px-4 mb-6 flex justify-between items-end">
+        <Reveal className={`py-20 relative border-b ${isDark ? 'border-slate-800/50' : 'border-slate-100'}`} delay={200}>
+           <div className="container mx-auto px-4 mb-8 flex justify-between items-end">
               <SectionTitle title={state.currentCategory === Category.HOME ? 'חדשות ועדכונים' : 'מדריכים ומידע מקצועי'} isDark={isDark} />
               
               <div className="flex gap-2">
-                  <button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={20}/></button>
-                  <button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={20}/></button>
+                  <button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
+                  <button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
               </div>
            </div>
            
            <div className="container mx-auto px-4">
               <div 
                  ref={timelineScrollRef}
-                 className="flex gap-4 overflow-x-auto pb-8 scrollbar-hide snap-x"
+                 className="flex gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x"
               >
                   {currentTimelines.map((item, index) => {
                       const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-'));
@@ -682,8 +711,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
                       // Apply varied colored backgrounds for generator cards, clean style for others
                       const bgClass = isGenerator 
-                        ? `bg-gradient-to-br ${selectedGradient} text-white shadow-lg shadow-cyan-500/10` 
-                        : `${theme.cardBg} border ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`;
+                        ? `bg-gradient-to-br ${selectedGradient} text-white shadow-xl shadow-cyan-500/20 transform hover:-translate-y-2` 
+                        : `${theme.cardBg} ${theme.cardHover} transition-all duration-300 transform hover:-translate-y-2`;
                       
                       const textClass = isGenerator ? 'text-white' : theme.textTitle;
                       const descClass = isGenerator ? 'text-white/90' : theme.textMuted;
@@ -693,17 +722,17 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             key={item.id} 
                             onClick={() => handleTimelineClick(item)}
                             // Sizing adjusted to fit ~4 items on desktop (25% minus gap)
-                            className={`flex-shrink-0 w-[280px] md:w-[calc(25%-12px)] rounded-xl shadow-sm hover:shadow-xl overflow-hidden cursor-pointer group snap-start transition-all duration-300 hover:-translate-y-2 flex flex-col h-[220px] ${bgClass}`}
+                            className={`flex-shrink-0 w-[300px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[240px] border border-transparent ${bgClass}`}
                           >
-                              <div className="p-6 flex flex-col h-full relative">
+                              <div className="p-8 flex flex-col h-full relative">
                                   {/* Icon - Positioned absolutely or in flow */}
-                                   <div className={`absolute top-4 left-4 p-2 rounded-full ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>
+                                   <div className={`absolute top-6 left-6 p-3 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>
                                       {isGenerator ? <FileText size={24} className="text-white"/> : <ArrowLeft size={24} className=""/>}
                                    </div>
 
                                   {/* Content - No top image */}
-                                  <div className="mt-8">
-                                       <h4 className={`text-xl font-black mb-3 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4>
+                                  <div className="mt-10">
+                                       <h4 className={`text-2xl font-black mb-3 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4>
                                        <p className={`text-sm leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p>
                                   </div>
                                   
@@ -722,22 +751,22 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         </Reveal>
 
         {/* DYNAMIC CONTENT SECTION (ARTICLES / FORMS) */}
-        <section className="py-16 min-h-[600px] relative z-10">
+        <section className="py-20 min-h-[600px] relative z-10">
            <div className="container mx-auto px-4">
               
               {/* --- DYNAMIC FORM RENDERER --- */}
               {currentDynamicForm && (
-                  <div ref={dynamicFormRef} className={`mb-16 rounded-2xl p-8 md:p-12 shadow-lg border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
+                  <div ref={dynamicFormRef} className={`mb-20 rounded-2xl p-8 md:p-12 shadow-2xl border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
                        <div className="max-w-2xl mx-auto">
                            <div className="flex justify-between items-start mb-6">
                                 <div>
-                                    <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3>
+                                    <h3 className={`text-3xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3>
                                     <p className={theme.textMuted}>נא למלא את כל השדות הנדרשים</p>
                                 </div>
-                                <button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X/></button>
+                                <button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X size={32}/></button>
                            </div>
 
-                           <div className={`space-y-6 p-6 rounded-xl border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                           <div className={`space-y-6 p-8 rounded-xl border shadow-inner ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                                {currentDynamicForm.fields.map(field => (
                                    <div key={field.id} className="space-y-2">
                                        <div className="flex items-center gap-2">
@@ -762,26 +791,28 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                        {field.type === 'text' && (
                                            <input 
                                              type="text" 
-                                             className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} 
+                                             className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} 
                                              value={dynamicFormValues[field.id] || ''}
                                              onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}
                                            />
                                        )}
                                        
                                        {field.type === 'boolean' && (
-                                           <div className="flex gap-4">
-                                               <label className={`flex items-center gap-2 cursor-pointer ${theme.textMain}`}>
+                                           <div className="flex gap-6 p-2">
+                                               <label className={`flex items-center gap-2 cursor-pointer ${theme.textMain} text-lg`}>
                                                    <input 
                                                      type="radio" 
                                                      name={field.id} 
+                                                     className="w-5 h-5 accent-[#2EB0D9]"
                                                      checked={dynamicFormValues[field.id] === true}
                                                      onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: true})}
                                                    /> כן
                                                </label>
-                                               <label className={`flex items-center gap-2 cursor-pointer ${theme.textMain}`}>
+                                               <label className={`flex items-center gap-2 cursor-pointer ${theme.textMain} text-lg`}>
                                                    <input 
                                                      type="radio" 
                                                      name={field.id} 
+                                                     className="w-5 h-5 accent-[#2EB0D9]"
                                                      checked={dynamicFormValues[field.id] === false}
                                                      onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: false})}
                                                    /> לא
@@ -791,7 +822,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
                                        {field.type === 'select' && (
                                            <select 
-                                              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`}
+                                              className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`}
                                               value={dynamicFormValues[field.id] || ''}
                                               onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}
                                            >
@@ -801,12 +832,12 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                        )}
 
                                        {field.type === 'repeater' && (
-                                           <div className={`p-4 rounded-lg border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                               <div className="space-y-2 mb-2">
+                                           <div className={`p-6 rounded-lg border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                               <div className="space-y-3 mb-4">
                                                    {(dynamicFormValues[field.id] || []).map((val: string, i: number) => (
                                                        <div key={i} className="flex gap-2">
                                                            <input 
-                                                             className={`flex-1 p-2 border rounded text-sm ${theme.inputBg}`} 
+                                                             className={`flex-1 p-3 border rounded-lg text-sm ${theme.inputBg}`} 
                                                              value={val}
                                                              onChange={(e) => {
                                                                  const newArr = [...(dynamicFormValues[field.id] || [])];
@@ -826,7 +857,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                    </div>
                                ))}
 
-                               <Button className="w-full mt-4" variant="secondary" onClick={() => {
+                               <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" onClick={() => {
                                    console.log("Form Submitted", currentDynamicForm.submitEmail, dynamicFormValues);
                                    alert("הטופס נשלח בהצלחה! תודה רבה.");
                                    setActiveDynamicFormId(null);
@@ -838,22 +869,22 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
               {/* Articles Grid / Carousel */}
               <Reveal delay={300}>
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center justify-between mb-10">
                      <SectionTitle title="מאמרים נבחרים" isDark={isDark} />
                      <div className="flex gap-2">
-                         <button onClick={() => scrollContainer(articlesScrollRef, 'right')} className={`p-2 border rounded-full hover:opacity-80 ${theme.cardBg} ${theme.textMuted} ${theme.border}`}><ChevronRight size={20}/></button>
-                         <button onClick={() => scrollContainer(articlesScrollRef, 'left')} className={`p-2 border rounded-full hover:opacity-80 ${theme.cardBg} ${theme.textMuted} ${theme.border}`}><ChevronLeft size={20}/></button>
+                         <button onClick={() => scrollContainer(articlesScrollRef, 'right')} className={`p-3 border rounded-full hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMuted} ${theme.border}`}><ChevronRight size={24}/></button>
+                         <button onClick={() => scrollContainer(articlesScrollRef, 'left')} className={`p-3 border rounded-full hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMuted} ${theme.border}`}><ChevronLeft size={24}/></button>
                      </div>
                   </div>
 
                   <div 
                      ref={articlesScrollRef}
-                     className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide snap-x"
+                     className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x"
                   >
                      {currentArticles.map(article => (
                         <div 
                             key={article.id} 
-                            className="flex-shrink-0 w-[300px] md:w-[calc(25%-12px)] h-[320px] snap-start"
+                            className="flex-shrink-0 w-[320px] md:w-[calc(25%-18px)] h-[380px] snap-start"
                         >
                             <ArticleCard 
                                 article={article} 
@@ -862,7 +893,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                         </div>
                      ))}
                      {currentArticles.length === 0 && (
-                         <div className={`w-full text-center py-12 rounded-xl border ${theme.cardBg} ${theme.textMuted}`}>
+                         <div className={`w-full text-center py-20 rounded-2xl border border-dashed ${theme.cardBg} ${theme.textMuted}`}>
                              אין מאמרים להצגה בקטגוריה זו.
                          </div>
                      )}
@@ -872,22 +903,22 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         </section>
 
         {/* CONTACT FOOTER - FIXED ALIGNMENT */}
-        <footer className="bg-black text-slate-400 pt-16 pb-8 relative z-10 border-t border-slate-900">
-            <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-12 items-start text-right" dir="rtl">
+        <footer className="bg-black text-slate-400 pt-20 pb-10 relative z-10 border-t border-slate-900">
+            <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 items-start text-right" dir="rtl">
                 
                 {/* Brand Column (Rightmost) */}
                 <div className="col-span-1 flex flex-col items-start">
-                    <h2 className="text-xl font-black text-white mb-6 font-serif leading-tight">
+                    <h2 className="text-2xl font-black text-white mb-6 font-serif leading-tight">
                        <span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO
                     </h2>
-                    <p className="mb-4 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי בכל תחומי המשפט האזרחי והמסחרי.</p>
-                    <div className="flex gap-4 mt-4">
-                       <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] hover:text-white cursor-pointer transition-colors hover:scale-110 transform border border-slate-800">f</div>
-                       <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] hover:text-white cursor-pointer transition-colors hover:scale-110 transform border border-slate-800">in</div>
+                    <p className="mb-6 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי בכל תחומי המשפט האזרחי והמסחרי.</p>
+                    <div className="flex gap-4">
+                       <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] hover:text-white cursor-pointer transition-all hover:scale-110 transform border border-slate-800">f</div>
+                       <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] hover:text-white cursor-pointer transition-all hover:scale-110 transform border border-slate-800">in</div>
                        {onAdminClick && (
                           <button 
                             onClick={onAdminClick}
-                            className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] cursor-pointer transition-colors text-slate-500 hover:text-white border border-slate-800"
+                            className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] cursor-pointer transition-all text-slate-500 hover:text-white border border-slate-800"
                             title="ניהול אתר"
                           >
                              <Settings size={20} />
@@ -898,8 +929,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 
                 {/* Navigation Column */}
                 <div className="col-span-1 flex flex-col items-start">
-                    <h4 className="text-white font-bold mb-4 text-lg border-r-4 border-[#2EB0D9] pr-3">ניווט מהיר</h4>
-                    <ul className="space-y-2 w-full">
+                    <h4 className="text-white font-bold mb-6 text-lg border-r-4 border-[#2EB0D9] pr-4">ניווט מהיר</h4>
+                    <ul className="space-y-3 w-full">
                         <li><button onClick={() => onCategoryChange(Category.WILLS)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right hover:translate-x-1 transform duration-200">צוואות וירושות</button></li>
                         <li><button onClick={() => onCategoryChange(Category.REAL_ESTATE)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right hover:translate-x-1 transform duration-200">מקרקעין ונדל"ן</button></li>
                         <li><button onClick={() => onCategoryChange(Category.POA)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right hover:translate-x-1 transform duration-200">ייפוי כוח מתמשך</button></li>
@@ -909,18 +940,18 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 
                 {/* Contact Column - Fixed Alignment */}
                 <div className="col-span-1 flex flex-col items-start">
-                    <h4 className="text-white font-bold mb-4 text-lg border-r-4 border-[#2EB0D9] pr-3">פרטי התקשרות</h4>
+                    <h4 className="text-white font-bold mb-6 text-lg border-r-4 border-[#2EB0D9] pr-4">פרטי התקשרות</h4>
                     <ul className="space-y-4 w-full">
-                        <li className="flex items-start gap-3">
-                            <MapPin size={20} className="text-[#2EB0D9] mt-1 flex-shrink-0"/> 
+                        <li className="flex items-start gap-4">
+                            <MapPin size={22} className="text-[#2EB0D9] mt-1 flex-shrink-0"/> 
                             <span className="leading-snug text-slate-400">{state.config.address}</span>
                         </li>
-                        <li className="flex items-center gap-3">
-                            <Phone size={20} className="text-[#2EB0D9] flex-shrink-0"/> 
+                        <li className="flex items-center gap-4">
+                            <Phone size={22} className="text-[#2EB0D9] flex-shrink-0"/> 
                             <span className="leading-snug text-slate-400" dir="ltr">{state.config.phone}</span>
                         </li>
-                        <li className="flex items-center gap-3">
-                            <Mail size={20} className="text-[#2EB0D9] flex-shrink-0"/> 
+                        <li className="flex items-center gap-4">
+                            <Mail size={22} className="text-[#2EB0D9] flex-shrink-0"/> 
                             <span className="leading-snug font-sans text-slate-400">{state.config.contactEmail}</span>
                         </li>
                     </ul>
@@ -929,16 +960,16 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                        href={`https://waze.com/ul?q=${encodeURIComponent(state.config.address)}`} 
                        target="_blank" 
                        rel="noopener noreferrer"
-                       className="inline-flex items-center gap-2 bg-[#2EB0D9] hover:bg-[#259cc0] text-white px-4 py-2.5 rounded-lg font-bold transition-colors mt-6 hover:shadow-lg transform hover:-translate-y-1 w-full justify-center shadow shadow-[#2EB0D9]/20"
+                       className="inline-flex items-center gap-2 bg-[#2EB0D9] hover:bg-[#259cc0] text-white px-6 py-3 rounded-lg font-bold transition-all mt-8 hover:shadow-lg transform hover:-translate-y-1 w-full justify-center shadow-lg shadow-[#2EB0D9]/10"
                     >
-                        <Navigation size={18} /> נווט למשרד
+                        <Navigation size={20} /> נווט למשרד
                     </a>
                 </div>
                 
                 {/* Map Column (Leftmost) */}
                 <div className="col-span-1">
                      {/* Map container same height as content roughly */}
-                    <div className="w-full h-56 bg-slate-900 rounded-lg overflow-hidden border border-slate-800 shadow-inner group">
+                    <div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 shadow-2xl group hover:border-[#2EB0D9]/50 transition-colors">
                         <iframe 
                             title="Office Location"
                             width="100%" 

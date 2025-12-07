@@ -14,6 +14,8 @@ export interface SliderSlide {
   title: string;
   subtitle: string;
   category: Category;
+  buttonText?: string; // New: Custom text for the button
+  buttonLink?: string; // New: Custom link URL
 }
 
 export interface TimelineItem {
