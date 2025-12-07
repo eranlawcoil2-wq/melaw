@@ -218,7 +218,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         
         {/* --- Articles Tab --- */}
         {activeTab === 'articles' && (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-6">
              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 {editingArticle ? (
                    /* Edit Mode */
@@ -382,7 +382,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {/* --- Forms Management Tab --- */}
         {activeTab === 'forms' && (
            // ... Forms Content ... 
-            <div className="space-y-8 animate-fade-in">
+            <div className="space-y-8">
                 {editingForm ? (
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                          <div className="flex justify-between items-center mb-6">
@@ -533,7 +533,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
         {/* --- Timelines & Sliders Tab (NEW) --- */}
         {activeTab === 'timelines' && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-6">
                 <div className="flex gap-4 mb-6 border-b">
                     <button 
                         onClick={() => setTimelineSubTab('slider')}
@@ -700,7 +700,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
         {/* --- Config Tab (NEW) --- */}
         {activeTab === 'config' && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-6">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-2xl">
                     <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800"><Monitor/> הגדרות כלליות לאתר</h3>
                     
@@ -796,7 +796,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {/* --- Team Management Tab --- */}
         {activeTab === 'team' && (
              // ... Team Content (No Change) ...
-             <div className="space-y-8 animate-fade-in">
+             <div className="space-y-8">
                  {editingMember ? (
                      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                          <div className="flex justify-between items-center mb-6">

@@ -2,13 +2,20 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Article, Category } from "../types.ts";
 
 const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
-  // In demo environment without env vars, return null to trigger fallback immediately
-  if (!apiKey) {
-    console.warn("API Key is missing. Using mock generator.");
+  try {
+    // Safely access process.env
+    const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
+    
+    // In demo environment without env vars, return null to trigger fallback immediately
+    if (!apiKey) {
+      console.warn("API Key is missing. Using mock generator.");
+      return null;
+    }
+    return new GoogleGenAI({ apiKey });
+  } catch (e) {
+    console.warn("Failed to initialize AI client", e);
     return null;
   }
-  return new GoogleGenAI({ apiKey });
 };
 
 export const generateArticleContent = async (topic: string, category: Category | 'ALL'): Promise<Partial<Article>> => {
