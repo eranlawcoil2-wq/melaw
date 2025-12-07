@@ -110,7 +110,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
   const scrollContainer = (ref: React.RefObject<HTMLDivElement>, direction: 'left' | 'right') => {
       if (ref.current) {
-          const scrollAmount = 300;
+          const scrollAmount = 350;
           ref.current.scrollBy({
               left: direction === 'left' ? -scrollAmount : scrollAmount,
               behavior: 'smooth'
@@ -447,8 +447,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         {/* HERO SECTION - KEN BURNS EFFECT ADDED */}
         <section className="relative h-[45vh] md:h-[55vh] overflow-hidden bg-slate-900 group">
           
-          {/* Floating Logo (Left Side, Centered) - RESIZED AND COLORED */}
-          <div className="absolute left-16 top-1/2 -translate-y-1/2 z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity animate-float">
+          {/* Floating Logo (Left Side, Centered) - MOVED HIGHER AND LEFT AS REQUESTED */}
+          <div className="absolute left-8 top-[15%] z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity animate-float">
               <img 
                 src={state.config.logoUrl} 
                 alt="Logo" 
@@ -464,7 +464,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
              >
                 {/* Apply Ken Burns Animation to Image */}
                 <div className="w-full h-full overflow-hidden">
-                    <img src={slide.imageUrl} alt={slide.title} className={`w-full h-full object-cover opacity-60 ${index === activeSlide ? 'animate-ken-burns' : ''}`} />
+                    {/* Explicitly adding animate-ken-burns even if not activeSlide to handle re-renders, but opacity controls visibility */}
+                    <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover opacity-60 animate-ken-burns" />
                 </div>
                 
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-transparent to-transparent flex items-center">
@@ -522,8 +523,12 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                 className="flex-shrink-0 w-[260px] md:w-[280px] snap-start group cursor-pointer bg-slate-50 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 border border-slate-100"
                              >
                                  <div className="h-64 w-full overflow-hidden">
-                                     {/* Added animation class here */}
-                                     <img src={member.imageUrl} alt={member.fullName} className="w-full h-full object-cover animate-ken-burns" />
+                                     {/* Added animation class here + Grayscale Logic */}
+                                     <img 
+                                        src={member.imageUrl} 
+                                        alt={member.fullName} 
+                                        className="w-full h-full object-cover animate-ken-burns grayscale group-hover:grayscale-0 transition-all duration-500" 
+                                     />
                                  </div>
                                  <div className="p-5 text-center">
                                      <h4 className="font-bold text-xl text-slate-900 group-hover:text-[#2EB0D9] transition-colors">{member.fullName}</h4>
@@ -536,7 +541,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
 
-        {/* TIMELINE (SCROLLABLE) - With Reveal */}
+        {/* TIMELINE (SCROLLABLE) - RESTORED TO CARD STYLE WITHOUT TOP IMAGES */}
         <Reveal className="py-12 relative border-b border-slate-200" delay={200}>
            <div className="container mx-auto px-4 mb-6 flex justify-between items-end">
               <SectionTitle title={state.currentCategory === Category.HOME ? 'חדשות ועדכונים' : 'מדריכים ומידע מקצועי'} />
@@ -555,42 +560,40 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                   {currentTimelines.map((item, index) => {
                       const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-'));
                       
-                      // 4 Shades of Gray Logic (Cyclic)
-                      const grayShades = [
-                          'bg-white',
-                          'bg-slate-50',
-                          'bg-gray-100',
-                          'bg-[#f1f5f9]' 
-                      ];
-                      const currentBg = grayShades[index % 4];
+                      // Restore colored backgrounds for generator cards, clean style for others
+                      const bgClass = isGenerator 
+                        ? 'bg-gradient-to-br from-[#2EB0D9] to-blue-600 text-white shadow-blue-200' 
+                        : 'bg-white border-slate-200 border text-slate-800';
+                      
+                      const textClass = isGenerator ? 'text-white' : 'text-slate-900';
+                      const descClass = isGenerator ? 'text-blue-100' : 'text-slate-500';
 
                       return (
                           <div 
                             key={item.id} 
                             onClick={() => handleTimelineClick(item)}
-                            className={`
-                                flex-shrink-0 w-[280px] md:w-[calc(25%-12px)] h-[200px]
-                                p-5 rounded-xl transition-all group cursor-pointer relative snap-start flex flex-col justify-between
-                                ${isGenerator 
-                                    ? 'bg-[#2EB0D9] shadow-lg shadow-[#2EB0D9]/30 text-white hover:-translate-y-2' 
-                                    : `${currentBg} border border-slate-200 text-slate-900 hover:shadow-2xl hover:-translate-y-2 hover:bg-white`
-                                }
-                            `}
+                            // Sizing adjusted to fit ~4 items on desktop (25% minus gap)
+                            className={`flex-shrink-0 w-[280px] md:w-[calc(25%-12px)] rounded-xl shadow-sm hover:shadow-xl overflow-hidden cursor-pointer group snap-start transition-all duration-300 hover:-translate-y-2 flex flex-col h-[220px] ${bgClass}`}
                           >
-                              <div>
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm z-10 relative transition-colors ${isGenerator ? 'bg-white text-[#2EB0D9]' : 'bg-[#2EB0D9]/10 text-[#2EB0D9]'}`}>
-                                        {isGenerator ? <Check size={16} /> : (item.linkTo && item.linkTo.startsWith('form-') ? <FileText size={16}/> : <ArrowLeft size={16} />)}
-                                    </div>
-                                </div>
-                                
-                                <h4 className={`text-base font-bold mb-1 leading-tight ${isGenerator ? 'text-white' : 'text-[#2EB0D9]'}`}>{item.title}</h4>
-                                <p className={`text-xs line-clamp-2 ${isGenerator ? 'text-white/80' : 'text-slate-500'}`}>{item.description}</p>
+                              <div className="p-6 flex flex-col h-full relative">
+                                  {/* Icon - Positioned absolutely or in flow */}
+                                   <div className={`absolute top-4 left-4 p-2 rounded-full ${isGenerator ? 'bg-white/20' : 'bg-slate-100'}`}>
+                                      {isGenerator ? <FileText size={24} className="text-white"/> : <ArrowLeft size={24} className="text-[#2EB0D9]"/>}
+                                   </div>
+
+                                  {/* Content - No top image */}
+                                  <div className="mt-8">
+                                       <h4 className={`text-xl font-black mb-3 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4>
+                                       <p className={`text-sm leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p>
+                                  </div>
+                                  
+                                  {/* Footer link */}
+                                  <div className="mt-auto pt-4 flex items-center justify-between">
+                                       <span className={`text-sm font-bold flex items-center gap-2 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>
+                                          {isGenerator ? 'התחל עכשיו' : 'קרא עוד'} <ArrowLeft size={16}/>
+                                       </span>
+                                  </div>
                               </div>
-                              
-                              <span className={`text-xs font-medium flex items-center gap-1 mt-auto ${isGenerator ? 'text-white underline' : 'text-[#2EB0D9]'}`}>
-                                  {isGenerator ? 'התחל עכשיו' : (item.linkTo && item.linkTo.startsWith('form-') ? 'למילוי הטופס' : 'קרא עוד')} <ArrowLeft size={12}/>
-                              </span>
                           </div>
                       );
                   })}
@@ -730,7 +733,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                      {currentArticles.map(article => (
                         <div 
                             key={article.id} 
-                            className="flex-shrink-0 w-[280px] md:w-[calc(25%-12px)] h-[220px] snap-start"
+                            className="flex-shrink-0 w-[300px] md:w-[calc(25%-12px)] h-[320px] snap-start"
                         >
                             <ArticleCard 
                                 article={article} 

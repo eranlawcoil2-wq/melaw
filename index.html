@@ -70,6 +70,55 @@
         opacity: 1;
         transform: translateY(0);
       }
+
+      /* --- Accessibility Overrides --- */
+      
+      /* Large Text */
+      body.a11y-large-text {
+        font-size: 120%;
+      }
+      body.a11y-large-text h1 { font-size: 2.5em; }
+      body.a11y-large-text h2 { font-size: 2em; }
+      body.a11y-large-text p, body.a11y-large-text span, body.a11y-large-text a, body.a11y-large-text li {
+          font-size: 1.1em;
+      }
+
+      /* High Contrast Mode */
+      body.a11y-high-contrast {
+        background-color: #000 !important;
+        color: #fff !important;
+      }
+      body.a11y-high-contrast * {
+        background-color: #000 !important;
+        color: #ffff00 !important; /* Yellow text */
+        border-color: #ffff00 !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+        background-image: none !important; /* Remove background images for readability */
+      }
+      body.a11y-high-contrast img {
+         filter: grayscale(100%) contrast(120%);
+         border: 1px solid #ffff00 !important;
+      }
+      body.a11y-high-contrast button {
+         background-color: #ffff00 !important;
+         color: #000 !important;
+         font-weight: bold !important;
+         border: 2px solid #fff !important;
+      }
+      body.a11y-high-contrast svg {
+         stroke: #ffff00 !important;
+         fill: none !important;
+      }
+
+      /* Stop Animations */
+      body.a11y-stop-animations *,
+      body.a11y-stop-animations *::before,
+      body.a11y-stop-animations *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
     </style>
   <script type="importmap">
 {

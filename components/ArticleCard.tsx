@@ -14,8 +14,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick }) =>
       className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-100 hover:shadow-xl transition-all duration-300 flex flex-col h-full cursor-pointer group transform hover:-translate-y-1"
     >
       {/* Media Header - Reduced height for compact view */}
-      <div className="relative h-28 md:h-32 bg-slate-200 overflow-hidden flex-shrink-0">
-        {/* Added animate-ken-burns class here */}
+      <div className="relative h-48 md:h-56 bg-slate-200 overflow-hidden flex-shrink-0">
+        {/* Ken Burns Animation */}
         <img 
           src={article.imageUrl} 
           alt={article.title} 
@@ -30,21 +30,23 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick }) =>
       </div>
 
       {/* Content Preview */}
-      <div className="p-4 flex-1 flex flex-col bg-white">
-          <h3 className="text-base font-bold text-slate-900 mb-2 leading-tight line-clamp-2 group-hover:text-[#2EB0D9] transition-colors">
+      <div className="p-5 flex-1 flex flex-col bg-white">
+          {/* Increased Font Size */}
+          <h3 className="text-xl font-bold text-slate-900 mb-3 leading-tight line-clamp-2 group-hover:text-[#2EB0D9] transition-colors">
               {article.title}
           </h3>
           
-          <p className="text-slate-500 text-xs line-clamp-2 mb-3 flex-1">
+          {/* Increased Font Size */}
+          <p className="text-slate-600 text-sm leading-relaxed line-clamp-3 mb-4 flex-1">
               {article.abstract}
           </p>
 
-          <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-50">
-               {/* Tiny category tag */}
-               <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+          <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50">
+               {/* Category Tag */}
+               <span className="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
                    {article.category}
                </span>
-               <ArrowLeft size={14} className="text-[#2EB0D9] group-hover:-translate-x-1 transition-transform"/>
+               <ArrowLeft size={18} className="text-[#2EB0D9] group-hover:-translate-x-1 transition-transform"/>
           </div>
       </div>
     </div>

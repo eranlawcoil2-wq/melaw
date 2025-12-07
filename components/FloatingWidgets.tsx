@@ -1,8 +1,37 @@
 import React, { useState } from 'react';
-import { MessageCircle, Accessibility, X } from 'lucide-react';
+import { MessageCircle, Accessibility, X, Type, Eye, PauseCircle } from 'lucide-react';
 
 export const FloatingWidgets: React.FC = () => {
   const [showAccess, setShowAccess] = useState(false);
+  const [largeText, setLargeText] = useState(false);
+  const [highContrast, setHighContrast] = useState(false);
+  const [stopAnimations, setStopAnimations] = useState(false);
+
+  const toggleClass = (className: string, active: boolean) => {
+    if (active) {
+        document.body.classList.add(className);
+    } else {
+        document.body.classList.remove(className);
+    }
+  };
+
+  const handleLargeText = () => {
+      const newState = !largeText;
+      setLargeText(newState);
+      toggleClass('a11y-large-text', newState);
+  };
+
+  const handleHighContrast = () => {
+      const newState = !highContrast;
+      setHighContrast(newState);
+      toggleClass('a11y-high-contrast', newState);
+  };
+
+  const handleStopAnimations = () => {
+      const newState = !stopAnimations;
+      setStopAnimations(newState);
+      toggleClass('a11y-stop-animations', newState);
+  };
 
   return (
     <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3">
@@ -33,11 +62,26 @@ export const FloatingWidgets: React.FC = () => {
                 <h3 className="font-bold text-slate-800">נגישות</h3>
                 <button onClick={() => setShowAccess(false)}><X size={18} /></button>
             </div>
-            <p className="text-xs text-slate-500 mb-2">הצהרת נגישות: אתר זה מותאם לקוראי מסך ותומך בניווט מקלדת.</p>
+            <p className="text-xs text-slate-500 mb-4">הצהרת נגישות: אתר זה מותאם לקוראי מסך ותומך בניווט מקלדת.</p>
             <div className="space-y-2">
-                <button className="w-full text-right text-sm hover:bg-slate-50 p-1 rounded">הגדל טקסט</button>
-                <button className="w-full text-right text-sm hover:bg-slate-50 p-1 rounded">ניגודיות גבוהה</button>
-                <button className="w-full text-right text-sm hover:bg-slate-50 p-1 rounded">עצור אנימציות</button>
+                <button 
+                    onClick={handleLargeText}
+                    className={`w-full text-right text-sm p-2 rounded flex items-center gap-2 ${largeText ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-50 text-slate-700'}`}
+                >
+                    <Type size={16} /> הגדל טקסט
+                </button>
+                <button 
+                    onClick={handleHighContrast}
+                    className={`w-full text-right text-sm p-2 rounded flex items-center gap-2 ${highContrast ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-50 text-slate-700'}`}
+                >
+                    <Eye size={16} /> ניגודיות גבוהה
+                </button>
+                <button 
+                    onClick={handleStopAnimations}
+                    className={`w-full text-right text-sm p-2 rounded flex items-center gap-2 ${stopAnimations ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-50 text-slate-700'}`}
+                >
+                    <PauseCircle size={16} /> עצור אנימציות
+                </button>
             </div>
         </div>
       )}
