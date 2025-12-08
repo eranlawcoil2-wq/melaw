@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide } from '../types.ts';
+import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide, CATEGORY_LABELS } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
 import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code, ArrowRight } from 'lucide-react';
@@ -345,7 +345,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                         <div key={article.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-[#2EB0D9] transition-all group">
                             <div className="h-40 overflow-hidden relative">
                                 <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                <div className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white">{article.category}</div>
+                                <div className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white">{CATEGORY_LABELS[article.category]}</div>
                             </div>
                             <div className="p-4">
                                 <h4 className="font-bold text-lg mb-2 line-clamp-1">{article.title}</h4>
@@ -480,7 +480,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                         <h4 className="font-bold text-white mb-1">{item.title}</h4>
                                         <p className="text-slate-400 text-sm line-clamp-2">{item.description}</p>
                                         <div className="flex gap-2 mt-2">
-                                            {item.category.map(c => <span key={c} className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300">{c}</span>)}
+                                            {item.category.map(c => <span key={c} className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300">{CATEGORY_LABELS[c]}</span>)}
                                         </div>
                                     </div>
                                     <div className="flex flex-col justify-between">

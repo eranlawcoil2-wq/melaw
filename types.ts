@@ -8,6 +8,15 @@ export enum Category {
   CONTACT = 'CONTACT'
 }
 
+export const CATEGORY_LABELS: Record<Category, string> = {
+  [Category.HOME]: 'ראשי',
+  [Category.WILLS]: 'צוואות וירושות',
+  [Category.REAL_ESTATE]: 'מקרקעין ונדל"ן',
+  [Category.POA]: 'ייפוי כוח מתמשך',
+  [Category.STORE]: 'חנות משפטית',
+  [Category.CONTACT]: 'צור קשר'
+};
+
 export interface SliderSlide {
   id: string;
   imageUrl: string;

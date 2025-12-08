@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember } from '../types.ts';
+import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember, CATEGORY_LABELS } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
@@ -223,7 +223,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                               </div>
                               <div className="p-8">
                                   <div className="mb-4">
-                                      <span className="text-xs font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-1 rounded border border-[#2EB0D9]/20">{product.category}</span>
+                                      <span className="text-xs font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-1 rounded border border-[#2EB0D9]/20">
+                                          {CATEGORY_LABELS[product.category]}
+                                      </span>
                                   </div>
                                   <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>{product.title}</h3>
                                   <p className={`${theme.textMuted} mb-6 text-sm`}>המוצר כולל ליווי ראשוני, הכנת מסמכים והגשה לגורמים הרלוונטיים.</p>
@@ -279,7 +281,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 <div className={`flex-1 flex flex-col h-full relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                     <div className={`p-6 md:p-8 border-b flex justify-between items-start flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div>
-                            {/* Tags removed from article modal header as well, keeping it clean */}
+                            {/* Category Label in Modal Header */}
+                            <span className="text-xs font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-1 rounded border border-[#2EB0D9]/20 mb-2 inline-block">
+                                {CATEGORY_LABELS[selectedArticle.category]}
+                            </span>
                             <h2 className={`text-2xl md:text-4xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
                         </div>
                         <button onClick={() => setSelectedArticle(null)} className={`p-2 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={24} /></button>
@@ -291,7 +296,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             ))}
                         </div>
                     </div>
-                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto">
+                    {/* SCROLLBAR HIDDEN HERE */}
+                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto scrollbar-hide">
                         <div className="p-6 md:p-12 min-h-full flex flex-col">
                             <div className="md:hidden mb-6 rounded-xl overflow-hidden h-48 relative flex-shrink-0">
                                 <img src={selectedArticle.imageUrl} className="w-full h-full object-cover" alt=""/>
@@ -305,7 +311,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                 <div className={`mt-auto border-t pt-8 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                                     <h4 className={`text-xl font-bold mb-6 flex items-center gap-2 ${theme.textTitle}`}>
                                         <span className="w-1 h-6 bg-[#2EB0D9] rounded-full"></span>
-                                        עוד בנושא {selectedArticle.category}
+                                        עוד בנושא {CATEGORY_LABELS[selectedArticle.category]}
                                     </h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {relatedArticles.map(relArticle => (
@@ -581,7 +587,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                     <div className="container mx-auto px-6 md:px-12">
                         <div className="max-w-4xl text-white space-y-6 animate-fade-in-up">
                             <span className="inline-block px-4 py-1.5 bg-[#2EB0D9]/90 text-sm font-bold uppercase tracking-widest rounded-full mb-2 text-white shadow-lg shadow-[#2EB0D9]/30">
-                                {slide.category === Category.HOME ? 'המשרד המוביל בישראל' : 'התמחות מקצועית'}
+                                {slide.category === Category.HOME ? 'המשרד המוביל בישראל' : CATEGORY_LABELS[slide.category]}
                             </span>
                             {/* Adjusted Title: White, smaller than previous WOW version but still impactful */}
                             <h2 className="text-4xl md:text-6xl font-black leading-tight drop-shadow-2xl text-white">
