@@ -39,8 +39,7 @@ const SectionTitle: React.FC<{ title: string; isDark: boolean }> = ({ title, isD
         <h3 className={`text-3xl md:text-4xl font-black inline-block tracking-tight leading-relaxed ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {title}
         </h3>
-        {/* Restored Underline with generous margin to prevent overlap */}
-        <div className="h-1.5 w-24 bg-gradient-to-r from-[#2EB0D9] to-blue-600 mt-4 rounded-full"></div>
+        {/* Underline Removed as requested to prevent overlap */}
     </div>
 );
 
@@ -631,8 +630,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             <h2 className="text-4xl md:text-6xl font-black leading-tight drop-shadow-2xl text-white">
                                 {slide.title}
                             </h2>
-                            {/* Removed border-r to avoid visual line conflicts */}
-                            <p className="text-2xl text-slate-300 md:w-3/4 pr-4 leading-relaxed font-light">
+                            {/* Restored border-r (the side line) */}
+                            <p className="text-2xl text-slate-300 md:w-3/4 border-r-4 border-[#2EB0D9] pr-4 leading-relaxed font-light">
                                 {slide.subtitle}
                             </p>
                             
@@ -696,8 +695,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              <div 
                                 key={member.id} 
                                 onClick={() => setSelectedTeamMember(member)}
-                                // Reduced width to 110px for mobile
-                                className={`flex-shrink-0 w-[110px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}
+                                // Reduced width to 100px for mobile
+                                className={`flex-shrink-0 w-[100px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}
                              >
                                  <div className="h-60 md:h-72 w-full overflow-hidden relative">
                                      {/* Added animation class here + Grayscale Logic */}
@@ -767,8 +766,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                           <div 
                             key={item.id} 
                             onClick={() => handleTimelineClick(item)}
-                            // Mobile: 120px width to show even more items. Desktop: 25%.
-                            className={`flex-shrink-0 w-[120px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[220px] md:h-[240px] border border-transparent ${bgClass}`}
+                            // Mobile: 110px width to show even more items. Desktop: 25%.
+                            className={`flex-shrink-0 w-[110px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[220px] md:h-[240px] border border-transparent ${bgClass}`}
                           >
                               <div className="p-5 md:p-8 flex flex-col h-full relative">
                                   {/* Icon - Positioned absolutely or in flow */}
@@ -930,8 +929,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                      {currentArticles.map(article => (
                         <div 
                             key={article.id} 
-                            // Mobile: 180px (peeking more). Desktop: 25%.
-                            className="flex-shrink-0 w-[180px] md:w-[calc(25%-18px)] h-[300px] md:h-[380px] snap-start"
+                            // Mobile: 160px (peeking more). Desktop: 25%.
+                            className="flex-shrink-0 w-[160px] md:w-[calc(25%-18px)] h-[300px] md:h-[380px] snap-start"
                         >
                             <ArticleCard 
                                 article={article} 
