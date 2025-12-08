@@ -84,7 +84,15 @@ export const generateArticleContent = async (topic: string, category: Category |
     });
 
     if (response.text) {
-      return JSON.parse(response.text);
+      // Clean up markdown code blocks if present (fixes common JSON parse error)
+      let cleanText = response.text.trim();
+      if (cleanText.startsWith('```json')) {
+          cleanText = cleanText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+      } else if (cleanText.startsWith('```')) {
+          cleanText = cleanText.replace(/^```\s*/, "").replace(/\s*```$/, "");
+      }
+      
+      return JSON.parse(cleanText);
     }
     throw new Error("No text returned from Gemini");
   } catch (error: any) {

@@ -617,7 +617,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     <button onClick={() => setTimelineSubTab('cards')} className={`pb-2 px-4 font-bold ${timelineSubTab === 'cards' ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-500'}`}>כרטיסים</button>
                 </div>
                 {timelineSubTab === 'slider' && (
-                    <div className="space-y-4">{state.slides.map(slide => (<div key={slide.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex justify-between"><img src={slide.imageUrl} className="w-16 h-10 object-cover rounded"/><span>{slide.title}</span><button onClick={() => setEditingSlide(slide)}><Edit size={16}/></button></div>))}</div>
+                    <div className="space-y-4">{state.slides.map(slide => (<div key={slide.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex justify-between"><div className="flex items-center gap-4"><img src={slide.imageUrl} className="w-16 h-10 object-cover rounded"/><div><div className="font-bold">{slide.title}</div><div className="text-xs text-slate-400">סדר: {slide.order || 99}</div></div></div><button onClick={() => setEditingSlide(slide)}><Edit size={16}/></button></div>))}</div>
                 )}
                 {timelineSubTab === 'cards' && (
                      <div className="space-y-4">
@@ -626,10 +626,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                      </div>
                 )}
                 {/* Modals for Slide/Timeline Editor would be here (reusing existing logic) */}
-                {editingSlide && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-md space-y-4"><h3 className="font-bold text-white">עריכה</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.title} onChange={e=>setEditingSlide({...editingSlide, title: e.target.value})}/><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.subtitle} onChange={e=>setEditingSlide({...editingSlide, subtitle: e.target.value})}/><div className="flex gap-2">
-                    <input className="flex-1 p-2 bg-slate-800 text-white rounded" value={editingSlide.imageUrl} onChange={e=>setEditingSlide({...editingSlide, imageUrl: e.target.value})} placeholder="URL תמונה"/>
-                    <ImageUploadButton onImageSelected={(url) => setEditingSlide({...editingSlide, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} />
-                </div><div className="flex gap-2"><Button onClick={handleSaveSlide}>שמור</Button><Button variant="outline" onClick={()=>setEditingSlide(null)}>ביטול</Button></div></div></div>}
+                {editingSlide && (
+                    <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+                        <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-md space-y-4">
+                            <h3 className="font-bold text-white">עריכה</h3>
+                            <input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.title} onChange={e=>setEditingSlide({...editingSlide, title: e.target.value})}/>
+                            <input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.subtitle} onChange={e=>setEditingSlide({...editingSlide, subtitle: e.target.value})}/>
+                            
+                            <div>
+                                <label className="text-xs text-slate-400 block mb-1">סדר תצוגה (1 = ראשון)</label>
+                                <input 
+                                    type="number" 
+                                    className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" 
+                                    value={editingSlide.order || 99} 
+                                    onChange={e=>setEditingSlide({...editingSlide, order: parseInt(e.target.value)})}
+                                />
+                            </div>
+
+                            <div className="flex gap-2">
+                                <input className="flex-1 p-2 bg-slate-800 text-white rounded" value={editingSlide.imageUrl} onChange={e=>setEditingSlide({...editingSlide, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                                <ImageUploadButton onImageSelected={(url) => setEditingSlide({...editingSlide, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} />
+                            </div>
+                            <div className="flex gap-2">
+                                <Button onClick={handleSaveSlide}>שמור</Button>
+                                <Button variant="outline" onClick={()=>setEditingSlide(null)}>ביטול</Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 
                 {editingTimelineItem && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-md space-y-4 max-h-[80vh] overflow-y-auto"><h3 className="font-bold text-white">עריכה</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.title} onChange={e=>setEditingTimelineItem({...editingTimelineItem, title: e.target.value})}/><textarea className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.description} onChange={e=>setEditingTimelineItem({...editingTimelineItem, description: e.target.value})}/><div className="flex gap-2">
                     <input className="flex-1 p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.imageUrl} onChange={e=>setEditingTimelineItem({...editingTimelineItem, imageUrl: e.target.value})} placeholder="URL תמונה"/>

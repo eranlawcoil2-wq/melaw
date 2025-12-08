@@ -5,7 +5,7 @@ import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
 import { ShareMenu } from '../components/ShareMenu.tsx'; // Import ShareMenu
 import { emailService, storeService } from '../services/api.ts'; 
-import { Search, Phone, MapPin, Mail, Menu, X, Check, ArrowLeft, Navigation, FileText, Quote, Lock, Settings, Briefcase, User, ArrowRight, ChevronLeft, ChevronRight, FileCheck, HelpCircle, Loader2, ShoppingBag } from 'lucide-react';
+import { Search, Phone, MapPin, Mail, Menu, X, Check, ArrowLeft, Navigation, FileText, Quote, Lock, Settings, Briefcase, User, ArrowRight, ChevronLeft, ChevronRight, FileCheck, HelpCircle, Loader2, ShoppingBag, Scale, BookOpen } from 'lucide-react';
 
 // --- Scroll Reveal Helper Component ---
 const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = "", delay = 0 }) => {
@@ -90,8 +90,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const articlesScrollRef = useRef<HTMLDivElement>(null);
   const articleContentTopRef = useRef<HTMLDivElement>(null);
 
-  // Filter content
-  const currentSlides = state.slides.filter(s => s.category === state.currentCategory || s.category === Category.HOME);
+  // Filter content - UPDATED WITH SORTING LOGIC
+  const currentSlides = state.slides
+    .filter(s => s.category === state.currentCategory || s.category === Category.HOME)
+    .sort((a, b) => (a.order || 99) - (b.order || 99)); // Sort by order, fallback to 99 if undefined
   
   // Updated filtering logic for array-based categories
   const currentArticles = state.articles.filter(a => 
@@ -134,12 +136,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
     }
   };
   
-  // NEW: Handle Product Click (Store)
+  // Handle Product Click (Store)
   const handleProductClick = (product: any) => {
       if (product.category === Category.WILLS) {
           setShowWillsModal(true);
       } else {
-          // Placeholder for other products
           alert(`כדי לערוך את "${product.title}" אנא צור קשר או המתן להוספת הטופס המתאים.`);
       }
   };
@@ -172,7 +173,6 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const handleRealWillsSubmit = async () => {
       setIsSubmittingWill(true);
       try {
-          // Pass config to api to allow sending
           await emailService.sendWillsForm(willsData, state.config.integrations);
           onWillsFormSubmit(willsData);
           alert("הטופס נקלט בהצלחה! קובץ הצוואה יורד כעת למחשב שלך. לאחר הבדיקה, ניצור קשר להסדרת התשלום."); 
@@ -195,11 +195,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   // Get Store Products
   const storeProducts = storeService.getProducts();
 
-  // --- REGULAR SITE RENDER (INCLUDES STORE NOW) ---
+  // --- RENDER ---
   return (
     <div className={`min-h-screen flex flex-col font-sans relative overflow-x-hidden selection:bg-[#2EB0D9] selection:text-white ${theme.bgMain} ${theme.textMain}`}>
       
-      {/* Background Gradient Mesh Animation (The WOW factor) */}
+      {/* Background Gradient Mesh Animation */}
       <div className={`fixed inset-0 pointer-events-none z-0 ${isDark ? 'opacity-30' : 'opacity-60'} overflow-hidden`}>
           <div className="absolute inset-0 bg-gradient-to-br from-[#2EB0D9]/20 via-transparent to-purple-500/20 animate-gradient-xy"></div>
           {/* Floating Orbs */}
@@ -216,15 +216,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 <div className={`hidden md:block w-1/4 h-full relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                     <img src={selectedArticle.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-70" />
                     <div className={`absolute inset-0 bg-gradient-to-t ${isDark ? 'from-slate-900' : 'from-white'} to-transparent`}></div>
-                    {selectedArticle.quote && (
-                        <div className={`absolute bottom-8 left-4 right-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            <Quote size={24} className="mb-2 text-[#2EB0D9] opacity-80" />
-                            <p className="font-serif italic text-lg leading-relaxed shadow-sm">"{selectedArticle.quote}"</p>
-                        </div>
-                    )}
                 </div>
                 <div className={`flex-1 flex flex-col h-full relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-                    {/* Compact Header */}
                     <div className={`p-4 border-b flex justify-between items-start flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div>
                             <div className="flex gap-2 flex-wrap mb-1">
@@ -236,68 +229,27 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             </div>
                             <h2 className={`text-xl md:text-2xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
                         </div>
-                        
                         <div className="flex gap-2">
-                            {/* Share Button Inside Modal */}
-                            <ShareMenu 
-                                variant="inline" 
-                                title={selectedArticle.title}
-                                text="קרא את המאמר המעניין הזה:"
-                                colorClass={theme.textMuted}
-                            />
+                            <ShareMenu variant="inline" title={selectedArticle.title} text="קרא את המאמר המעניין הזה:" colorClass={theme.textMuted} />
                             <button onClick={() => setSelectedArticle(null)} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={20} /></button>
                         </div>
                     </div>
                     
-                    {/* Tabs Container */}
                     <div className={`px-4 pt-4 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-                        <div 
-                            className={`flex gap-2 border-b overflow-x-auto scrollbar-hide ${isDark ? 'border-slate-800' : 'border-slate-200'}`}
-                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                        >
+                        <div className={`flex gap-2 border-b overflow-x-auto scrollbar-hide ${isDark ? 'border-slate-800' : 'border-slate-200'}`} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                             {selectedArticle.tabs.map((tab, idx) => (
                                 <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white shadow-lg shadow-[#2EB0D9]/20 translate-y-[1px]' : `${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'} hover:opacity-80`}`}>{tab.title}</button>
                             ))}
                         </div>
                     </div>
 
-                    {/* Content Area */}
-                    <div 
-                        ref={articleContentTopRef} 
-                        className="flex-1 overflow-y-auto scrollbar-hide"
-                        style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}
-                    >
+                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto scrollbar-hide" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                         <div className="p-6 md:p-8 min-h-full flex flex-col">
-                            <div className="md:hidden mb-6 rounded-xl overflow-hidden h-48 relative flex-shrink-0">
-                                <img src={selectedArticle.imageUrl} className="w-full h-full object-cover" alt=""/>
-                            </div>
                             <div className={`prose max-w-none leading-relaxed text-lg mb-8 ${theme.textMain}`}>
                                 {activeTabContent.split('\n').map((paragraph, i) => (
                                     <p key={i} className="mb-4">{paragraph}</p>
                                 ))}
                             </div>
-                            {relatedArticles.length > 0 && (
-                                <div className={`mt-auto border-t pt-6 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
-                                    <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${theme.textTitle}`}>
-                                        <span className="w-1 h-5 bg-[#2EB0D9] rounded-full"></span>
-                                        מאמרים נוספים
-                                    </h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {relatedArticles.map(relArticle => (
-                                            <div key={relArticle.id} onClick={() => setSelectedArticle(relArticle)} className={`group cursor-pointer flex gap-3 items-center p-2 rounded-lg hover:bg-black/5 transition-colors border ${theme.cardBg} hover:border-[#2EB0D9]/50`}>
-                                                <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
-                                                    <img src={relArticle.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform opacity-80 group-hover:opacity-100" alt=""/>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h5 className={`font-bold text-xs leading-tight mb-1 truncate group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{relArticle.title}</h5>
-                                                    <p className={`text-[10px] line-clamp-1 ${theme.textMuted}`}>לחץ לקריאה</p>
-                                                </div>
-                                                <ArrowLeft size={14} className={`group-hover:text-[#2EB0D9] group-hover:-translate-x-1 transition-all ${theme.textMuted}`}/>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -310,6 +262,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setShowWillsModal(false)}></div>
              <div className={`md:rounded-2xl shadow-2xl w-full max-w-5xl h-full md:h-[85vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
+                 {/* Left Side (Visuals) */}
                  <div className="hidden md:flex w-1/3 bg-black text-white flex-col justify-between p-8 relative overflow-hidden">
                      <img src="https://picsum.photos/id/452/800/1200" alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 animate-ken-burns" />
                      <div className="relative z-10">
@@ -319,36 +272,18 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                          <h2 className="text-3xl font-black mb-4">מחולל הצוואות הדיגיטלי</h2>
                          <p className="text-slate-400 leading-relaxed">ערוך צוואה חוקית ומקצועית ב-5 דקות באמצעות האלגוריתם המשפטי החכם שלנו.</p>
                      </div>
-                     <div className="relative z-10 space-y-4">
-                         <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center"><Check size={16} className="text-[#2EB0D9]"/></div>
-                             <span className="text-sm text-slate-300">חיסיון עורך דין מלא</span>
-                         </div>
-                         <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center"><Check size={16} className="text-[#2EB0D9]"/></div>
-                             <span className="text-sm text-slate-300">תקף משפטית</span>
-                         </div>
-                         <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center"><Check size={16} className="text-[#2EB0D9]"/></div>
-                             <span className="text-sm text-slate-300">ללא עלות ראשונית</span>
-                         </div>
-                     </div>
                  </div>
 
-                 {/* Left Side - Form Wizard */}
+                 {/* Right Side - Form Wizard */}
                  <div className={`flex-1 flex flex-col h-full ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                      <div className={`p-4 border-b flex justify-between items-center ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                          <span className={`text-sm font-bold ${theme.textMuted}`}>שלב {formStep + 1} מתוך 3</span>
                          <button onClick={() => setShowWillsModal(false)} className={`p-2 rounded-full hover:bg-black/10 ${theme.textMuted}`}><X size={24}/></button>
                      </div>
                      <div className={`flex-1 overflow-y-auto p-8 md:p-12 ${theme.textMain}`}>
-                         {/* ... form content omitted for brevity, same as previous ... */}
                          {formStep === 0 && (
                             <div className="space-y-6 animate-fade-in">
-                               <div>
-                                   <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>נתחיל בפרטים אישיים</h3>
-                                   <p className={theme.textMuted}>אנא מלא את פרטי המצווה</p>
-                               </div>
+                               <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>נתחיל בפרטים אישיים</h3>
                                <div className="space-y-4">
                                    <div>
                                        <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>שם מלא</label>
@@ -365,10 +300,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
                          {formStep === 1 && (
                             <div className="space-y-6 animate-fade-in">
-                               <div>
-                                   <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>היורשים והילדים</h3>
-                                   <p className={theme.textMuted}>מי הם היורשים החוקיים?</p>
-                               </div>
+                               <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>היורשים והילדים</h3>
                                <div className={`flex items-center gap-4 p-4 rounded-lg border ${theme.cardBg}`}>
                                   <label className={`font-bold ${theme.textTitle}`}>מספר ילדים:</label>
                                   <div className="flex items-center gap-2">
@@ -380,16 +312,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                                   {willsData.childrenNames.map((name, idx) => (
                                       <div key={idx}>
-                                          <label className={`block text-xs font-bold mb-1 ${theme.textMuted}`}>שם הילד/ה {idx+1}</label>
-                                          <input 
-                                            placeholder={`שם מלא`} 
-                                            className={`w-full p-3 border rounded-lg ${theme.inputBg}`} 
-                                            value={name} 
-                                            onChange={e => {
-                                              const newNames = [...willsData.childrenNames];
-                                              newNames[idx] = e.target.value;
-                                              setWillsData({...willsData, childrenNames: newNames});
-                                          }}/>
+                                          <input placeholder={`שם הילד/ה ${idx+1}`} className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={name} onChange={e => { const newNames = [...willsData.childrenNames]; newNames[idx] = e.target.value; setWillsData({...willsData, childrenNames: newNames}); }}/>
                                       </div>
                                   ))}
                                </div>
@@ -407,27 +330,20 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                       {isSubmittingWill ? <Loader2 size={40} className="animate-spin"/> : <FileCheck size={40} />}
                                    </div>
                                    <h3 className={`text-2xl font-bold ${theme.textTitle}`}>הצוואה מוכנה להפקה!</h3>
-                                   <p className={`max-w-sm mx-auto mt-2 ${theme.textMuted}`}>כדי לקבל את מסמך הצוואה הרשמי ולאשר אותו, אנא מלא את פרטי ההתקשרות הסופיים.</p>
                                </div>
                                <div className={`p-6 rounded-xl border space-y-4 ${theme.cardBg}`}>
-                                   <h4 className={`font-bold border-b pb-2 mb-2 ${theme.textTitle} ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>טופס פרטי קשר וסיום</h4>
                                    <div>
                                        <label className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>טלפון נייד</label>
                                        <input type="tel" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactPhone} onChange={e => setWillsData({...willsData, contactPhone: e.target.value})} placeholder="050-0000000"/>
                                    </div>
                                    <div>
-                                       <label className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>דואר אלקטרוני (לשליחת המסמך)</label>
+                                       <label className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>דואר אלקטרוני</label>
                                        <input type="email" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactEmail} onChange={e => setWillsData({...willsData, contactEmail: e.target.value})} placeholder="name@example.com"/>
                                    </div>
                                </div>
                                <div className="flex gap-3 mt-auto">
                                    <Button variant="outline" onClick={() => setFormStep(1)} className="flex-1" disabled={isSubmittingWill}>חזור</Button>
-                                   <Button 
-                                    variant="secondary" 
-                                    onClick={handleRealWillsSubmit} 
-                                    className="flex-[2] font-bold text-lg shine-effect"
-                                    disabled={isSubmittingWill}
-                                   >
+                                   <Button variant="secondary" onClick={handleRealWillsSubmit} className="flex-[2] font-bold text-lg shine-effect" disabled={isSubmittingWill}>
                                        {isSubmittingWill ? 'הורד צוואה למחשב' : 'הורד צוואה למחשב'}
                                    </Button>
                                </div>
@@ -453,22 +369,6 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                      <span className="text-[#2EB0D9] font-bold text-sm mb-1">{selectedTeamMember.role}</span>
                      <h2 className={`text-3xl font-black mb-2 ${theme.textTitle}`}>{selectedTeamMember.fullName}</h2>
                      <div className="w-16 h-1 bg-[#2EB0D9] mb-6"></div>
-                     
-                     <div className={`space-y-4 mb-8 ${theme.textMuted}`}>
-                         <div className="flex items-center gap-3">
-                             <Briefcase size={18} className="text-[#2EB0D9]"/>
-                             <span>{selectedTeamMember.specialization}</span>
-                         </div>
-                         <div className="flex items-center gap-3">
-                             <Mail size={18} className="text-[#2EB0D9]"/>
-                             <span>{selectedTeamMember.email}</span>
-                         </div>
-                         <div className="flex items-center gap-3">
-                             <Phone size={18} className="text-[#2EB0D9]"/>
-                             <span>{selectedTeamMember.phone}</span>
-                         </div>
-                     </div>
-                     
                      <p className={`leading-relaxed text-sm p-4 rounded-lg border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
                          {selectedTeamMember.bio}
                      </p>
@@ -481,7 +381,6 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       <header className={`fixed top-0 left-0 right-0 backdrop-blur-md shadow-lg z-40 h-20 transition-all border-b ${theme.headerBg}`}>
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Header Text Logo with Custom Font Support */}
             <h1 
                 className="text-lg md:text-xl font-black tracking-wide cursor-pointer leading-none" 
                 onClick={() => onCategoryChange(Category.HOME)}
@@ -492,7 +391,6 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </h1>
           </div>
 
-          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6">
             {state.menuItems.map(item => (
               <button 
@@ -507,13 +405,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             <button className={`${theme.textMuted} hover:text-[#2EB0D9]`}><Search size={20}/></button>
           </nav>
 
-          {/* Mobile Menu Toggle */}
           <button className={`md:hidden ${theme.textTitle}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
 
-        {/* Mobile Nav Dropdown */}
         {mobileMenuOpen && (
            <div className={`md:hidden absolute top-20 left-0 w-full shadow-xl border-t p-4 flex flex-col gap-4 animate-fade-in-up ${theme.modalBg}`}>
               {state.menuItems.map(item => (
@@ -532,10 +428,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       {/* --- Main Content Area --- */}
       <main className="flex-1 pt-20 relative z-10">
         
-        {/* HERO SECTION - KEN BURNS EFFECT ADDED */}
-        <section className="relative h-[55vh] md:h-[65vh] overflow-hidden bg-black group">
+        {/* HERO SECTION - COMPACT FOR 'ABOVE THE FOLD' */}
+        {/* HEIGHT CHANGED: h-[45vh] md:h-[55vh] */}
+        <section className="relative h-[45vh] md:h-[55vh] overflow-hidden bg-black group">
           
-          {/* Floating Logo (Left Side, Centered) */}
           <div className="absolute left-8 top-[15%] z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity animate-float">
               <img 
                 src={state.config.logoUrl} 
@@ -550,45 +446,37 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                key={slide.id}
                className={`absolute inset-0 transition-opacity duration-1000 ${index === activeSlide ? 'opacity-100' : 'opacity-0'}`}
              >
-                {/* Apply Ken Burns Animation to Image */}
                 <div className="w-full h-full overflow-hidden">
-                    {/* Explicitly adding animate-ken-burns even if not activeSlide to handle re-renders, but opacity controls visibility */}
                     <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover opacity-50 animate-ken-burns" />
                 </div>
                 
                 {/* Content Container - Padded bottom to push text UP */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent flex items-center pb-32">
+                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent flex items-center pb-20">
                     <div className="container mx-auto px-6 md:px-12">
-                        <div className="max-w-4xl text-white space-y-6 animate-fade-in-up">
-                            <span className="inline-block px-4 py-1.5 bg-[#2EB0D9]/90 text-sm font-bold uppercase tracking-widest rounded-full mb-2 text-white shadow-lg shadow-[#2EB0D9]/30">
+                        <div className="max-w-4xl text-white space-y-4 animate-fade-in-up">
+                            <span className="inline-block px-4 py-1 bg-[#2EB0D9]/90 text-xs font-bold uppercase tracking-widest rounded-full mb-1 text-white shadow-lg">
                                 {slide.category === Category.HOME ? 'המשרד המוביל בישראל' : CATEGORY_LABELS[slide.category]}
                             </span>
-                            {/* Adjusted Title: Smaller font size to avoid overlap */}
                             <h2 className="text-3xl md:text-5xl font-black leading-tight drop-shadow-2xl text-white">
                                 {slide.title}
                             </h2>
-                            {/* Restored border-r (the side line), smaller font size */}
-                            <p className="text-lg md:text-xl text-slate-300 md:w-3/4 border-r-4 border-[#2EB0D9] pr-4 leading-relaxed font-light">
+                            <p className="hidden md:block text-lg text-slate-300 md:w-3/4 border-r-4 border-[#2EB0D9] pr-4 leading-relaxed font-light">
                                 {slide.subtitle}
                             </p>
                             
-                            {/* CTA Button - Hidden on HOME, Show on others with dynamic props */}
                             {state.currentCategory !== Category.HOME && state.currentCategory !== Category.STORE && (
-                                <div className="pt-8">
-                                    <Button 
-                                        onClick={() => {
-                                            if (slide.buttonLink) {
-                                                window.open(slide.buttonLink, '_blank');
-                                            } else {
-                                                // Default action if no specific link
-                                                onCategoryChange(slide.category);
-                                            }
-                                        }} 
-                                        variant="secondary" 
-                                        size="lg" 
-                                        className="shadow-2xl shadow-[#2EB0D9]/40 transition-transform hover:scale-110 border-none text-lg px-10 py-4 shine-effect"
-                                    >
+                                <div className="pt-4">
+                                    <Button onClick={() => onCategoryChange(slide.category)} variant="secondary" size="md" className="shine-effect">
                                         {slide.buttonText || 'קבע פגישת ייעוץ'}
+                                    </Button>
+                                </div>
+                            )}
+                            
+                            {/* Special Button for Store Slide on Home Page */}
+                            {state.currentCategory === Category.HOME && slide.category === Category.HOME && slide.title.includes('החנות') && (
+                                <div className="pt-4">
+                                    <Button onClick={() => onCategoryChange(Category.STORE)} variant="secondary" size="md" className="shine-effect">
+                                        למעבר לחנות המשפטית
                                     </Button>
                                 </div>
                             )}
@@ -598,23 +486,18 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
              </div>
           ))}
           
-          {/* Slider Dots */}
-          <div className="absolute bottom-40 left-0 right-0 flex justify-center gap-3 z-20">
+          <div className="absolute bottom-24 left-0 right-0 flex justify-center gap-3 z-20">
             {currentSlides.map((_, idx) => (
-                <button 
-                  key={idx}
-                  onClick={() => setActiveSlide(idx)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeSlide ? 'bg-[#2EB0D9] w-16' : 'bg-white/30 w-3 hover:bg-white'}`}
-                />
+                <button key={idx} onClick={() => setActiveSlide(idx)} className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeSlide ? 'bg-[#2EB0D9] w-12' : 'bg-white/30 w-3 hover:bg-white'}`} />
             ))}
           </div>
         </section>
 
-        {/* TEAM SECTION (HOME ONLY) - OVERLAPPING SLIDER */}
+        {/* TEAM SECTION (HOME ONLY) - OVERLAPPING & COMPACT */}
         {state.currentCategory === Category.HOME && (
-            <Reveal className="relative z-20 -mt-32 container mx-auto px-4">
-                 <div className={`shadow-2xl rounded-2xl p-8 border ${theme.cardBg}`}>
-                     <div className="flex justify-between items-center mb-8">
+            <Reveal className="relative z-20 -mt-20 container mx-auto px-4">
+                 <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
+                     <div className="flex justify-between items-center mb-6">
                         <SectionTitle title="הנבחרת שלנו" isDark={isDark} />
                         <div className="hidden md:flex gap-2">
                             <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
@@ -630,21 +513,23 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              <div 
                                 key={member.id} 
                                 onClick={() => setSelectedTeamMember(member)}
-                                className={`flex-shrink-0 w-[90px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}
+                                // COMPACT WIDTH & HEIGHT
+                                className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}
                              >
-                                 <div className="h-60 md:h-72 w-full overflow-hidden relative">
+                                 {/* Reduced Height Image: h-32 (mobile) md:h-48 (desktop) */}
+                                 <div className="h-32 md:h-48 w-full overflow-hidden relative">
                                      <img 
                                         src={member.imageUrl} 
                                         alt={member.fullName} 
                                         className="w-full h-full object-cover animate-ken-burns grayscale group-hover:grayscale-0 transition-all duration-500 opacity-80 group-hover:opacity-100" 
                                      />
-                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
-                                         <span className="text-white font-bold text-sm bg-[#2EB0D9] px-3 py-1 rounded-full">לחץ לפרטים</span>
+                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-2">
+                                         <span className="text-white font-bold text-xs bg-[#2EB0D9] px-2 py-0.5 rounded-full">פרטים</span>
                                      </div>
                                  </div>
-                                 <div className="p-4 md:p-6 text-center">
-                                     <h4 className={`font-bold text-lg md:text-2xl mb-1 group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{member.fullName}</h4>
-                                     <p className={`text-xs md:text-sm font-medium uppercase tracking-wide ${theme.textMuted}`}>{member.role}</p>
+                                 <div className="p-3 text-center">
+                                     <h4 className={`font-bold text-base md:text-lg mb-1 group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{member.fullName}</h4>
+                                     <p className={`text-[10px] md:text-xs font-medium uppercase tracking-wide line-clamp-1 ${theme.textMuted}`}>{member.role}</p>
                                  </div>
                              </div>
                          ))}
@@ -653,11 +538,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
 
-        {/* PRODUCTS SECTION (STORE ONLY) - OVERLAPPING SLIDER */}
+        {/* PRODUCTS SECTION (STORE ONLY) - OVERLAPPING & COMPACT */}
         {state.currentCategory === Category.STORE && (
-            <Reveal className="relative z-20 -mt-32 container mx-auto px-4">
-                 <div className={`shadow-2xl rounded-2xl p-8 border ${theme.cardBg}`}>
-                     <div className="flex justify-between items-center mb-8">
+            <Reveal className="relative z-20 -mt-20 container mx-auto px-4">
+                 <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
+                     <div className="flex justify-between items-center mb-6">
                         <SectionTitle title="החבילות שלנו" isDark={isDark} />
                         <div className="hidden md:flex gap-2">
                             <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
@@ -669,30 +554,35 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                         ref={teamScrollRef}
                         className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full"
                      >
-                         {storeProducts.map(product => (
+                         {storeProducts.map((product, index) => (
                              <div 
                                 key={product.id} 
-                                className={`flex-shrink-0 w-full md:w-[calc(33%-16px)] snap-center lg:snap-start group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col`}
+                                // Matches Team Card Size
+                                className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col`}
                              >
-                                 <div className={`h-48 md:h-56 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                                     <div className="absolute inset-0 bg-[#2EB0D9]/5 group-hover:bg-[#2EB0D9]/10 transition-colors"></div>
-                                     <FileText size={64} className="text-slate-500 group-hover:text-[#2EB0D9] transition-colors duration-500 transform group-hover:scale-110"/>
+                                 <div className={`h-32 md:h-48 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                                     <img 
+                                        src={`https://picsum.photos/seed/${product.id}/400/600`} 
+                                        alt={product.title}
+                                        className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity grayscale group-hover:grayscale-0"
+                                     />
+                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                                     <div className="absolute inset-0 flex items-center justify-center">
+                                         <div className="bg-white/10 backdrop-blur-sm p-3 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500">
+                                            <FileText size={24} className="text-white"/>
+                                         </div>
+                                     </div>
                                  </div>
-                                 <div className="p-6 md:p-8 text-center flex-1 flex flex-col">
-                                     <div className="mb-2">
-                                         <span className="text-xs font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-1 rounded border border-[#2EB0D9]/20">
-                                            {CATEGORY_LABELS[product.category]}
+
+                                 <div className="p-3 text-center flex-1 flex flex-col">
+                                     <div className="mb-1">
+                                         <span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">
+                                            {CATEGORY_LABELS[product.category] || 'כללי'}
                                          </span>
                                      </div>
-                                     <h4 className={`font-bold text-2xl mb-2 ${theme.textTitle}`}>{product.title}</h4>
-                                     <div className={`text-3xl font-black mb-6 ${theme.textMuted} flex-1 flex items-center justify-center`}>₪{product.price}</div>
-                                     
-                                     {/* Edit Now Button */}
-                                     <Button 
-                                        onClick={() => handleProductClick(product)} 
-                                        className="w-full shine-effect"
-                                        variant="secondary"
-                                     >
+                                     <h4 className={`font-bold text-base md:text-lg mb-1 line-clamp-1 ${theme.textTitle}`}>{product.title}</h4>
+                                     <div className={`text-lg font-black mb-3 ${theme.textMuted} flex-1 flex items-center justify-center`}>₪{product.price}</div>
+                                     <Button onClick={() => handleProductClick(product)} className="w-full shine-effect text-xs py-1.5 h-8" variant="secondary">
                                         ערוך כעת
                                      </Button>
                                  </div>
@@ -702,337 +592,191 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                  </div>
             </Reveal>
         )}
+        
+        {/* NEW: LEGAL GUIDES SLIDER (WILLS, RE, POA) - TEXT CARDS THAT OPEN LIKE ARTICLES */}
+        {![Category.HOME, Category.STORE].includes(state.currentCategory) && (
+            <Reveal className="relative z-20 -mt-20 container mx-auto px-4">
+                 <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
+                     <div className="flex justify-between items-center mb-6">
+                        <SectionTitle title="מדריכים ומידע מקצועי" isDark={isDark} />
+                        <div className="hidden md:flex gap-2">
+                            <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
+                            <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
+                        </div>
+                     </div>
+                     
+                     <div 
+                        ref={teamScrollRef}
+                        className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full"
+                     >
+                         {/* Map current category Articles to these text cards */}
+                         {currentArticles.map((article, index) => (
+                             <div 
+                                key={article.id} 
+                                onClick={() => setSelectedArticle(article)}
+                                className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col h-[280px] md:h-[350px]`}
+                             >
+                                 {/* Icon / Abstract Graphic Area instead of Image */}
+                                 <div className={`h-1/3 w-full flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#2EB0D9]/10 to-transparent border-b ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+                                     <div className="p-4 bg-white/10 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500">
+                                        {/* Dynamic Icon based on index or category to add variety */}
+                                        {index % 2 === 0 ? <Scale size={32} className="text-[#2EB0D9]"/> : <BookOpen size={32} className="text-[#2EB0D9]"/>}
+                                     </div>
+                                 </div>
 
-        {/* TIMELINE (SCROLLABLE) - RESTORED TO CARD STYLE WITHOUT TOP IMAGES */}
-        <Reveal className={`py-20 relative border-b ${isDark ? 'border-slate-800/50' : 'border-slate-100'}`} delay={200}>
-           <div className="container mx-auto px-4 mb-8 flex justify-between items-end">
-              <SectionTitle title={state.currentCategory === Category.HOME ? 'חדשות ועדכונים' : 'מדריכים ומידע מקצועי'} isDark={isDark} />
-              
-              <div className="hidden md:flex gap-2">
-                  <button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
-                  <button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
-              </div>
-           </div>
-           
-           <div className="container mx-auto px-4">
-              <div 
-                 ref={timelineScrollRef}
-                 className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x"
-              >
-                  {currentTimelines.map((item, index) => {
-                      const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-'));
-                      
-                      // Define brand-aligned gradients (Shades of Cyan/Teal/Blue)
-                      const brandGradients = [
-                        'from-[#2EB0D9] to-[#1F8CAD]', // Brand to Darker Cyan
-                        'from-[#2EB0D9] to-[#0EA5E9]', // Brand to Sky Blue
-                        'from-[#06B6D4] to-[#2EB0D9]', // Cyan to Brand
-                        'from-[#22D3EE] to-[#0090B0]'  // Light Cyan to Deep Teal
-                      ];
-                      
-                      // Cycle through gradients for generator cards
-                      const selectedGradient = brandGradients[index % brandGradients.length];
+                                 <div className="p-5 text-center flex-1 flex flex-col relative">
+                                     <div className="mb-2">
+                                         <span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">
+                                            {CATEGORY_LABELS[article.categories[0]] || 'מידע'}
+                                         </span>
+                                     </div>
+                                     <h4 className={`font-bold text-lg md:text-xl mb-3 leading-tight ${theme.textTitle}`}>{article.title}</h4>
+                                     
+                                     {/* Truncated Description */}
+                                     <p className={`text-xs md:text-sm leading-relaxed mb-4 line-clamp-4 ${theme.textMuted}`}>
+                                         {article.abstract}
+                                     </p>
+                                     
+                                     <div className="mt-auto pt-2 w-full">
+                                         <Button onClick={() => setSelectedArticle(article)} className="w-full text-xs h-9" variant="outline">
+                                            קרא את המדריך
+                                         </Button>
+                                     </div>
+                                 </div>
+                             </div>
+                         ))}
+                         
+                         {currentArticles.length === 0 && (
+                            <div className={`w-full text-center py-10 ${theme.textMuted}`}>
+                                בקרוב יעלו מאמרים ומדריכים לקטגוריה זו.
+                            </div>
+                         )}
+                     </div>
+                 </div>
+            </Reveal>
+        )}
 
-                      // Apply varied colored backgrounds for generator cards, clean style for others
-                      const bgClass = isGenerator 
-                        ? `bg-gradient-to-br ${selectedGradient} text-white shadow-xl shadow-cyan-500/20 transform hover:-translate-y-2` 
-                        : `${theme.cardBg} ${theme.cardHover} transition-all duration-300 transform hover:-translate-y-2`;
-                      
-                      const textClass = isGenerator ? 'text-white' : theme.textTitle;
-                      const descClass = isGenerator ? 'text-white/90' : theme.textMuted;
+        {/* TIMELINE (SCROLLABLE) */}
+        {state.currentCategory === Category.HOME && (
+            <Reveal className={`py-20 relative border-b ${isDark ? 'border-slate-800/50' : 'border-slate-100'}`} delay={200}>
+               <div className="container mx-auto px-4 mb-8 flex justify-between items-end">
+                  <SectionTitle title="חדשות ועדכונים" isDark={isDark} />
+                  <div className="hidden md:flex gap-2">
+                      <button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
+                      <button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
+                  </div>
+               </div>
+               
+               <div className="container mx-auto px-4">
+                  <div 
+                     ref={timelineScrollRef}
+                     className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x"
+                  >
+                      {currentTimelines.map((item, index) => {
+                          const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-'));
+                          const brandGradients = ['from-[#2EB0D9] to-[#1F8CAD]', 'from-[#2EB0D9] to-[#0EA5E9]', 'from-[#06B6D4] to-[#2EB0D9]', 'from-[#22D3EE] to-[#0090B0]'];
+                          const selectedGradient = brandGradients[index % brandGradients.length];
+                          const bgClass = isGenerator 
+                            ? `bg-gradient-to-br ${selectedGradient} text-white shadow-xl shadow-cyan-500/20 transform hover:-translate-y-2` 
+                            : `${theme.cardBg} ${theme.cardHover} transition-all duration-300 transform hover:-translate-y-2`;
+                          
+                          const textClass = isGenerator ? 'text-white' : theme.textTitle;
+                          const descClass = isGenerator ? 'text-white/90' : theme.textMuted;
 
-                      return (
-                          <div 
-                            key={item.id} 
-                            onClick={() => handleTimelineClick(item)}
-                            // Mobile: 100px width to show even more items. Desktop: 25%.
-                            className={`flex-shrink-0 w-[100px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[220px] md:h-[240px] border border-transparent ${bgClass}`}
-                          >
-                              <div className="p-5 md:p-8 flex flex-col h-full relative">
-                                  {/* Icon - Positioned absolutely or in flow */}
-                                   <div className={`absolute top-4 md:top-6 left-4 md:left-6 p-2 md:p-3 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>
-                                      {isGenerator ? <FileText size={20} className="text-white"/> : <ArrowLeft size={20} className=""/>}
-                                   </div>
-
-                                  {/* Content - No top image */}
-                                  <div className="mt-8 md:mt-10">
-                                       <h4 className={`text-base md:text-2xl font-black mb-2 md:mb-3 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4>
-                                       <p className={`text-xs md:text-sm leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p>
-                                  </div>
-                                  
-                                  {/* Footer link */}
-                                  <div className="mt-auto pt-4 flex items-center justify-between">
-                                       <span className={`text-xs md:text-sm font-bold flex items-center gap-2 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>
-                                          {isGenerator ? 'התחל עכשיו' : 'קרא עוד'} <ArrowLeft size={16}/>
-                                       </span>
+                          return (
+                              <div 
+                                key={item.id} 
+                                onClick={() => handleTimelineClick(item)}
+                                className={`flex-shrink-0 w-[140px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[200px] md:h-[240px] border border-transparent ${bgClass}`}
+                              >
+                                  <div className="p-4 md:p-6 flex flex-col h-full relative">
+                                       <div className={`absolute top-4 left-4 p-2 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>
+                                          {isGenerator ? <FileText size={16} className="text-white"/> : <ArrowLeft size={16} className=""/>}
+                                       </div>
+                                      <div className="mt-8">
+                                           <h4 className={`text-sm md:text-xl font-black mb-2 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4>
+                                           <p className={`text-[10px] md:text-xs leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p>
+                                      </div>
+                                      <div className="mt-auto pt-2 flex items-center justify-between">
+                                           <span className={`text-[10px] md:text-xs font-bold flex items-center gap-1 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>
+                                              {isGenerator ? 'התחל עכשיו' : 'קרא עוד'} <ArrowLeft size={12}/>
+                                           </span>
+                                      </div>
                                   </div>
                               </div>
+                          );
+                      })}
+                  </div>
+               </div>
+            </Reveal>
+        )}
+
+        {/* DYNAMIC FORM RENDERER */}
+        {currentDynamicForm && (
+            <div ref={dynamicFormRef} className={`mb-20 container mx-auto px-4 rounded-2xl p-8 md:p-12 shadow-2xl border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
+                 <div className="max-w-2xl mx-auto">
+                     <div className="flex justify-between items-start mb-6">
+                          <div>
+                              <h3 className={`text-3xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3>
+                              <p className={theme.textMuted}>נא למלא את כל השדות הנדרשים</p>
                           </div>
-                      );
-                  })}
-              </div>
-           </div>
-        </Reveal>
-
-        {/* DYNAMIC CONTENT SECTION (ARTICLES / FORMS) */}
-        <section className="py-20 min-h-[600px] relative z-10">
-           <div className="container mx-auto px-4">
-              
-              {/* --- DYNAMIC FORM RENDERER --- */}
-              {currentDynamicForm && (
-                  <div ref={dynamicFormRef} className={`mb-20 rounded-2xl p-8 md:p-12 shadow-2xl border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
-                       <div className="max-w-2xl mx-auto">
-                           <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h3 className={`text-3xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3>
-                                    <p className={theme.textMuted}>נא למלא את כל השדות הנדרשים</p>
-                                </div>
-                                <button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X size={32}/></button>
-                           </div>
-
-                           <div className={`space-y-6 p-8 rounded-xl border shadow-inner ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                               {currentDynamicForm.fields.map(field => (
-                                   <div key={field.id} className="space-y-2">
-                                       <div className="flex items-center gap-2">
-                                           <label className={`block text-sm font-bold ${theme.textMuted}`}>
-                                               {field.label} {field.required && <span className="text-red-400">*</span>}
-                                           </label>
-                                           {field.helpArticleId && (
-                                               <button 
-                                                    onClick={() => {
-                                                        const article = state.articles.find(a => a.id === field.helpArticleId);
-                                                        if (article) setSelectedArticle(article);
-                                                        else alert("המאמר המקושר לא נמצא");
-                                                    }}
-                                                    className="text-[#2EB0D9] hover:text-[#259cc0] transition-colors"
-                                                    title="לחץ להסבר נוסף"
-                                               >
-                                                   <HelpCircle size={16} />
-                                               </button>
-                                           )}
-                                       </div>
-                                       
-                                       {field.type === 'text' && (
-                                           <input 
-                                             type="text" 
-                                             className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} 
-                                             value={dynamicFormValues[field.id] || ''}
-                                             onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}
-                                           />
-                                       )}
-                                       
-                                       {field.type === 'boolean' && (
-                                           <div className="flex gap-6 p-2">
-                                               <label className={`flex items-center gap-2 cursor-pointer ${theme.textMain} text-lg`}>
-                                                   <input 
-                                                     type="radio" 
-                                                     name={field.id} 
-                                                     className="w-5 h-5 accent-[#2EB0D9]"
-                                                     checked={dynamicFormValues[field.id] === true}
-                                                     onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: true})}
-                                                   /> כן
-                                               </label>
-                                               <label className={`flex items-center gap-2 cursor-pointer ${theme.textMain} text-lg`}>
-                                                   <input 
-                                                     type="radio" 
-                                                     name={field.id} 
-                                                     className="w-5 h-5 accent-[#2EB0D9]"
-                                                     checked={dynamicFormValues[field.id] === false}
-                                                     onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: false})}
-                                                   /> לא
-                                               </label>
-                                           </div>
-                                       )}
-
-                                       {field.type === 'select' && (
-                                           <select 
-                                              className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`}
-                                              value={dynamicFormValues[field.id] || ''}
-                                              onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}
-                                           >
-                                               <option value="">בחר...</option>
-                                               {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                           </select>
-                                       )}
-
-                                       {field.type === 'repeater' && (
-                                           <div className={`p-6 rounded-lg border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                               <div className="space-y-3 mb-4">
-                                                   {(dynamicFormValues[field.id] || []).map((val: string, i: number) => (
-                                                       <div key={i} className="flex gap-2">
-                                                           <input 
-                                                             className={`flex-1 p-3 border rounded-lg text-sm ${theme.inputBg}`} 
-                                                             value={val}
-                                                             onChange={(e) => {
-                                                                 const newArr = [...(dynamicFormValues[field.id] || [])];
-                                                                 newArr[i] = e.target.value;
-                                                                 setDynamicFormValues({...dynamicFormValues, [field.id]: newArr});
-                                                             }}
-                                                           />
-                                                       </div>
-                                                   ))}
-                                               </div>
-                                               <Button size="sm" variant="outline" onClick={() => {
-                                                   const newArr = [...(dynamicFormValues[field.id] || []), ''];
-                                                   setDynamicFormValues({...dynamicFormValues, [field.id]: newArr});
-                                               }} className="">+ הוסף שורה</Button>
-                                           </div>
-                                       )}
-                                   </div>
-                               ))}
-
-                               <Button 
-                                  className="w-full mt-6 py-4 text-lg font-bold shine-effect" 
-                                  variant="secondary" 
-                                  disabled={isSubmittingDynamic}
-                                  onClick={async () => {
-                                      setIsSubmittingDynamic(true);
-                                      try {
-                                          await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations);
-                                          alert("הטופס נשלח בהצלחה! תודה רבה.");
-                                          setActiveDynamicFormId(null);
-                                          setDynamicFormValues({});
-                                      } catch (error) {
-                                          alert("אירעה שגיאה בשליחת הטופס");
-                                      } finally {
-                                          setIsSubmittingDynamic(false);
-                                      }
-                                  }}
-                                >
-                                   {isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}
-                                </Button>
-                           </div>
-                       </div>
-                  </div>
-              )}
-
-              {/* Articles Grid / Carousel */}
-              <Reveal delay={300}>
-                  <div className="flex items-center justify-between mb-10">
-                     <SectionTitle title="מאמרים נבחרים" isDark={isDark} />
-                     <div className="hidden md:flex gap-2">
-                         <button onClick={() => scrollContainer(articlesScrollRef, 'right')} className={`p-3 border rounded-full hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMuted} ${theme.border}`}><ChevronRight size={24}/></button>
-                         <button onClick={() => scrollContainer(articlesScrollRef, 'left')} className={`p-3 border rounded-full hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMuted} ${theme.border}`}><ChevronLeft size={24}/></button>
+                          <button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X size={32}/></button>
                      </div>
-                  </div>
+                     <div className={`space-y-6 p-8 rounded-xl border shadow-inner ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                         {currentDynamicForm.fields.map(field => (
+                             <div key={field.id} className="space-y-2">
+                                 <label className={`block text-sm font-bold ${theme.textMuted}`}>{field.label}</label>
+                                 {field.type === 'text' && <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
+                                 {field.type === 'select' && <select className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}><option value="">בחר...</option>{field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>}
+                             </div>
+                         ))}
+                         <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => {
+                              setIsSubmittingDynamic(true);
+                              try { await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations); alert("נשלח בהצלחה!"); setActiveDynamicFormId(null); setDynamicFormValues({}); } catch { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); }
+                         }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button>
+                     </div>
+                 </div>
+            </div>
+        )}
 
-                  <div 
-                     ref={articlesScrollRef}
-                     className="flex gap-4 md:gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x"
-                  >
-                     {currentArticles.map(article => (
-                        <div 
-                            key={article.id} 
-                            // Mobile: 150px (peeking more). Desktop: 25%.
-                            className="flex-shrink-0 w-[150px] md:w-[calc(25%-18px)] h-[300px] md:h-[380px] snap-start"
-                        >
-                            <ArticleCard 
-                                article={article} 
-                                onClick={() => setSelectedArticle(article)}
-                            />
+        {/* ARTICLES GRID (BOTTOM - ALL ARTICLES) */}
+        {/* Only show if NOT in Home/Store to avoid duplication, OR if you want to show remaining articles */}
+        {![Category.STORE].includes(state.currentCategory) && (
+            <Reveal delay={300} className="py-20 container mx-auto px-4">
+                 <SectionTitle title={state.currentCategory === Category.HOME ? "מאמרים נבחרים" : "מאמרים נוספים"} isDark={isDark} />
+                 <div ref={articlesScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x">
+                    {currentArticles.map(article => (
+                        <div key={article.id} className="flex-shrink-0 w-[220px] md:w-[calc(25%-18px)] h-[300px] md:h-[380px] snap-start">
+                            <ArticleCard article={article} onClick={() => setSelectedArticle(article)} />
                         </div>
-                     ))}
-                     {currentArticles.length === 0 && (
-                         <div className={`w-full text-center py-20 rounded-2xl border border-dashed ${theme.cardBg} ${theme.textMuted}`}>
-                             אין מאמרים להצגה בקטגוריה זו.
-                         </div>
-                     )}
-                  </div>
-              </Reveal>
-           </div>
-        </section>
+                    ))}
+                 </div>
+            </Reveal>
+        )}
 
-        {/* CONTACT FOOTER - FIXED ALIGNMENT */}
+        {/* FOOTER */}
         <footer className="bg-black text-slate-400 pt-20 pb-10 relative z-10 border-t border-slate-900">
             <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 items-start text-right" dir="rtl">
-                
-                {/* Brand Column (Rightmost) */}
                 <div className="col-span-1 flex flex-col items-start">
-                    <h2 
-                        className="text-2xl font-black text-white mb-6 leading-tight"
-                        style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}
-                    >
+                    <h2 className="text-2xl font-black text-white mb-6 leading-tight" style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}>
                        <span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO
                     </h2>
-                    <p className="mb-6 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי בכל תחומי המשפט האזרחי והמסחרי.</p>
-                    <div className="flex gap-4">
-                       <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] hover:text-white cursor-pointer transition-all hover:scale-110 transform border border-slate-800">f</div>
-                       <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] hover:text-white cursor-pointer transition-all hover:scale-110 transform border border-slate-800">in</div>
-                       {onAdminClick && (
-                          <button 
-                            onClick={onAdminClick}
-                            className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center hover:bg-[#2EB0D9] cursor-pointer transition-all text-slate-500 hover:text-white border border-slate-800"
-                            title="ניהול אתר"
-                          >
-                             <Settings size={20} />
-                          </button>
-                       )}
-                    </div>
+                    <p className="mb-6 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p>
+                    {onAdminClick && <button onClick={onAdminClick} className="p-2 border border-slate-800 rounded-full"><Settings size={16}/></button>}
                 </div>
-                
-                {/* Navigation Column */}
-                <div className="col-span-1 flex flex-col items-start">
-                    <h4 className="text-white font-bold mb-6 text-lg border-r-4 border-[#2EB0D9] pr-4">ניווט מהיר</h4>
-                    <ul className="space-y-3 w-full">
-                        <li><button onClick={() => onCategoryChange(Category.WILLS)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right hover:translate-x-1 transform duration-200">צוואות וירושות</button></li>
-                        <li><button onClick={() => onCategoryChange(Category.REAL_ESTATE)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right hover:translate-x-1 transform duration-200">מקרקעין ונדל"ן</button></li>
-                        <li><button onClick={() => onCategoryChange(Category.POA)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right hover:translate-x-1 transform duration-200">ייפוי כוח מתמשך</button></li>
-                        <li><button onClick={() => onCategoryChange(Category.STORE)} className="hover:text-[#2EB0D9] transition-colors block w-full text-right hover:translate-x-1 transform duration-200">חנות משפטית</button></li>
-                    </ul>
-                </div>
-                
-                {/* Contact Column - Fixed Alignment */}
                 <div className="col-span-1 flex flex-col items-start">
                     <h4 className="text-white font-bold mb-6 text-lg border-r-4 border-[#2EB0D9] pr-4">פרטי התקשרות</h4>
                     <ul className="space-y-4 w-full">
-                        <li className="flex items-start gap-4">
-                            <MapPin size={22} className="text-[#2EB0D9] mt-1 flex-shrink-0"/> 
-                            <span className="leading-snug text-slate-400">{state.config.address}</span>
-                        </li>
-                        <li className="flex items-center gap-4">
-                            <Phone size={22} className="text-[#2EB0D9] flex-shrink-0"/> 
-                            <span className="leading-snug text-slate-400" dir="ltr">{state.config.phone}</span>
-                        </li>
-                        <li className="flex items-center gap-4">
-                            <Mail size={22} className="text-[#2EB0D9] flex-shrink-0"/> 
-                            <span className="leading-snug font-sans text-slate-400">{state.config.contactEmail}</span>
-                        </li>
+                        <li className="flex items-start gap-4"><MapPin size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.address}</span></li>
+                        <li className="flex items-center gap-4"><Phone size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400" dir="ltr">{state.config.phone}</span></li>
+                        <li className="flex items-center gap-4"><Mail size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.contactEmail}</span></li>
                     </ul>
-                    {/* Waze Button Aligned Under Contact Info */}
-                    <a 
-                       href={`https://waze.com/ul?q=${encodeURIComponent(state.config.address)}`} 
-                       target="_blank" 
-                       rel="noopener noreferrer"
-                       className="inline-flex items-center gap-2 bg-[#2EB0D9] hover:bg-[#259cc0] text-white px-6 py-3 rounded-lg font-bold transition-all mt-8 hover:shadow-lg transform hover:-translate-y-1 w-full justify-center shadow-lg shadow-[#2EB0D9]/10"
-                    >
-                        <Navigation size={20} /> נווט למשרד
-                    </a>
                 </div>
-                
-                {/* Map Column (Leftmost) */}
-                <div className="col-span-1">
-                     {/* Map container same height as content roughly */}
-                    <div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 shadow-2xl group hover:border-[#2EB0D9]/50 transition-colors">
-                        <iframe 
-                            title="Office Location"
-                            width="100%" 
-                            height="100%" 
-                            frameBorder="0" 
-                            style={{ border: 0, opacity: 0.6, filter: 'invert(90%) hue-rotate(180deg)' }}
-                            src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-                            allowFullScreen
-                            className="group-hover:opacity-80 transition-opacity duration-500"
-                        ></iframe>
-                    </div>
-                </div>
+                <div className="col-span-1"><div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800"><iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.6, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe></div></div>
             </div>
-            
-            <div className="container mx-auto px-4 pt-8 border-t border-slate-900 text-center text-sm text-slate-600">
-                &copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO. כל הזכויות שמורות.
-            </div>
+            <div className="container mx-auto px-4 pt-8 border-t border-slate-900 text-center text-sm text-slate-600">&copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO.</div>
         </footer>
       </main>
-
       <FloatingWidgets />
     </div>
   );

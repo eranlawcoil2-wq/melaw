@@ -25,6 +25,7 @@ export interface SliderSlide {
   category: Category;
   buttonText?: string;
   buttonLink?: string;
+  order?: number; // Added order field for priority sorting
 }
 
 export interface TimelineItem {

@@ -182,9 +182,12 @@ export const storeService = {
 
     getProducts() {
         return [
-            { id: 'prod_1', title: 'חבילת צוואה הדדית', price: 1500, category: Category.WILLS },
+            { id: 'prod_1', title: 'צוואה הדדית', price: 1500, category: Category.WILLS },
             { id: 'prod_2', title: 'בדיקת חוזה דירה', price: 2500, category: Category.REAL_ESTATE },
-            { id: 'prod_3', title: 'פגישת ייעוץ (שעה)', price: 450, category: Category.CONTACT },
+            { id: 'prod_3', title: 'ייפוי כוח מתמשך', price: 3800, category: Category.POA },
+            { id: 'prod_4', title: 'הסכם מייסדים', price: 1200, category: Category.STORE },
+            { id: 'prod_5', title: 'מכתב התראה', price: 450, category: Category.CONTACT },
+            { id: 'prod_6', title: 'הסכם שכירות', price: 800, category: Category.REAL_ESTATE },
         ];
     }
 };

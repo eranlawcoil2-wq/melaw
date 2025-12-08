@@ -68,9 +68,10 @@ const initialTimelines: TimelineItem[] = [
 ];
 
 const initialSlides: SliderSlide[] = [
-    { id: '1', imageUrl: 'https://picsum.photos/id/196/1920/1080', title: 'מצוינות משפטית ללא פשרות', subtitle: 'ליווי אישי ומקצועי ברגעים החשובים של החיים', category: Category.HOME },
-    { id: '2', imageUrl: 'https://picsum.photos/id/452/1920/1080', title: 'צוואות וירושות', subtitle: 'דואגים לעתיד היקרים לכם ברגישות ובמקצועיות', category: Category.WILLS },
-    { id: '3', imageUrl: 'https://picsum.photos/id/1076/1920/1080', title: 'עסקאות נדל"ן ומקרקעין', subtitle: 'ליווי צמוד בעסקאות מכר ורכישה', category: Category.REAL_ESTATE },
+    { id: 'store-promo', imageUrl: 'https://picsum.photos/id/449/1920/1080', title: 'החנות המשפטית', subtitle: 'חוזים, מסמכים ומוצרים משפטיים להורדה מיידית', category: Category.HOME, order: 0, buttonText: 'למעבר לחנות' },
+    { id: '1', imageUrl: 'https://picsum.photos/id/196/1920/1080', title: 'מצוינות משפטית ללא פשרות', subtitle: 'ליווי אישי ומקצועי ברגעים החשובים של החיים', category: Category.HOME, order: 1 },
+    { id: '2', imageUrl: 'https://picsum.photos/id/452/1920/1080', title: 'צוואות וירושות', subtitle: 'דואגים לעתיד היקרים לכם ברגישות ובמקצועיות', category: Category.WILLS, order: 3 },
+    { id: '3', imageUrl: 'https://picsum.photos/id/1076/1920/1080', title: 'עסקאות נדל"ן ומקרקעין', subtitle: 'ליווי צמוד בעסקאות מכר ורכישה', category: Category.REAL_ESTATE, order: 4 },
 ];
 
 const initialMenuItems: MenuItem[] = [
@@ -174,7 +175,7 @@ const defaultState: AppState = {
 };
 
 // UPDATED KEY TO FORCE REFRESH FOR ALL USERS
-const STORAGE_KEY = 'melaw_site_data_v2';
+const STORAGE_KEY = 'melaw_site_data_v3';
 
 const App: React.FC = () => {
   const [loadingCloud, setLoadingCloud] = useState(false);
