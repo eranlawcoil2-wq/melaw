@@ -1,14 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Article, Category } from "../types.ts";
 
-const getAiClient = () => {
+// Updated to accept key as parameter instead of relying on process.env
+const getAiClient = (apiKey: string) => {
   try {
-    // Safely access process.env
-    const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
-    
-    // In demo environment without env vars, return null to trigger fallback immediately
     if (!apiKey) {
-      console.warn("API Key is missing. Using mock generator.");
+      console.warn("API Key is missing.");
       return null;
     }
     return new GoogleGenAI({ apiKey });
@@ -18,24 +15,24 @@ const getAiClient = () => {
   }
 };
 
-export const generateArticleContent = async (topic: string, category: Category | 'ALL'): Promise<Partial<Article>> => {
+export const generateArticleContent = async (topic: string, category: Category | 'ALL', apiKey: string): Promise<Partial<Article>> => {
   // Mock response generator for fallback
   const getMockResponse = () => ({
       title: topic,
-      abstract: `זהו תקציר שנוצר אוטומטית עבור הנושא: "${topic}". המאמר עוסק בהיבטים המשפטיים והמעשיים של התחום, תוך דגש על פסיקה עדכנית.`,
+      abstract: `זהו תקציר שנוצר אוטומטית (מצב דמו) עבור הנושא: "${topic}". כדי לקבל תוכן אמיתי, אנא הזן מפתח API של Gemini בממשק הניהול.`,
       quote: "המשפט הוא מעוז החלש ומגן היתום.",
       tabs: [
-        { title: "המסגרת הנורמטיבית", content: `בחלק זה נסקור את החוקים הרלוונטיים לנושא ${topic}. המחוקק הישראלי נתן דעתו לסוגיה זו במספר דברי חקיקה מרכזיים, אשר מתווים את הדרך המשפטית הנכונה לפעולה.` },
-        { title: "פסיקה עדכנית", content: "בתי המשפט דנו בסוגיה זו לאחרונה וקבעו הלכות חדשות. חשוב להכיר את פסקי הדין המנחים כדי להבין כיצד השופטים נוטים להכריע במקרים דומים." },
-        { title: "המלצות מעשיות", content: "מומלץ להיוועץ בעורך דין מומחה בטרם נקיטת פעולה. יש לאסוף את כל המסמכים הרלוונטיים ולפעול בתום לב ובשקיפות מלאה." }
+        { title: "המסגרת הנורמטיבית", content: `בחלק זה נסקור את החוקים הרלוונטיים לנושא ${topic}. (תוכן זה הוא דוגמה בלבד מכיוון שלא הוזן מפתח API תקין).` },
+        { title: "פסיקה עדכנית", content: "בתי המשפט דנו בסוגיה זו לאחרונה וקבעו הלכות חדשות. חשוב להכיר את פסקי הדין המנחים." },
+        { title: "המלצות מעשיות", content: "מומלץ להיוועץ בעורך דין מומחה בטרם נקיטת פעולה." }
       ]
   });
 
   try {
-    const ai = getAiClient();
+    const ai = getAiClient(apiKey);
     
     // If no client (no key), throw immediately to catch block
-    if (!ai) throw new Error("No API Key");
+    if (!ai) throw new Error("No API Key Provided");
 
     const prompt = `
       Write a legal article outline for an Israeli law firm website.

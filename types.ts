@@ -14,8 +14,8 @@ export interface SliderSlide {
   title: string;
   subtitle: string;
   category: Category;
-  buttonText?: string; // New: Custom text for the button
-  buttonLink?: string; // New: Custom link URL
+  buttonText?: string;
+  buttonLink?: string;
 }
 
 export interface TimelineItem {
@@ -24,7 +24,7 @@ export interface TimelineItem {
   description: string;
   imageUrl: string;
   category: Category[];
-  linkTo?: string; // Could be an internal ID or external link
+  linkTo?: string;
 }
 
 export interface ArticleTab {
@@ -46,7 +46,7 @@ export interface Article {
 export interface TeamMember {
   id: string;
   fullName: string;
-  role: string; // e.g., "Founder & Partner"
+  role: string;
   specialization: string;
   email: string;
   phone: string;
@@ -65,15 +65,36 @@ export interface WillsFormData {
   contactPhone: string;
 }
 
+// New Interface for Third-Party Integrations
+export interface IntegrationsConfig {
+    // AI
+    geminiApiKey: string;
+    
+    // Database (Google Sheets)
+    googleSheetsUrl: string; // The Web App URL from Google Apps Script
+    
+    // Email (EmailJS)
+    emailJsServiceId: string;
+    emailJsTemplateId: string;
+    emailJsPublicKey: string;
+
+    // Payments (Stripe Links)
+    stripeWillsLink: string;
+    stripeRealEstateLink: string;
+    stripeConsultationLink: string;
+}
+
 export interface SiteConfig {
   officeName: string;
-  logoUrl: string; // Placeholder or uploaded
+  logoUrl: string;
   contactEmail: string;
   willsEmail: string;
   poaEmail: string;
   phone: string;
   address: string;
-  theme: 'dark' | 'light'; // NEW: Theme preference
+  theme: 'dark' | 'light';
+  adminPassword?: string; // Simple local password
+  integrations: IntegrationsConfig; // Add integrations to config
 }
 
 export interface MenuItem {
@@ -82,16 +103,15 @@ export interface MenuItem {
     cat: Category;
 }
 
-// --- Dynamic Form Types ---
 export type FieldType = 'text' | 'email' | 'phone' | 'number' | 'boolean' | 'select' | 'repeater';
 
 export interface FormField {
     id: string;
     type: FieldType;
     label: string;
-    options?: string[]; // For 'select' type
+    options?: string[];
     required: boolean;
-    helpArticleId?: string; // Optional: Link to an article ID for explanation popup
+    helpArticleId?: string;
 }
 
 export interface FormDefinition {
@@ -99,10 +119,9 @@ export interface FormDefinition {
     title: string;
     category: Category;
     fields: FormField[];
-    submitEmail: string; // Where to send the result
+    submitEmail: string;
 }
 
-// Global State Interface
 export interface AppState {
   currentCategory: Category;
   config: SiteConfig;
@@ -112,6 +131,5 @@ export interface AppState {
   menuItems: MenuItem[];
   forms: FormDefinition[];
   teamMembers: TeamMember[];
-  // Simple auth simulation
   isAdminLoggedIn: boolean;
 }

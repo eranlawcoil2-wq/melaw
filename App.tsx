@@ -148,7 +148,19 @@ const App: React.FC = () => {
         poaEmail: 'poa@melaw.co.il',
         phone: '03-1234567',
         address: 'דרך מנחם בגין 144, תל אביב',
-        theme: 'dark' // DEFAULT THEME
+        theme: 'dark', // DEFAULT THEME
+        adminPassword: 'admin', // DEFAULT PASSWORD - CAN BE CHANGED IN SETTINGS
+        // INITIALIZE INTEGRATIONS WITH EMPTY STRINGS
+        integrations: {
+            geminiApiKey: 'AIzaSyBQkmjb1vw20e90bCMBK0eWC9pA6e05Le0',
+            googleSheetsUrl: '',
+            emailJsServiceId: '',
+            emailJsTemplateId: '',
+            emailJsPublicKey: '',
+            stripeWillsLink: '',
+            stripeRealEstateLink: '',
+            stripeConsultationLink: ''
+        }
     },
     slides: initialSlides,
     timelines: initialTimelines,
@@ -188,24 +200,25 @@ const App: React.FC = () => {
                 <h2 className="text-2xl font-bold mb-6 text-center text-white">כניסה למערכת ניהול</h2>
                 <input 
                     type="email" 
-                    placeholder="אימייל מנהל" 
+                    placeholder="אימייל מנהל (לא נבדק)" 
                     className="w-full p-3 border border-slate-700 rounded mb-4 bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9] outline-none" 
                     value={loginEmail}
                     onChange={e => setLoginEmail(e.target.value)}
                 />
                 <input 
                     type="password" 
-                    placeholder="סיסמא" 
+                    placeholder="סיסמא (admin)" 
                     className="w-full p-3 border border-slate-700 rounded mb-6 bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9] outline-none" 
                     value={loginPass}
                     onChange={e => setLoginPass(e.target.value)}
                 />
                 <button 
                     onClick={() => {
-                        if (loginEmail.includes('@') && loginPass.length > 3) {
+                        // Check against the password in config
+                        if (loginPass === appState.config.adminPassword) {
                             handleUpdateState({ isAdminLoggedIn: true });
                         } else {
-                            alert("פרטי התחברות שגויים (דמו: הזן כל מייל וסיסמא)");
+                            alert("סיסמא שגויה. (ברירת מחדל: admin)");
                         }
                     }}
                     className="w-full bg-[#2EB0D9] text-white py-3 rounded font-bold hover:bg-[#259cc0] transition shadow-lg shadow-[#2EB0D9]/20"

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
-import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -10,14 +10,101 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
+// --- GOOGLE APPS SCRIPT TEMPLATE (UPDATED FOR EMAIL) ---
+const GOOGLE_SCRIPT_TEMPLATE = `
+// העתק את כל הקוד הזה והדבק אותו ב-Google Apps Script
+// (Extensions > Apps Script)
+
+// הגדרות אימייל
+const NOTIFICATION_EMAIL = "your-email@example.com"; // <-- שנה לאימייל שלך כדי לקבל התראות!
+
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+
+  try {
+    var doc = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = doc.getSheets()[0];
+
+    var rawData = e.postData.contents;
+    var data = JSON.parse(rawData);
+
+    // 1. שמירה בגיליון
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn() || 1).getValues()[0];
+    if (sheet.getLastColumn() === 0 || (headers.length === 1 && headers[0] === "")) {
+      headers = ["Timestamp"];
+      for (var key in data) {
+        if (key !== "Timestamp") headers.push(key);
+      }
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
+
+    var newRow = [];
+    var timestamp = new Date();
+
+    for (var i = 0; i < headers.length; i++) {
+      var header = headers[i];
+      if (header === "Timestamp") {
+        newRow.push(timestamp);
+      } else {
+        var val = data[header];
+        if (typeof val === 'object' && val !== null) {
+          newRow.push(JSON.stringify(val));
+        } else {
+          newRow.push(val || "");
+        }
+      }
+    }
+    sheet.appendRow(newRow);
+
+    // 2. שליחת אימייל התראה (לבעל האתר)
+    if (NOTIFICATION_EMAIL && NOTIFICATION_EMAIL !== "your-email@example.com") {
+        var subject = "התקבל טופס חדש באתר MeLaw";
+        var body = "התקבלו נתונים חדשים:\n\n";
+        for (var key in data) {
+            body += key + ": " + data[key] + "\n";
+        }
+        MailApp.sendEmail({
+            to: NOTIFICATION_EMAIL,
+            subject: subject,
+            body: body
+        });
+    }
+    
+    // 3. אופציונלי: שליחת אימייל אישור ללקוח (אם יש שדה אימייל בטופס)
+    /*
+    if (data.email || data.contactEmail) {
+         MailApp.sendEmail({
+            to: data.email || data.contactEmail,
+            subject: "תודה על פנייתך",
+            body: "קיבלנו את פרטיך וניצור קשר בהקדם."
+        });
+    }
+    */
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ "result": "success", "row": sheet.getLastRow() }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (e) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ "result": "error", "error": e.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+`;
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'config' | 'articles' | 'timelines' | 'forms' | 'team'>('articles');
+  const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'timelines' | 'forms' | 'team'>('articles');
   
   // Timeline/Slider Sub-tab
   const [timelineSubTab, setTimelineSubTab] = useState<'slider' | 'cards'>('slider');
 
-  // Global Admin State - Added 'ALL' type
+  // Global Admin State
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
+  const [showScript, setShowScript] = useState(false);
 
   // Articles State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -39,9 +126,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   // Generate Article (AI)
   const handleGenerateArticle = async () => {
     if (!newArticleTopic) return;
+    
+    // Check if API key exists
+    if (!state.config.integrations.geminiApiKey) {
+        alert("שגיאה: חסר מפתח API של Gemini. נא להגדיר אותו בלשונית 'חיבורים ואינטגרציות'.");
+        return;
+    }
+
     setIsGenerating(true);
     try {
-      const generated = await generateArticleContent(newArticleTopic, selectedCategory);
+      const generated = await generateArticleContent(newArticleTopic, selectedCategory, state.config.integrations.geminiApiKey);
       
       const newArticle: Article = {
         id: Date.now().toString(),
@@ -72,7 +166,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
   const handleSaveForm = () => {
       if (!editingForm) return;
-      // Update or Create
       const exists = state.forms.find(f => f.id === editingForm.id);
       let newForms;
       if (exists) {
@@ -151,7 +244,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       setEditingTimelineItem(null);
   };
 
-  // Helper to toggle category in timeline item
   const toggleTimelineCategory = (item: TimelineItem, category: Category) => {
       let newCategories;
       if (item.category.includes(category)) {
@@ -160,6 +252,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
           newCategories = [...item.category, category];
       }
       return newCategories;
+  };
+
+  // Helper to update integration config
+  const updateIntegration = (key: keyof typeof state.config.integrations, value: string) => {
+      updateState({
+          config: {
+              ...state.config,
+              integrations: {
+                  ...state.config.integrations,
+                  [key]: value
+              }
+          }
+      });
   };
 
   return (
@@ -182,8 +287,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
           <button onClick={() => setActiveTab('team')} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'team' ? 'bg-[#2EB0D9] text-white font-bold shadow-lg shadow-[#2EB0D9]/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
             <Users size={20} /> ניהול צוות
           </button>
+          <div className="border-t border-slate-800 my-2"></div>
+          <button onClick={() => setActiveTab('integrations')} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'integrations' ? 'bg-[#2EB0D9] text-white font-bold shadow-lg shadow-[#2EB0D9]/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <LinkIcon size={20} /> חיבורים ואינטגרציות
+          </button>
           <button onClick={() => setActiveTab('config')} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'config' ? 'bg-[#2EB0D9] text-white font-bold shadow-lg shadow-[#2EB0D9]/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-            <Settings size={20} /> הגדרות אתר ותפריט
+            <Settings size={20} /> הגדרות אתר
           </button>
         </nav>
         <div className="p-4 border-t border-slate-800">
@@ -194,7 +303,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       {/* Main Content */}
       <main className="flex-1 mr-64 p-8 overflow-y-auto min-h-screen">
         
-        {/* Global Category Selector Header (Only for Articles/Forms where filtering is primary) */}
+        {/* Global Category Selector Header */}
         {activeTab === 'articles' || activeTab === 'forms' ? (
             <div className="bg-slate-900 p-4 rounded-xl shadow-lg mb-8 flex items-center justify-between sticky top-0 z-20 border border-slate-800">
                 <div className="flex items-center gap-4">
@@ -216,533 +325,165 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         ) : null}
         
-        {/* --- Articles Tab --- */}
-        {activeTab === 'articles' && (
-          <div className="space-y-6">
-             {/* ... Articles Editor Content (Same as before) ... */}
-             <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800">
-                {editingArticle ? (
-                   /* Edit Mode */
-                   <div>
-                       <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-                            <h3 className="text-xl font-bold flex items-center gap-2 text-[#2EB0D9]"><Edit size={20}/> עריכת מאמר</h3>
-                            <button onClick={() => setEditingArticle(null)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><X size={20}/></button>
-                       </div>
-                       
-                       <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-400 mb-1">כותרת המאמר</label>
-                                    <input type="text" className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white font-sans text-lg font-bold" value={editingArticle.title} onChange={e => setEditingArticle({...editingArticle, title: e.target.value})} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-400 mb-1">תקציר</label>
-                                    <textarea rows={4} className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white font-sans" value={editingArticle.abstract} onChange={e => setEditingArticle({...editingArticle, abstract: e.target.value})} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-400 mb-1">קטגוריה</label>
-                                    <select className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white" value={editingArticle.category} onChange={e => setEditingArticle({...editingArticle, category: e.target.value as Category})}>
-                                        {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-400 mb-1">קישור לתמונה (URL)</label>
-                                    <div className="flex gap-2">
-                                        <input type="text" className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white font-sans" value={editingArticle.imageUrl} onChange={e => setEditingArticle({...editingArticle, imageUrl: e.target.value})} />
-                                        <div className="w-12 h-12 bg-slate-800 rounded overflow-hidden flex-shrink-0 border border-slate-700">
-                                            <img src={editingArticle.imageUrl} className="w-full h-full object-cover" alt="" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-400 mb-1">ציטוט</label>
-                                    <input type="text" className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white font-sans" value={editingArticle.quote || ''} onChange={e => setEditingArticle({...editingArticle, quote: e.target.value})} />
-                                </div>
-                            </div>
-                            
-                            <div className="space-y-4">
-                                <label className="block text-sm font-bold text-slate-400">תוכן הטאבים (פסקאות)</label>
-                                {editingArticle.tabs.map((tab, idx) => (
-                                    <div key={idx} className="border border-slate-700 p-3 rounded bg-slate-800/50 relative group">
-                                        <button 
-                                            onClick={() => {
-                                                if(confirm('למחוק טאב זה?')) {
-                                                    const newTabs = editingArticle.tabs.filter((_, i) => i !== idx);
-                                                    setEditingArticle({...editingArticle, tabs: newTabs});
-                                                }
-                                            }}
-                                            className="absolute top-2 left-2 p-1.5 text-red-500 hover:bg-red-500/10 rounded-full opacity-50 group-hover:opacity-100 transition-opacity"
-                                            title="מחק טאב"
-                                        >
-                                            <Trash size={16} />
-                                        </button>
-                                        <input 
-                                            type="text" 
-                                            className="w-full p-1 border-b border-slate-700 mb-2 bg-transparent font-bold text-base text-[#2EB0D9] placeholder-slate-600" 
-                                            value={tab.title} 
-                                            onChange={(e) => {
-                                                const newTabs = [...editingArticle.tabs];
-                                                newTabs[idx].title = e.target.value;
-                                                setEditingArticle({...editingArticle, tabs: newTabs});
-                                            }}
-                                            placeholder="כותרת הטאב"
-                                        />
-                                        <textarea 
-                                            rows={8} 
-                                            className="w-full p-3 border border-slate-700 bg-slate-900 rounded text-base font-sans leading-relaxed text-slate-300 placeholder-slate-600" 
-                                            value={tab.content}
-                                            onChange={(e) => {
-                                                const newTabs = [...editingArticle.tabs];
-                                                newTabs[idx].content = e.target.value;
-                                                setEditingArticle({...editingArticle, tabs: newTabs});
-                                            }}
-                                            placeholder="תוכן הטאב..."
-                                        />
-                                    </div>
-                                ))}
-                                <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => setEditingArticle({
-                                        ...editingArticle,
-                                        tabs: [...editingArticle.tabs, { title: 'טאב חדש', content: '' }]
-                                    })}
-                                    className="w-full border-dashed border-2 border-slate-700 text-slate-400 hover:bg-slate-800"
-                                >
-                                    <Plus size={16} className="ml-2" /> הוסף טאב
-                                </Button>
-                            </div>
-                       </div>
-                       <div className="mt-6 flex justify-end gap-2 border-t border-slate-800 pt-4">
-                           <Button variant="outline" onClick={() => setEditingArticle(null)} className="border-slate-600 text-slate-400 hover:bg-slate-800">ביטול</Button>
-                           <Button onClick={handleUpdateArticle}>שמור שינויים</Button>
-                       </div>
-                   </div>
-                ) : (
-                   /* Create Mode (AI) */
-                   <div>
-                       <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white"><Sparkles className="text-[#2EB0D9]"/> יצירת מאמר חדש עם AI GENERATOR</h3>
-                       <div className="flex flex-col md:flex-row gap-4 items-stretch">
-                           <div className="flex-1">
-                                <label className="block text-sm font-bold text-slate-400 mb-1">נושא המאמר (ייווצר בקטגוריה: {selectedCategory === 'ALL' ? Category.HOME : selectedCategory})</label>
-                                <input 
-                                    type="text" 
-                                    value={newArticleTopic}
-                                    onChange={(e) => setNewArticleTopic(e.target.value)}
-                                    placeholder="לדוגמא: 5 טיפים חשובים לפני חתימה על חוזה לרכישת דירה" 
-                                    className="w-full p-4 border-2 border-slate-700 rounded-lg bg-slate-800 focus:ring-2 focus:ring-[#2EB0D9] focus:border-[#2EB0D9] outline-none text-xl font-bold text-white placeholder-slate-500"
-                                />
-                           </div>
-                           <Button size="lg" onClick={handleGenerateArticle} disabled={isGenerating || !newArticleTopic} className="md:w-64 flex-shrink-0 self-end h-[60px] text-lg shadow-lg shadow-[#2EB0D9]/20">
-                                {isGenerating ? <><Loader2 className="animate-spin mr-2"/> מייצר תוכן...</> : <><Sparkles className="mr-2" size={20}/> צור מאמר אוטומטי</>}
-                           </Button>
-                       </div>
-                   </div>
-                )}
-             </div>
-
-             <div className="bg-slate-900 rounded-xl shadow-sm overflow-hidden border border-slate-800">
-                <div className="p-4 border-b border-slate-800 bg-slate-900 font-bold text-slate-300">מאמרים קיימים ({selectedCategory === 'ALL' ? 'כל המאמרים' : selectedCategory})</div>
-                <table className="w-full text-right">
-                   <thead className="bg-slate-800 border-b border-slate-700 text-sm text-slate-400">
-                      <tr>
-                         <th className="p-4 w-20">תמונה</th>
-                         <th className="p-4">כותרת</th>
-                         <th className="p-4">קטגוריה</th>
-                         <th className="p-4">תקציר</th>
-                         <th className="p-4 w-48">פעולות</th>
-                      </tr>
-                   </thead>
-                   <tbody className="divide-y divide-slate-800">
-                      {state.articles.filter(a => selectedCategory === 'ALL' || a.category === selectedCategory).map(article => (
-                         <tr key={article.id} className="hover:bg-slate-800/50 transition-colors">
-                            <td className="p-4">
-                                <img src={article.imageUrl} alt="" className="w-12 h-12 rounded object-cover border border-slate-700" />
-                            </td>
-                            <td className="p-4 font-bold text-white">{article.title}</td>
-                            <td className="p-4"><span className="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-2 py-1 rounded">{article.category}</span></td>
-                            <td className="p-4 text-sm text-slate-400 max-w-xs truncate">{article.abstract}</td>
-                            <td className="p-4">
-                               <div className="flex gap-2">
-                                   <button 
-                                     onClick={() => {
-                                        navigator.clipboard.writeText(article.id);
-                                        alert('מזהה הועתק: ' + article.id);
-                                     }}
-                                     className="p-1.5 bg-slate-800 text-slate-400 hover:bg-slate-700 rounded flex items-center gap-1 text-xs border border-slate-700"
-                                     title="העתק מזהה לקישור בטפסים"
-                                   >
-                                     <Copy size={14} /> העתק מזהה
-                                   </button>
-                                   <button 
-                                     onClick={() => setEditingArticle(article)}
-                                     className="p-1.5 text-[#2EB0D9] hover:bg-slate-800 rounded"
-                                     title="ערוך"
-                                   >
-                                     <Edit size={16} />
-                                   </button>
-                                   <button 
-                                     onClick={() => {
-                                         if(confirm('למחוק את המאמר?')) {
-                                             updateState({ articles: state.articles.filter(a => a.id !== article.id) })
-                                         }
-                                     }}
-                                     className="p-1.5 text-red-500 hover:bg-red-500/10 rounded"
-                                     title="מחק"
-                                   >
-                                     <Trash size={16} />
-                                   </button>
-                               </div>
-                            </td>
-                         </tr>
-                      ))}
-                      {state.articles.filter(a => selectedCategory === 'ALL' || a.category === selectedCategory).length === 0 && (
-                          <tr><td colSpan={5} className="p-8 text-center text-slate-500">אין מאמרים להצגה.</td></tr>
-                      )}
-                   </tbody>
-                </table>
-             </div>
-          </div>
-        )}
-
-        {/* --- Forms Management Tab --- */}
-        {activeTab === 'forms' && (
-           // ... Forms Content (Same as before) ...
-            <div className="space-y-8">
-                {editingForm ? (
-                    <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800">
-                         <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-                            <h3 className="text-xl font-bold flex items-center gap-2 text-[#2EB0D9]"><ClipboardList size={20}/> {editingForm.title ? 'עריכת טופס' : 'יצירת טופס חדש'}</h3>
-                            <button onClick={() => setEditingForm(null)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><X size={20}/></button>
-                       </div>
-                       
-                       <div className="grid md:grid-cols-3 gap-6 mb-8">
-                           <div className="md:col-span-2">
-                               <label className="block text-sm font-medium mb-1 text-slate-400">שם הטופס</label>
-                               <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingForm.title} onChange={e => setEditingForm({...editingForm, title: e.target.value})} placeholder="לדוגמא: שאלון פרטים לצוואה"/>
-                           </div>
-                           <div>
-                               <label className="block text-sm font-medium mb-1 text-slate-400">קטגוריה</label>
-                               <select className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingForm.category} onChange={e => setEditingForm({...editingForm, category: e.target.value as Category})}>
-                                    {Object.values(Category).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                               </select>
-                           </div>
-                           <div className="md:col-span-3">
-                               <label className="block text-sm font-medium mb-1 text-slate-400">אימייל לקבלת תשובות</label>
-                               <input type="email" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingForm.submitEmail} onChange={e => setEditingForm({...editingForm, submitEmail: e.target.value})} />
-                           </div>
-                       </div>
-
-                       <div className="mb-6">
-                           <h4 className="font-bold border-b border-slate-800 pb-2 mb-4 text-white">שדות הטופס</h4>
-                           <div className="space-y-4">
-                               {editingForm.fields.map((field, idx) => (
-                                   <div key={field.id} className="border border-slate-700 p-4 rounded-lg bg-slate-800/50 flex gap-4 items-start">
-                                       <span className="font-mono text-slate-500 pt-2">{idx + 1}</span>
-                                       <div className="flex-1 grid md:grid-cols-2 gap-4">
-                                           <div>
-                                               <label className="text-xs text-slate-500">תווית השדה</label>
-                                               <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white" value={field.label} onChange={e => updateFormField(idx, { label: e.target.value })} />
-                                           </div>
-                                           <div>
-                                               <label className="text-xs text-slate-500">סוג שדה</label>
-                                               <div className="p-2 bg-slate-900 rounded text-sm text-slate-300 border border-slate-700">
-                                                   {field.type === 'text' && 'טקסט חופשי'}
-                                                   {field.type === 'boolean' && 'כן / לא'}
-                                                   {field.type === 'select' && 'בחירה מרשימה'}
-                                                   {field.type === 'repeater' && 'רשימה (ילדים/נכסים)'}
-                                               </div>
-                                           </div>
-                                           
-                                           {field.type === 'select' && (
-                                               <div className="md:col-span-2">
-                                                   <label className="text-xs text-slate-500">אפשרויות (מופרדות בפסיק)</label>
-                                                   <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white" value={field.options?.join(', ')} onChange={e => updateFormField(idx, { options: e.target.value.split(',').map(s => s.trim()) })} />
-                                               </div>
-                                           )}
-                                            
-                                           <div className="md:col-span-2">
-                                               <label className="text-xs text-slate-500 flex items-center gap-1"><HelpCircle size={10}/> מזהה מאמר להסבר (אופציונלי)</label>
-                                               <input 
-                                                  type="text" 
-                                                  className="w-full p-2 border border-slate-700 rounded font-mono text-sm bg-slate-900 text-white placeholder-slate-600" 
-                                                  value={field.helpArticleId || ''} 
-                                                  onChange={e => updateFormField(idx, { helpArticleId: e.target.value })}
-                                                  placeholder="הדבק כאן מזהה מאמר"
-                                               />
-                                           </div>
-
-                                           <div className="flex items-center gap-2">
-                                               <input type="checkbox" checked={field.required} onChange={e => updateFormField(idx, { required: e.target.checked })} className="rounded bg-slate-700 border-slate-600" />
-                                               <label className="text-sm text-slate-400">שדה חובה</label>
-                                           </div>
-                                       </div>
-                                       <button onClick={() => removeFormField(idx)} className="text-red-500 hover:bg-red-500/10 p-2 rounded"><Trash size={18}/></button>
-                                   </div>
-                               ))}
-                           </div>
-
-                           <div className="mt-4 flex flex-wrap gap-2">
-                               <span className="text-sm text-slate-500 w-full mb-1">הוסף שדה:</span>
-                               <Button size="sm" variant="outline" onClick={() => addFieldToForm('text')} className="border-slate-700 text-slate-300 hover:bg-slate-800">+ טקסט</Button>
-                               <Button size="sm" variant="outline" onClick={() => addFieldToForm('boolean')} className="border-slate-700 text-slate-300 hover:bg-slate-800">+ כן/לא</Button>
-                               <Button size="sm" variant="outline" onClick={() => addFieldToForm('select')} className="border-slate-700 text-slate-300 hover:bg-slate-800">+ רשימת בחירה</Button>
-                               <Button size="sm" variant="outline" onClick={() => addFieldToForm('repeater')} className="border-slate-700 text-slate-300 hover:bg-slate-800">+ רשימת פריטים</Button>
-                           </div>
-                       </div>
-
-                       <div className="flex justify-end gap-2 border-t border-slate-800 pt-4">
-                           <Button variant="outline" onClick={() => setEditingForm(null)} className="border-slate-600 text-slate-400 hover:bg-slate-800">ביטול</Button>
-                           <Button onClick={handleSaveForm}>שמור טופס</Button>
-                       </div>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-xl font-bold text-white">ניהול טפסים ({selectedCategory === 'ALL' ? state.forms.length : state.forms.filter(f => f.category === selectedCategory).length})</h3>
-                            <Button onClick={() => setEditingForm({
-                                id: Date.now().toString(),
-                                title: '',
-                                category: selectedCategory === 'ALL' ? Category.HOME : selectedCategory,
-                                submitEmail: state.config.contactEmail,
-                                fields: []
-                            })}>
-                                <Plus size={18} className="ml-2"/> טופס חדש
-                            </Button>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {state.forms.filter(f => selectedCategory === 'ALL' || f.category === selectedCategory).map(form => (
-                                <div key={form.id} className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm hover:border-[#2EB0D9]/50 transition-colors">
-                                    <h4 className="font-bold text-lg mb-2 text-white">{form.title}</h4>
-                                    <p className="text-sm text-slate-400 mb-4">{form.fields.length} שדות | נשלח ל: {form.submitEmail}</p>
-                                    
-                                    <div className="flex gap-2 mb-4">
-                                        <div className="bg-slate-800 rounded p-2 text-xs font-mono flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-slate-400" title={`form-${form.id}`}>
-                                            form-{form.id}
-                                        </div>
-                                        <button 
-                                            onClick={() => navigator.clipboard.writeText(`form-${form.id}`)}
-                                            className="text-[#2EB0D9] hover:bg-slate-800 p-2 rounded"
-                                            title="העתק מזהה לשימוש בטיים-ליין"
-                                        >
-                                            <Copy size={16} />
-                                        </button>
-                                    </div>
-
-                                    <div className="flex gap-2 border-t border-slate-800 pt-4">
-                                        <button onClick={() => setEditingForm(form)} className="flex-1 py-2 text-[#2EB0D9] hover:bg-slate-800 rounded font-medium text-sm flex items-center justify-center gap-2">
-                                            <Edit size={16}/> ערוך
-                                        </button>
-                                        <button 
-                                            onClick={() => {
-                                                if(confirm('למחוק טופס זה?')) {
-                                                    updateState({ forms: state.forms.filter(f => f.id !== form.id) });
-                                                }
-                                            }}
-                                            className="flex-1 py-2 text-red-500 hover:bg-red-500/10 rounded font-medium text-sm flex items-center justify-center gap-2">
-                                            <Trash size={16}/> מחק
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                            {state.forms.filter(f => selectedCategory === 'ALL' || f.category === selectedCategory).length === 0 && (
-                                <div className="col-span-3 text-center py-12 text-slate-500 bg-slate-900 border border-dashed border-slate-700 rounded-xl">
-                                    לא נמצאו טפסים להצגה. צור טופס חדש.
-                                </div>
-                            )}
+        {/* --- Integrations Tab (NEW) --- */}
+        {activeTab === 'integrations' && (
+            <div className="max-w-4xl space-y-8 animate-fade-in-up">
+                
+                {/* 1. AI Generator */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                    <div className="p-6 border-b border-slate-800 flex items-center gap-3 bg-[#2EB0D9]/5">
+                        <div className="p-2 bg-[#2EB0D9]/20 rounded-lg text-[#2EB0D9]"><Sparkles size={24}/></div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">AI Generator (Gemini)</h3>
+                            <p className="text-slate-400 text-sm">הגדרות ליצירת מאמרים אוטומטית באמצעות בינה מלאכותית</p>
                         </div>
                     </div>
-                )}
-            </div>
-        )}
-
-        {/* --- Timelines & Sliders Tab --- */}
-        {activeTab === 'timelines' && (
-            <div className="space-y-6">
-                <div className="flex gap-4 mb-6 border-b border-slate-800">
-                    <button 
-                        onClick={() => setTimelineSubTab('slider')}
-                        className={`pb-2 px-4 font-bold transition-colors ${timelineSubTab === 'slider' ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                        שקפים ראשיים (Hero)
-                    </button>
-                    <button 
-                        onClick={() => setTimelineSubTab('cards')}
-                        className={`pb-2 px-4 font-bold transition-colors ${timelineSubTab === 'cards' ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                        כרטיסי חדשות ומידע (Timeline)
-                    </button>
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-300 mb-2">Gemini API Key</label>
+                            <input 
+                                type="password" 
+                                className="w-full p-3 border border-slate-700 rounded bg-slate-800 text-white font-mono placeholder-slate-600"
+                                placeholder="AIzaSy..."
+                                value={state.config.integrations.geminiApiKey}
+                                onChange={(e) => updateIntegration('geminiApiKey', e.target.value)}
+                            />
+                            <p className="text-xs text-slate-500 mt-2">
+                                נדרש כדי להשתמש במחולל המאמרים. 
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-[#2EB0D9] hover:underline mx-1">לחץ כאן לקבלת מפתח בחינם</a> 
+                                מ-Google AI Studio.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Sub Tab: SLIDER */}
-                {timelineSubTab === 'slider' && (
-                    <div className="space-y-8">
-                        {editingSlide ? (
-                            <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800">
-                                <h3 className="text-xl font-bold mb-6 text-white">עריכת שקף</h3>
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-bold mb-1 text-slate-400">כותרת ראשית</label>
-                                        <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingSlide.title} onChange={e => setEditingSlide({...editingSlide, title: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold mb-1 text-slate-400">תת כותרת</label>
-                                        <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingSlide.subtitle} onChange={e => setEditingSlide({...editingSlide, subtitle: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold mb-1 text-slate-400">תמונה (URL)</label>
-                                        <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingSlide.imageUrl} onChange={e => setEditingSlide({...editingSlide, imageUrl: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold mb-1 text-slate-400">קטגוריה מקושרת</label>
-                                        <select className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingSlide.category} onChange={e => setEditingSlide({...editingSlide, category: e.target.value as Category})}>
-                                            {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold mb-1 text-slate-400">טקסט כפתור (אופציונלי)</label>
-                                        <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" placeholder="קבע פגישת ייעוץ" value={editingSlide.buttonText || ''} onChange={e => setEditingSlide({...editingSlide, buttonText: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold mb-1 text-slate-400">קישור כפתור (אופציונלי)</label>
-                                        <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" placeholder="https://..." value={editingSlide.buttonLink || ''} onChange={e => setEditingSlide({...editingSlide, buttonLink: e.target.value})} />
-                                        <p className="text-xs text-slate-500 mt-1">השאר ריק כדי שהכפתור ינווט לקטגוריה הנבחרת</p>
-                                    </div>
-                                </div>
-                                <div className="mt-6 flex justify-end gap-2 border-t border-slate-800 pt-4">
-                                    <Button variant="outline" onClick={() => setEditingSlide(null)} className="border-slate-600 text-slate-400 hover:bg-slate-800">ביטול</Button>
-                                    <Button onClick={handleSaveSlide}>שמור שקף</Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div>
-                                <div className="flex justify-end mb-4">
-                                     <Button onClick={() => setEditingSlide({
-                                         id: Date.now().toString(),
-                                         title: 'כותרת חדשה',
-                                         subtitle: 'תיאור השקף',
-                                         imageUrl: 'https://picsum.photos/1920/1080',
-                                         category: Category.HOME,
-                                         buttonText: 'קבע פגישת ייעוץ'
-                                     })}><Plus size={16} className="ml-2"/> הוסף שקף</Button>
-                                </div>
-                                <div className="grid grid-cols-1 gap-4">
-                                    {state.slides.map(slide => (
-                                        <div key={slide.id} className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex gap-4 items-center hover:border-[#2EB0D9]/30 transition-colors">
-                                            <img src={slide.imageUrl} className="w-32 h-20 object-cover rounded border border-slate-700" alt=""/>
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-lg text-white">{slide.title}</h4>
-                                                <p className="text-sm text-slate-400">{slide.subtitle}</p>
-                                                <span className="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-2 py-1 rounded mt-1 inline-block">{slide.category}</span>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => setEditingSlide(slide)} className="p-2 text-[#2EB0D9] hover:bg-slate-800 rounded"><Edit size={18}/></button>
-                                                <button onClick={() => {
-                                                    if(confirm('למחוק שקף זה?')) updateState({ slides: state.slides.filter(s => s.id !== slide.id) });
-                                                }} className="p-2 text-red-500 hover:bg-red-500/10 rounded"><Trash size={18}/></button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                {/* 2. Google Sheets Database & Email */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                    <div className="p-6 border-b border-slate-800 flex items-center gap-3 bg-green-500/5">
+                         <div className="p-2 bg-green-500/20 rounded-lg text-green-500"><Database size={24}/></div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">Google Sheets & Email Automation</h3>
+                            <p className="text-slate-400 text-sm">שמירת נתונים בגיליון + שליחת אימיילים (ללא צורך בשירות חיצוני!)</p>
+                        </div>
                     </div>
-                )}
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-300 mb-2">Google Apps Script Web App URL</label>
+                            <input 
+                                type="text" 
+                                className="w-full p-3 border border-slate-700 rounded bg-slate-800 text-white font-mono placeholder-slate-600"
+                                placeholder="https://script.google.com/macros/s/..."
+                                value={state.config.integrations.googleSheetsUrl}
+                                onChange={(e) => updateIntegration('googleSheetsUrl', e.target.value)}
+                            />
+                        </div>
+                        
+                        <div className="bg-slate-950 p-4 rounded-lg border border-slate-700">
+                             <button 
+                                onClick={() => setShowScript(!showScript)}
+                                className="flex items-center gap-2 text-[#2EB0D9] font-bold text-sm hover:underline"
+                             >
+                                 <Code size={16}/> {showScript ? 'הסתר סקריפט להתקנה' : 'הצג סקריפט משודרג להתקנה (כולל אימייל)'}
+                             </button>
 
-                {/* Sub Tab: CARDS (Timeline) */}
-                {timelineSubTab === 'cards' && (
-                     // ... Card editor content (Same as before) ...
-                     <div className="space-y-8">
-                        {editingTimelineItem ? (
-                             <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800">
-                                <h3 className="text-xl font-bold mb-6 text-white">עריכת כרטיס מידע</h3>
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-bold mb-1 text-slate-400">כותרת</label>
-                                        <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingTimelineItem.title} onChange={e => setEditingTimelineItem({...editingTimelineItem, title: e.target.value})} />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-bold mb-1 text-slate-400">תיאור</label>
-                                        <textarea rows={2} className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingTimelineItem.description} onChange={e => setEditingTimelineItem({...editingTimelineItem, description: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold mb-1 text-slate-400">תמונה (URL)</label>
-                                        <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingTimelineItem.imageUrl} onChange={e => setEditingTimelineItem({...editingTimelineItem, imageUrl: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold mb-1 text-slate-400">קישור פנימי/חיצוני (אופציונלי)</label>
-                                        <input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-800 text-white" value={editingTimelineItem.linkTo || ''} onChange={e => setEditingTimelineItem({...editingTimelineItem, linkTo: e.target.value})} placeholder="לדוגמא: form-123 או wills-generator" />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-bold mb-2 text-slate-400">מוצג בקטגוריות:</label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {Object.values(Category).map(cat => (
-                                                <button 
-                                                    key={cat}
-                                                    onClick={() => setEditingTimelineItem({
-                                                        ...editingTimelineItem, 
-                                                        category: toggleTimelineCategory(editingTimelineItem, cat)
-                                                    })}
-                                                    className={`px-3 py-1 rounded-full text-sm border transition-colors ${editingTimelineItem.category.includes(cat) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9]' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'}`}
-                                                >
-                                                    {cat} {editingTimelineItem.category.includes(cat) && <Check size={12} className="inline ml-1"/>}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="mt-6 flex justify-end gap-2 border-t border-slate-800 pt-4">
-                                    <Button variant="outline" onClick={() => setEditingTimelineItem(null)} className="border-slate-600 text-slate-400 hover:bg-slate-800">ביטול</Button>
-                                    <Button onClick={handleSaveTimelineItem}>שמור כרטיס</Button>
-                                </div>
-                             </div>
-                        ) : (
-                            <div>
-                                <div className="flex justify-end mb-4">
-                                     <Button onClick={() => setEditingTimelineItem({
-                                         id: Date.now().toString(),
-                                         title: 'חדשה חדשה',
-                                         description: 'תיאור קצר...',
-                                         imageUrl: 'https://picsum.photos/400/300',
-                                         category: [Category.HOME]
-                                     })}><Plus size={16} className="ml-2"/> הוסף כרטיס</Button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {state.timelines.map(item => (
-                                        <div key={item.id} className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-sm hover:border-[#2EB0D9]/30 transition-colors">
-                                            <img src={item.imageUrl} className="w-full h-32 object-cover opacity-80" alt=""/>
-                                            <div className="p-4">
-                                                <h4 className="font-bold mb-1 text-white">{item.title}</h4>
-                                                <p className="text-xs text-slate-400 line-clamp-2 mb-3">{item.description}</p>
-                                                <div className="flex flex-wrap gap-1 mb-3">
-                                                    {item.category.map(c => <span key={c} className="text-[10px] bg-slate-800 border border-slate-700 text-slate-300 px-1.5 py-0.5 rounded">{c}</span>)}
-                                                </div>
-                                                <div className="flex gap-2 border-t border-slate-800 pt-3">
-                                                    <button onClick={() => setEditingTimelineItem(item)} className="flex-1 py-1 text-[#2EB0D9] hover:bg-slate-800 rounded text-sm"><Edit size={16} className="mx-auto"/></button>
-                                                    <button onClick={() => {
-                                                        if(confirm('למחוק כרטיס זה?')) updateState({ timelines: state.timelines.filter(t => t.id !== item.id) });
-                                                    }} className="flex-1 py-1 text-red-500 hover:bg-red-500/10 rounded text-sm"><Trash size={16} className="mx-auto"/></button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                     </div>
-                )}
+                             {showScript && (
+                                 <div className="mt-4 animate-fade-in">
+                                     <p className="text-green-400 text-sm font-bold mb-2">חדש! הסקריפט הזה גם שומר את הנתונים בשיטס וגם שולח לך אימייל התראה.</p>
+                                     <ol className="list-decimal list-inside text-sm text-slate-400 space-y-2 mb-4">
+                                         <li>פתח גיליון גוגל שיטס חדש.</li>
+                                         <li>לך ל-Extensions (תוספים) &gt; Apps Script.</li>
+                                         <li>הדבק את הקוד הבא (ושנה את האימייל בשורה הראשונה לכתובת שלך!):</li>
+                                     </ol>
+                                     <div className="relative">
+                                         <pre className="bg-slate-900 p-4 rounded border border-slate-800 text-xs font-mono text-green-400 overflow-x-auto select-all" dir="ltr">
+                                             {GOOGLE_SCRIPT_TEMPLATE}
+                                         </pre>
+                                         <button 
+                                            onClick={() => { navigator.clipboard.writeText(GOOGLE_SCRIPT_TEMPLATE); alert('הקוד הועתק ללוח!'); }}
+                                            className="absolute top-2 right-2 p-2 bg-slate-800 text-white rounded hover:bg-slate-700 border border-slate-600"
+                                            title="העתק קוד"
+                                         >
+                                             <Copy size={14}/>
+                                         </button>
+                                     </div>
+                                     <ol className="list-decimal list-inside text-sm text-slate-400 space-y-2 mt-4" start={4}>
+                                         <li>לחץ על <strong>Deploy</strong> &gt; <strong>New Deployment</strong>.</li>
+                                         <li>בחר <strong>Web App</strong>.</li>
+                                         <li>בשדה <strong>Who has access</strong> בחר: <strong>Anyone</strong>.</li>
+                                         <li>העתק את ה-URL והדבק למעלה.</li>
+                                     </ol>
+                                 </div>
+                             )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Payment Links */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                    <div className="p-6 border-b border-slate-800 flex items-center gap-3 bg-purple-500/5">
+                        <div className="p-2 bg-purple-500/20 rounded-lg text-purple-500"><CreditCard size={24}/></div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">Stripe Payment Links</h3>
+                            <p className="text-slate-400 text-sm">קישורים לתשלום עבור מוצרים בחנות המשפטית</p>
+                        </div>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-300 mb-2">קישור לתשלום - חבילת צוואה</label>
+                            <input 
+                                type="text" 
+                                className="w-full p-3 border border-slate-700 rounded bg-slate-800 text-white font-mono"
+                                placeholder="https://buy.stripe.com/..."
+                                value={state.config.integrations.stripeWillsLink}
+                                onChange={(e) => updateIntegration('stripeWillsLink', e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-300 mb-2">קישור לתשלום - בדיקת חוזה</label>
+                            <input 
+                                type="text" 
+                                className="w-full p-3 border border-slate-700 rounded bg-slate-800 text-white font-mono"
+                                value={state.config.integrations.stripeRealEstateLink}
+                                onChange={(e) => updateIntegration('stripeRealEstateLink', e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-300 mb-2">קישור לתשלום - פגישת ייעוץ</label>
+                            <input 
+                                type="text" 
+                                className="w-full p-3 border border-slate-700 rounded bg-slate-800 text-white font-mono"
+                                value={state.config.integrations.stripeConsultationLink}
+                                onChange={(e) => updateIntegration('stripeConsultationLink', e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
             </div>
         )}
 
         {/* --- Config Tab --- */}
         {activeTab === 'config' && (
-             // ... Config Tab Content ...
              <div className="space-y-6">
                 <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800 max-w-2xl">
                     <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-white"><Monitor/> הגדרות כלליות לאתר</h3>
                     
                     <div className="space-y-6">
+                        
+                        {/* --- Password Config --- */}
+                        <div className="border-b border-slate-800 pb-6 mb-6">
+                            <h4 className="font-bold text-lg mb-4 text-[#2EB0D9] flex items-center gap-2"><Key size={18}/> גישה למערכת הניהול</h4>
+                            <label className="block text-sm font-bold mb-2 text-slate-400">סיסמת מנהל (לכניסה לממשק זה)</label>
+                            <input 
+                                type="text" 
+                                className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white font-mono"
+                                value={state.config.adminPassword || 'admin'}
+                                onChange={e => updateState({ config: { ...state.config, adminPassword: e.target.value }})}
+                            />
+                            <p className="text-xs text-slate-500 mt-2">סיסמה זו נשמרת מקומית בלבד. וודא שאתה זוכר אותה.</p>
+                        </div>
+
+
                          {/* --- THEME SELECTOR --- */}
                         <div className="border-b border-slate-800 pb-6 mb-6">
                             <label className="block text-sm font-bold mb-3 text-slate-400">ערכת נושא (עיצוב)</label>

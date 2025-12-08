@@ -1,67 +1,5 @@
-import { Article, TeamMember, WillsFormData, FormDefinition, Category } from '../types.ts';
+import { Article, TeamMember, WillsFormData, FormDefinition, Category, IntegrationsConfig } from '../types.ts';
 import { jsPDF } from "jspdf";
-
-// ============================================================================
-// הנחיות לחיבור המערכת (CONFIGURATION)
-// ============================================================================
-// כאן עליך להדביק את המפתחות שתקבל מהשירותים החיצוניים.
-// 1. Database: הירשם ל-Supabase.com
-// 2. Email: הירשם ל-EmailJS.com
-// 3. Store: הירשם ל-Stripe.com וצור "Payment Links" למוצרים שלך
-// ============================================================================
-
-const CONFIG = {
-    // שנה ל-false רק אחרי שתדביק את כל המפתחות למטה
-    useMockData: true, 
-
-    // --- הגדרות אימייל (EmailJS) ---
-    email: {
-        serviceId: "YOUR_SERVICE_ID_HERE",   // לדוגמא: service_z3x2...
-        templateId: "YOUR_TEMPLATE_ID_HERE", // לדוגמא: template_a1b2...
-        publicKey: "YOUR_PUBLIC_KEY_HERE"    // לדוגמא: user_XyZ...
-    },
-
-    // --- הגדרות חנות (Stripe Payment Links) ---
-    // כאן מדביקים את הלינקים שסטרייפ נותן לך לכל מוצר
-    store: {
-        products: {
-            // הירשם לסטרייפ -> צור מוצר -> לחץ Create Payment Link -> הדבק כאן
-            willsPackage: "https://buy.stripe.com/test_1", 
-            contractReview: "https://buy.stripe.com/test_2",
-            consultation: "https://buy.stripe.com/test_3"
-        }
-    },
-
-    // --- הגדרות מסד נתונים (Supabase) ---
-    database: {
-        url: "YOUR_SUPABASE_URL", // לדוגמא: https://xyz.supabase.co
-        key: "YOUR_SUPABASE_ANON_KEY"
-    }
-};
-
-// ============================================================================
-// SERVICES IMPLEMENTATION
-// ============================================================================
-
-// --- Mock Data Service (Database Placeholder) ---
-export const dbService = {
-    async getArticles(): Promise<Article[]> {
-        if (CONFIG.useMockData) {
-            return Promise.resolve([]); // App.tsx handles initial mock state
-        }
-        return [];
-    },
-
-    async saveArticle(article: Article): Promise<boolean> {
-        console.log("Saving to Database:", article);
-        return true;
-    },
-
-    async uploadImage(file: File): Promise<string> {
-        console.log("Uploading image...");
-        return URL.createObjectURL(file); // Mock URL
-    }
-};
 
 // --- Email & Forms Service ---
 export const emailService = {
@@ -73,10 +11,6 @@ export const emailService = {
                 unit: "mm",
                 format: "a4"
             });
-
-            // הערה: תמיכה בעברית ב-PDF דורשת טעינת פונט.
-            // כאן אנו משתמשים בפונט ברירת מחדל, ולכן נשתמש באנגלית בדוגמה זו או בטקסט פשוט.
-            // כדי להוסיף עברית מלאה יש להוסיף קובץ .ttf בפורמט base64 (addFileToVFS).
 
             doc.setFontSize(22);
             doc.text("Last Will and Testament", 105, 20, { align: "center" });
@@ -105,42 +39,51 @@ export const emailService = {
         }
     },
 
-    async sendWillsForm(data: WillsFormData): Promise<boolean> {
+    async sendWillsForm(data: WillsFormData, config?: IntegrationsConfig): Promise<boolean> {
         console.log("Processing Will Form...");
         
-        // 1. הורדה מיידית ללקוח
+        // 1. הורדה מיידית ללקוח (PDF)
         this.generateAndDownloadWill(data);
 
-        // 2. שליחת מייל (דרך EmailJS) עם הטקסט בלבד (ללא הקובץ)
-        if (CONFIG.useMockData) {
-            console.log("MOCK Email Sent:", data);
-            await new Promise(resolve => setTimeout(resolve, 1500)); 
-            return true;
+        // 2. שמירה ל-Google Sheets (אם הוגדר)
+        if (config?.googleSheetsUrl) {
+            try {
+                // הערה: כדי שזה יעבוד, יש ליצור Google Apps Script שמאזין ל-doPost ושומר לגיליון
+                console.log("Sending to Google Sheets:", config.googleSheetsUrl);
+                await fetch(config.googleSheetsUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', // נדרש ברוב המקרים מול Google Apps Script
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                console.log("Sent to Google Sheets");
+            } catch (e) {
+                console.error("Google Sheets Error:", e);
+            }
         }
 
-        // כאן ניתן להוסיף את קוד EmailJS כדי לשלוח התראה לעורך הדין
-        // const templateParams = {
-        //    to_name: "Admin",
-        //    from_name: data.fullName,
-        //    message: `New Will generated for ${data.fullName}. Spouse: ${data.spouseName}. Contact: ${data.contactPhone}`,
-        // };
-        // await emailjs.send(CONFIG.email.serviceId, CONFIG.email.templateId, templateParams);
+        // 3. שליחת אימייל דרך EmailJS (אם הוגדר)
+        if (config?.emailJsServiceId && config?.emailJsPublicKey) {
+             console.log("Sending via EmailJS:", config.emailJsServiceId);
+             // כאן יבוא הקוד של emailjs.send(...)
+             // לצורך הדמו אנו רק מדפיסים
+        } else {
+            console.log("EmailJS keys missing - Skipping email send (Mock mode)");
+            await new Promise(resolve => setTimeout(resolve, 1500)); 
+        }
         
         return true;
     },
-
-    async sendContactForm(name: string, email: string, message: string): Promise<boolean> {
-        console.log(`Sending Contact Form: ${email}`);
-        return true;
-    }
 };
 
 // --- Store & Payments Service ---
 export const storeService = {
-    getCheckoutLink(productId: string): string {
-        if (productId === 'prod_1') return CONFIG.store.products.willsPackage;
-        if (productId === 'prod_2') return CONFIG.store.products.contractReview;
-        if (productId === 'prod_3') return CONFIG.store.products.consultation;
+    getCheckoutLink(productId: string, config?: IntegrationsConfig): string {
+        if (!config) return "#";
+        
+        if (productId === 'prod_1') return config.stripeWillsLink || "#";
+        if (productId === 'prod_2') return config.stripeRealEstateLink || "#";
+        if (productId === 'prod_3') return config.stripeConsultationLink || "#";
         return "#";
     },
 
