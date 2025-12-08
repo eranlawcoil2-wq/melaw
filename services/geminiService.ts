@@ -58,7 +58,7 @@ export const generateArticleContent = async (topic: string, category: Category |
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview", // Upgraded model for better reasoning and writing
+      model: "gemini-2.5-flash", // Changed to 2.5-flash for better stability and JSON performance
       contents: prompt,
       config: {
         responseMimeType: "application/json",

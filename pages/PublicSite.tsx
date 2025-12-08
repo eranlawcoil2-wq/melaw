@@ -39,7 +39,6 @@ const SectionTitle: React.FC<{ title: string; isDark: boolean }> = ({ title, isD
         <h3 className={`text-3xl md:text-4xl font-black inline-block tracking-tight leading-relaxed ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {title}
         </h3>
-        {/* Underline Removed as requested to prevent overlap */}
     </div>
 );
 
@@ -134,6 +133,16 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         console.log("Clicked timeline item", item.title);
     }
   };
+  
+  // NEW: Handle Product Click (Store)
+  const handleProductClick = (product: any) => {
+      if (product.category === Category.WILLS) {
+          setShowWillsModal(true);
+      } else {
+          // Placeholder for other products
+          alert(`כדי לערוך את "${product.title}" אנא צור קשר או המתן להוספת הטופס המתאים.`);
+      }
+  };
 
   const scrollContainer = (ref: React.RefObject<HTMLDivElement>, direction: 'left' | 'right') => {
       if (ref.current) {
@@ -166,7 +175,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           // Pass config to api to allow sending
           await emailService.sendWillsForm(willsData, state.config.integrations);
           onWillsFormSubmit(willsData);
-          alert("הטופס נקלט בהצלחה! קובץ הצוואה יורד כעת למחשב שלך."); 
+          alert("הטופס נקלט בהצלחה! קובץ הצוואה יורד כעת למחשב שלך. לאחר הבדיקה, ניצור קשר להסדרת התשלום."); 
           setShowWillsModal(false);
           setFormStep(0);
       } catch (error) {
@@ -182,85 +191,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const relatedArticles = selectedArticle 
     ? state.articles.filter(a => a.categories.some(c => selectedArticle.categories.includes(c)) && a.id !== selectedArticle.id).slice(0, 3)
     : [];
+    
+  // Get Store Products
+  const storeProducts = storeService.getProducts();
 
-  // --- STORE VIEW RENDERER ---
-  if (state.currentCategory === Category.STORE) {
-      const products = storeService.getProducts();
-      return (
-          <div className={`min-h-screen pt-24 pb-12 px-4 ${theme.bgMain} ${theme.textMain}`}>
-              {/* Reuse Header logic for consistency */}
-              <header className={`fixed top-0 left-0 right-0 backdrop-blur-md shadow-lg z-40 h-20 transition-all border-b ${theme.headerBg}`}>
-                <div className="container mx-auto px-4 h-full flex items-center justify-between">
-                  <h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer leading-none" onClick={() => onCategoryChange(Category.HOME)}
-                      style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}
-                  >
-                       <span className="block text-[#2EB0D9]">MOR ERAN KAGAN</span>
-                       <span className={`${theme.textMuted} text-sm tracking-widest font-sans font-normal`}>& CO</span>
-                  </h1>
-                  <nav className="hidden md:flex items-center gap-6">
-                    {state.menuItems.map(item => (
-                      <button key={item.id} onClick={() => onCategoryChange(item.cat)} className={`text-sm font-medium transition-colors hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : theme.textMuted}`}>
-                        {item.label}
-                      </button>
-                    ))}
-                  </nav>
-                  <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}</button>
-                </div>
-                {mobileMenuOpen && (
-                   <div className={`md:hidden absolute top-20 left-0 w-full shadow-xl border-t p-4 flex flex-col gap-4 animate-fade-in-up ${theme.modalBg}`}>
-                      {state.menuItems.map(item => (
-                        <button key={item.id} onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }} className={`text-right p-2 rounded-lg font-medium hover:bg-black/5 ${theme.textMain}`}>{item.label}</button>
-                      ))}
-                   </div>
-                )}
-              </header>
-
-              <div className="container mx-auto max-w-6xl animate-fade-in-up">
-                  <div className="text-center mb-16">
-                      <div className="inline-block p-4 bg-[#2EB0D9]/10 rounded-full mb-4 border border-[#2EB0D9]/30">
-                          <ShoppingBag size={48} className="text-[#2EB0D9]" />
-                      </div>
-                      <h2 className={`text-4xl font-black mb-4 ${theme.textTitle}`}>החנות המשפטית</h2>
-                      <p className={`text-xl max-w-2xl mx-auto ${theme.textMuted}`}>רכשו שירותים משפטיים ומוצרים דיגיטליים בצורה מאובטחת, מהירה ונגישה.</p>
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-8">
-                      {products.map(product => (
-                          <div key={product.id} className={`${theme.cardBg} border rounded-2xl overflow-hidden transition-all hover:-translate-y-2 group ${theme.cardHover}`}>
-                              <div className={`h-48 flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                                  <div className="absolute inset-0 bg-[#2EB0D9]/5 group-hover:bg-[#2EB0D9]/10 transition-colors"></div>
-                                  <FileText size={64} className="text-slate-500 group-hover:text-[#2EB0D9] transition-colors duration-500 transform group-hover:scale-110"/>
-                              </div>
-                              <div className="p-8">
-                                  <div className="mb-4">
-                                      <span className="text-xs font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-1 rounded border border-[#2EB0D9]/20">
-                                          {CATEGORY_LABELS[product.category]}
-                                      </span>
-                                  </div>
-                                  <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>{product.title}</h3>
-                                  <p className={`${theme.textMuted} mb-6 text-sm`}>המוצר כולל ליווי ראשוני, הכנת מסמכים והגשה לגורמים הרלוונטיים.</p>
-                                  <div className="flex items-center justify-between mt-auto">
-                                      <span className={`text-3xl font-black ${theme.textTitle}`}>₪{product.price}</span>
-                                      <Button onClick={() => {
-                                          const link = storeService.getCheckoutLink(product.id);
-                                          if (link && link !== "#" && !link.includes("buy.stripe.com/test")) {
-                                              window.open(link, '_blank');
-                                          } else {
-                                              alert(`כאן יפתח חלון תשלום של Stripe עבור: ${product.title}\n(כרגע במצב דמו)`);
-                                          }
-                                      }} className="px-6 shine-effect">רכוש כעת</Button>
-                                  </div>
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-              </div>
-              <FloatingWidgets />
-          </div>
-      );
-  }
-
-  // --- REGULAR SITE RENDER ---
+  // --- REGULAR SITE RENDER (INCLUDES STORE NOW) ---
   return (
     <div className={`min-h-screen flex flex-col font-sans relative overflow-x-hidden selection:bg-[#2EB0D9] selection:text-white ${theme.bgMain} ${theme.textMain}`}>
       
@@ -314,7 +249,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                         </div>
                     </div>
                     
-                    {/* Tabs Container - Scrollbar HIDDEN via Class and Inline Styles */}
+                    {/* Tabs Container */}
                     <div className={`px-4 pt-4 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                         <div 
                             className={`flex gap-2 border-b overflow-x-auto scrollbar-hide ${isDark ? 'border-slate-800' : 'border-slate-200'}`}
@@ -326,7 +261,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                         </div>
                     </div>
 
-                    {/* Content Area - Scrollbar HIDDEN via Class and Inline Styles */}
+                    {/* Content Area */}
                     <div 
                         ref={articleContentTopRef} 
                         className="flex-1 overflow-y-auto scrollbar-hide"
@@ -600,7 +535,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         {/* HERO SECTION - KEN BURNS EFFECT ADDED */}
         <section className="relative h-[55vh] md:h-[65vh] overflow-hidden bg-black group">
           
-          {/* Floating Logo (Left Side, Centered) - MOVED HIGHER AND LEFT AS REQUESTED */}
+          {/* Floating Logo (Left Side, Centered) */}
           <div className="absolute left-8 top-[15%] z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity animate-float">
               <img 
                 src={state.config.logoUrl} 
@@ -638,7 +573,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             </p>
                             
                             {/* CTA Button - Hidden on HOME, Show on others with dynamic props */}
-                            {state.currentCategory !== Category.HOME && (
+                            {state.currentCategory !== Category.HOME && state.currentCategory !== Category.STORE && (
                                 <div className="pt-8">
                                     <Button 
                                         onClick={() => {
@@ -680,9 +615,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             <Reveal className="relative z-20 -mt-32 container mx-auto px-4">
                  <div className={`shadow-2xl rounded-2xl p-8 border ${theme.cardBg}`}>
                      <div className="flex justify-between items-center mb-8">
-                        {/* New Styled Title */}
                         <SectionTitle title="הנבחרת שלנו" isDark={isDark} />
-                        
                         <div className="hidden md:flex gap-2">
                             <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
                             <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
@@ -697,11 +630,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              <div 
                                 key={member.id} 
                                 onClick={() => setSelectedTeamMember(member)}
-                                // Reduced width to 90px for mobile
                                 className={`flex-shrink-0 w-[90px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}
                              >
                                  <div className="h-60 md:h-72 w-full overflow-hidden relative">
-                                     {/* Added animation class here + Grayscale Logic */}
                                      <img 
                                         src={member.imageUrl} 
                                         alt={member.fullName} 
@@ -717,10 +648,56 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                  </div>
                              </div>
                          ))}
-                         {/* Hidden element for right spacing on mobile */}
-                         {teamMembers.length > 2 && (
-                             <div className="flex-shrink-0 w-[20px]"></div>
-                         )}
+                     </div>
+                 </div>
+            </Reveal>
+        )}
+
+        {/* PRODUCTS SECTION (STORE ONLY) - OVERLAPPING SLIDER */}
+        {state.currentCategory === Category.STORE && (
+            <Reveal className="relative z-20 -mt-32 container mx-auto px-4">
+                 <div className={`shadow-2xl rounded-2xl p-8 border ${theme.cardBg}`}>
+                     <div className="flex justify-between items-center mb-8">
+                        <SectionTitle title="החבילות שלנו" isDark={isDark} />
+                        <div className="hidden md:flex gap-2">
+                            <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
+                            <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
+                        </div>
+                     </div>
+                     
+                     <div 
+                        ref={teamScrollRef}
+                        className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full"
+                     >
+                         {storeProducts.map(product => (
+                             <div 
+                                key={product.id} 
+                                className={`flex-shrink-0 w-full md:w-[calc(33%-16px)] snap-center lg:snap-start group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col`}
+                             >
+                                 <div className={`h-48 md:h-56 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                                     <div className="absolute inset-0 bg-[#2EB0D9]/5 group-hover:bg-[#2EB0D9]/10 transition-colors"></div>
+                                     <FileText size={64} className="text-slate-500 group-hover:text-[#2EB0D9] transition-colors duration-500 transform group-hover:scale-110"/>
+                                 </div>
+                                 <div className="p-6 md:p-8 text-center flex-1 flex flex-col">
+                                     <div className="mb-2">
+                                         <span className="text-xs font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-1 rounded border border-[#2EB0D9]/20">
+                                            {CATEGORY_LABELS[product.category]}
+                                         </span>
+                                     </div>
+                                     <h4 className={`font-bold text-2xl mb-2 ${theme.textTitle}`}>{product.title}</h4>
+                                     <div className={`text-3xl font-black mb-6 ${theme.textMuted} flex-1 flex items-center justify-center`}>₪{product.price}</div>
+                                     
+                                     {/* Edit Now Button */}
+                                     <Button 
+                                        onClick={() => handleProductClick(product)} 
+                                        className="w-full shine-effect"
+                                        variant="secondary"
+                                     >
+                                        ערוך כעת
+                                     </Button>
+                                 </div>
+                             </div>
+                         ))}
                      </div>
                  </div>
             </Reveal>
