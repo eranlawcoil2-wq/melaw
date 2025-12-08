@@ -278,7 +278,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       setShowImagePicker(false);
   };
   const openImagePicker = (type: any, initialQuery: string) => { setImagePickerContext({ type, initialQuery }); setShowImagePicker(true); };
-  const handleSaveForm = () => { if(editingForm) { const exists = state.forms.find(f => f.id === editingForm.id); updateState({ forms: exists ? state.forms.map(f => f.id === editingForm.id ? editingForm : f) : [...state.forms, editingForm] }); setEditingForm(null); }};
+  
+  // --- IMPROVED FORM SAVE HANDLER ---
+  const handleSaveForm = () => { 
+      if(editingForm) { 
+          // Validate required fields
+          if (!editingForm.title) {
+              alert("נא להזין כותרת לטופס");
+              return;
+          }
+
+          const exists = state.forms.find(f => f.id === editingForm.id); 
+          const newForms = exists 
+            ? state.forms.map(f => f.id === editingForm.id ? editingForm : f) 
+            : [...state.forms, editingForm];
+            
+          updateState({ forms: newForms }); 
+          setEditingForm(null); 
+          alert("הטופס נשמר בהצלחה!");
+      }
+  };
+
   const addFieldToForm = (type: FieldType) => { if(editingForm) setEditingForm({ ...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type, label: 'שדה חדש', required: false, options: type === 'select' ? ['אפשרות 1'] : undefined }] }); };
   const updateFormField = (index: number, updates: Partial<FormField>) => { if(editingForm) { const f = [...editingForm.fields]; f[index] = { ...f[index], ...updates }; setEditingForm({ ...editingForm, fields: f }); }};
   const removeFormField = (index: number) => { if(editingForm) setEditingForm({ ...editingForm, fields: editingForm.fields.filter((_, i) => i !== index) }); };
@@ -463,7 +483,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 {/* Articles List */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredArticles.map(article => (
-                        <div key={article.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-[#2EB0D9] transition-all group">
+                        <div key={article.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-[#2EB0D9] transition-all group relative">
                             <div className="h-40 overflow-hidden relative">
                                 <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                                 <div className="absolute top-2 right-2 flex gap-1">
@@ -474,6 +494,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             </div>
                             <div className="p-4">
                                 <h4 className="font-bold text-lg mb-2 line-clamp-1">{article.title}</h4>
+                                
+                                {/* Copy ID Button Added */}
+                                <div className="text-xs text-slate-500 mb-2 flex items-center gap-2 bg-slate-950 p-1 rounded w-fit">
+                                    <span>ID: {article.id.substring(0,8)}...</span>
+                                    <button 
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(article.id);
+                                            alert("מזהה המאמר הועתק!");
+                                        }} 
+                                        title="העתק מזהה מלא"
+                                        className="text-[#2EB0D9] hover:text-white"
+                                    >
+                                        <Copy size={12}/>
+                                    </button>
+                                </div>
+
                                 <p className="text-slate-400 text-sm mb-4 line-clamp-2">{article.abstract}</p>
                                 <div className="flex justify-end gap-2">
                                     <button onClick={() => setEditingArticle(article)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg transition-colors text-white"><Edit size={16} /></button>
@@ -600,6 +636,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     <ImageUploadButton onImageSelected={(url) => setEditingTimelineItem({...editingTimelineItem, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} />
                 </div><div className="flex gap-2"><Button onClick={handleSaveTimelineItem}>שמור</Button><Button variant="outline" onClick={()=>setEditingTimelineItem(null)}>ביטול</Button></div></div></div>}
             </div>
+        )}
+
+        {activeTab === 'forms' && (
+             <div className="space-y-6">
+                 <div className="flex justify-end"><Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', category: Category.POA, fields: [], submitEmail: '' })}><Plus size={16}/> טופס חדש</Button></div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     {state.forms.map(f => (<div key={f.id} className="bg-slate-900 p-4 rounded border border-slate-800 relative">
+                         <h4 className="font-bold text-white">{f.title}</h4>
+                         {/* Copy ID Button for Forms */}
+                         <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                             <span>ID: form-{f.id}</span>
+                             <button 
+                                onClick={() => {
+                                    navigator.clipboard.writeText(`form-${f.id}`);
+                                    alert("מזהה הטופס הועתק! הדבק אותו בשדה הקישור בטיים-ליין.");
+                                }}
+                                title="העתק מזהה לקישור בטיים-ליין"
+                                className="text-[#2EB0D9] hover:text-white"
+                             >
+                                 <Copy size={12}/>
+                             </button>
+                         </div>
+                         <button onClick={() => setEditingForm(f)} className="absolute top-4 left-10 p-2"><Edit size={16}/></button>
+                         <button onClick={() => updateState({ forms: state.forms.filter(x => x.id !== f.id) })} className="absolute top-4 left-2 p-2 text-red-400"><Trash size={16}/></button>
+                     </div>))}
+                 </div>
+                 {editingForm && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl h-[80vh] flex flex-col"><h3 className="font-bold text-white mb-4">עריכת טופס</h3><div className="flex-1 overflow-y-auto space-y-4"><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingForm.title} onChange={e=>setEditingForm({...editingForm, title: e.target.value})}/><div className="flex gap-2"><button onClick={()=>addFieldToForm('text')} className="p-2 bg-slate-800 border rounded text-xs">טקסט</button><button onClick={()=>addFieldToForm('select')} className="p-2 bg-slate-800 border rounded text-xs">בחירה</button></div>{editingForm.fields.map((field,i)=>(<div key={i} className="flex gap-2 items-center"><input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="bg-slate-800 text-white p-1 rounded flex-1"/><button onClick={()=>removeFormField(i)} className="text-red-400"><Trash size={14}/></button></div>))}</div><div className="flex gap-2 mt-4"><Button onClick={handleSaveForm}>שמור</Button><Button variant="outline" onClick={()=>setEditingForm(null)}>ביטול</Button></div></div></div>}
+             </div>
         )}
 
         {activeTab === 'team' && (
