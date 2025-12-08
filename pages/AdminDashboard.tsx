@@ -60,11 +60,17 @@ function doPost(e) {
 
     // 2. שליחת אימייל התראה (לבעל האתר)
     if (NOTIFICATION_EMAIL && NOTIFICATION_EMAIL !== "your-email@example.com") {
-        var subject = "התקבל טופס חדש באתר MeLaw";
-        var body = "התקבלו נתונים חדשים:\n\n";
+        var subject = "MeLaw - התקבל טופס חדש";
+        
+        // בניית גוף ההודעה בצורה בטוחה
+        var body = "";
+        body += "התקבלו נתונים חדשים:";
+        body += "\\n\\n"; // ירידת שורה
+        
         for (var key in data) {
-            body += key + ": " + data[key] + "\n";
+            body += key + ": " + data[key] + "\\n";
         }
+        
         MailApp.sendEmail({
             to: NOTIFICATION_EMAIL,
             subject: subject,
