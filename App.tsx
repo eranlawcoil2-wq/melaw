@@ -171,7 +171,8 @@ const defaultState: AppState = {
     teamMembers: initialTeamMembers,
 };
 
-const STORAGE_KEY = 'melaw_site_data_v1';
+// UPDATED KEY TO FORCE REFRESH FOR ALL USERS
+const STORAGE_KEY = 'melaw_site_data_v2';
 
 const App: React.FC = () => {
   // Initialize State from LocalStorage if available, otherwise use Default

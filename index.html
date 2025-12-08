@@ -3,6 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Aggressive Cache Busting Meta Tags -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
     <title>MeLaw - משרד עורכי דין</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -182,7 +188,7 @@
 </head>
   <body class="bg-slate-950 text-slate-100 overflow-x-hidden">
     <div id="root"></div>
-    <!-- Added ?v=2.0 to force cache clearing on user devices -->
-    <script type="module" src="./index.tsx?v=2.0"></script>
+    <!-- Updated version to v=3.0 to force refresh -->
+    <script type="module" src="./index.tsx?v=3.0"></script>
   </body>
 </html>
