@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { PublicSite } from './pages/PublicSite.tsx';
 import { AdminDashboard } from './pages/AdminDashboard.tsx';
 import { AppState, Category, WillsFormData, FormDefinition, TeamMember, Article, SliderSlide, TimelineItem, MenuItem } from './types.ts';
+import { cloudService } from './services/api.ts';
+import { Loader2 } from 'lucide-react';
 
 // --- INITIAL DEFAULT DATA (Fallback) ---
 const initialArticles: Article[] = [
@@ -175,6 +177,8 @@ const defaultState: AppState = {
 const STORAGE_KEY = 'melaw_site_data_v2';
 
 const App: React.FC = () => {
+  const [loadingCloud, setLoadingCloud] = useState(false);
+
   // Initialize State from LocalStorage if available, otherwise use Default
   const [appState, setAppState] = useState<AppState>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -183,7 +187,6 @@ const App: React.FC = () => {
         const parsed = JSON.parse(saved);
         
         // --- DATA MIGRATION LOGIC (For Existing Users) ---
-        // If loaded articles use the old 'category' string instead of 'categories' array, convert them.
         if (parsed.articles && parsed.articles.length > 0) {
             parsed.articles = parsed.articles.map((art: any) => {
                 if (!art.categories && art.category) {
@@ -193,12 +196,10 @@ const App: React.FC = () => {
             });
         }
 
-        // Merge with default to ensure structural integrity if schema changes
         return {
            ...defaultState,
            ...parsed,
            config: { ...defaultState.config, ...parsed.config, integrations: { ...defaultState.config.integrations, ...parsed.config?.integrations } },
-           // Ensure isAdminLoggedIn is false on reload for security
            isAdminLoggedIn: false, 
            currentCategory: Category.HOME
         };
@@ -219,6 +220,31 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
   }, [appState]);
 
+  // --- CLOUD SYNC ON STARTUP ---
+  useEffect(() => {
+      const fetchCloudData = async () => {
+          const url = appState.config.integrations.googleSheetsUrl;
+          // Only fetch if URL is configured and valid
+          if (url && url.includes('script.google.com')) {
+              setLoadingCloud(true);
+              const cloudData = await cloudService.loadStateFromCloud(url);
+              if (cloudData) {
+                  console.log("Cloud data synced successfully");
+                  setAppState(prev => ({
+                      ...prev,
+                      ...cloudData,
+                      // Preserve local login state and session info
+                      isAdminLoggedIn: prev.isAdminLoggedIn,
+                      currentCategory: prev.currentCategory
+                  }));
+              }
+              setLoadingCloud(false);
+          }
+      };
+
+      fetchCloudData();
+  }, []); // Run once on mount
+
   // --- Dynamic Font Injection (Client Side) ---
   useEffect(() => {
       const fontData = appState.config.customFontData;
@@ -226,8 +252,6 @@ const App: React.FC = () => {
       let styleTag = document.getElementById(styleId);
 
       if (fontData) {
-          // If the user uploaded a custom font, we inject a style tag that redefines 'MyLogoFont'.
-          // This overrides the fallback in index.html.
           if (!styleTag) {
               styleTag = document.createElement('style');
               styleTag.id = styleId;
@@ -243,7 +267,6 @@ const App: React.FC = () => {
             }
           `;
       } else if (styleTag) {
-          // If custom data is cleared, remove the override so it falls back to index.html (or defaults)
           styleTag.remove();
       }
   }, [appState.config.customFontData]);
@@ -253,17 +276,7 @@ const App: React.FC = () => {
   };
 
   const handleWillsSubmit = (data: WillsFormData) => {
-    // In a real app, this would send an API request.
     console.log("Sending Wills Data to:", appState.config.willsEmail, data);
-    // Simulate generation of XML/Sheet
-    const xmlData = `
-      <Will>
-        <Testator>${data.fullName}</Testator>
-        <Spouse>${data.spouseName}</Spouse>
-        <Children>${data.childrenNames.join(',')}</Children>
-      </Will>
-    `;
-    console.log("Generated XML:", xmlData);
   };
 
   // --- Admin Login Modal ---
@@ -308,7 +321,14 @@ const App: React.FC = () => {
   // --- Main Render ---
   return (
     <div className="relative">
-      {/* Secret Admin Trigger (Top Left Corner) - Kept as backup */}
+      {/* Cloud Loading Indicator */}
+      {loadingCloud && (
+          <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-[#2EB0D9]/20 overflow-hidden">
+              <div className="h-full bg-[#2EB0D9] animate-shine"></div>
+          </div>
+      )}
+
+      {/* Secret Admin Trigger (Top Left Corner) */}
       {!isAdminView && !appState.isAdminLoggedIn && (
          <div 
            className="fixed top-0 left-0 w-4 h-4 z-[100] cursor-help opacity-0 hover:opacity-100 bg-red-500/20"

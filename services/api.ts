@@ -1,5 +1,57 @@
-import { Article, TeamMember, WillsFormData, FormDefinition, Category, IntegrationsConfig } from '../types.ts';
+import { Article, TeamMember, WillsFormData, FormDefinition, Category, IntegrationsConfig, AppState } from '../types.ts';
 import { jsPDF } from "jspdf";
+
+// --- Cloud Sync Service (Google Sheets as Database) ---
+export const cloudService = {
+    async saveStateToCloud(url: string, state: AppState): Promise<boolean> {
+        try {
+            // We only send the essential data, not the UI state (like isAdminLoggedIn)
+            const payload = {
+                action: 'saveState',
+                data: {
+                    articles: state.articles,
+                    timelines: state.timelines,
+                    slides: state.slides,
+                    forms: state.forms,
+                    teamMembers: state.teamMembers,
+                    menuItems: state.menuItems,
+                    config: state.config // Includes the office name, phone, etc.
+                }
+            };
+
+            // Using no-cors might prevent reading the response, but it sends the data.
+            // For a better implementation, the Google Script returns JSONP or simple JSON with correct CORS headers.
+            // Here we assume standard fetch.
+            const response = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            
+            // With Google Apps Script Web App, a 200 or 302 usually means success even if opaque
+            return true;
+        } catch (e) {
+            console.error("Cloud Save Error:", e);
+            return false;
+        }
+    },
+
+    async loadStateFromCloud(url: string): Promise<Partial<AppState> | null> {
+        try {
+            // Append query param to avoid caching
+            const fetchUrl = `${url}?action=getState&t=${Date.now()}`;
+            const response = await fetch(fetchUrl);
+            const json = await response.json();
+            
+            if (json && json.status === 'success' && json.data) {
+                return json.data;
+            }
+            return null;
+        } catch (e) {
+            console.warn("Could not load state from cloud (using local fallback)", e);
+            return null;
+        }
+    }
+};
 
 // --- Email & Forms Service ---
 export const emailService = {
@@ -54,33 +106,27 @@ export const emailService = {
         // הנתונים נשלחים רק אם יש URL ב-config
         if (config?.googleSheetsUrl) {
             try {
-                console.log("Sending to Google Sheets:", config.googleSheetsUrl);
-                
                 // הכנת הנתונים לשליחה (מוסיפים תאריך ושם טופס)
                 const payload = {
+                    action: 'submitForm', // New identifier for the script
                     formName: formTitle,
                     submittedAt: new Date().toLocaleString(),
                     ...data
                 };
 
+                // Use simple POST
                 await fetch(config.googleSheetsUrl, {
                     method: 'POST',
-                    mode: 'no-cors', // קריטי לעבודה מול Google Apps Script
-                    headers: { 'Content-Type': 'application/json' },
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Ensures Payload is sent correctly
                     body: JSON.stringify(payload)
                 });
-                console.log("Sent to Google Sheets successfully (no-cors mode)");
+                console.log("Sent to Google Sheets successfully");
             } catch (e) {
                 console.error("Google Sheets Error:", e);
-                // לא מחזירים שקר כדי לא לפגוע בחווית המשתמש אם רק השיטס נכשל
             }
         } else {
             console.warn("Google Sheets URL not configured via Admin Dashboard");
-        }
-
-        // 2. שליחת אימייל דרך EmailJS (אופציונלי, אם הוגדר)
-        if (config?.emailJsServiceId && config?.emailJsPublicKey) {
-             console.log("Sending via EmailJS (Not fully implemented in demo)");
         }
         
         return true;

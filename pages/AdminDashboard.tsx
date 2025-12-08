@@ -4,8 +4,8 @@ import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
 import { ImagePickerModal } from '../components/ImagePickerModal.tsx'; 
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
-import { emailService } from '../services/api.ts'; 
-import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code, ArrowRight, RefreshCw, Search, Type, Menu, Download, Upload, AlertTriangle } from 'lucide-react';
+import { emailService, cloudService } from '../services/api.ts'; 
+import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code, ArrowRight, RefreshCw, Search, Type, Menu, Download, Upload, AlertTriangle, CloudUpload } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -13,31 +13,68 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-// ... (Script template remains same) ...
+// --- UPDATED GOOGLE SCRIPT TEMPLATE FOR FULL CLOUD SYNC ---
 const GOOGLE_SCRIPT_TEMPLATE = `
 // העתק את כל הקוד הזה והדבק אותו ב-Google Apps Script
 // (Extensions > Apps Script)
 
-// הגדרות אימייל
-const NOTIFICATION_EMAIL = "your-email@example.com"; // <-- שנה לאימייל שלך כדי לקבל התראות!
+const NOTIFICATION_EMAIL = "your-email@example.com"; 
+
+function doGet(e) {
+  var action = e.parameter.action;
+  
+  // אם הבקשה היא לקבלת סטייט (טעינת האתר)
+  if (action == 'getState') {
+    var sheet = getOrCreateSheet("SiteData");
+    var lastRow = sheet.getLastRow();
+    
+    if (lastRow > 0) {
+      // אנחנו שומרים את ה-JSON בתא האחרון בעמודה A
+      var data = sheet.getRange(lastRow, 1).getValue();
+      return ContentService.createTextOutput(data).setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({status: 'empty'})).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  return ContentService.createTextOutput("MeLaw Server Active");
+}
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
   lock.tryLock(10000);
 
   try {
-    var doc = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = doc.getSheets()[0];
-
     var rawData = e.postData.contents;
     var data = JSON.parse(rawData);
+    var action = data.action;
 
-    // 1. שמירה בגיליון
+    // --- CASE 1: SAVE SITE STATE (CLOUD SYNC) ---
+    if (action == 'saveState') {
+       var sheet = getOrCreateSheet("SiteData");
+       // Clear old data to save space? Or keep history? Let's keep history for backup.
+       // We assume the data payload is a JSON object in 'data.data'
+       var jsonString = JSON.stringify({
+          status: 'success',
+          timestamp: new Date(),
+          data: data.data
+       });
+       
+       // Append to the end of the sheet
+       sheet.appendRow([jsonString]);
+       
+       return ContentService.createTextOutput(JSON.stringify({ "result": "success", "type": "state_saved" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // --- CASE 2: FORM SUBMISSION (CONTACT/WILLS) ---
+    // Fallback if no action specified or action is submitForm
+    var sheet = getOrCreateSheet("Forms");
+    
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn() || 1).getValues()[0];
     if (sheet.getLastColumn() === 0 || (headers.length === 1 && headers[0] === "")) {
-      headers = ["Timestamp"];
+      headers = ["Timestamp", "FormName"];
       for (var key in data) {
-        if (key !== "Timestamp") headers.push(key);
+        if (key !== "Timestamp" && key !== "FormName" && key !== "action") headers.push(key);
       }
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     }
@@ -47,56 +84,47 @@ function doPost(e) {
 
     for (var i = 0; i < headers.length; i++) {
       var header = headers[i];
-      if (header === "Timestamp") {
-        newRow.push(timestamp);
-      } else {
+      if (header === "Timestamp") newRow.push(timestamp);
+      else if (header === "FormName") newRow.push(data.formName || "Unknown");
+      else {
         var val = data[header];
-        if (typeof val === 'object' && val !== null) {
-          newRow.push(JSON.stringify(val));
-        } else {
-          newRow.push(val || "");
-        }
+        newRow.push(typeof val === 'object' ? JSON.stringify(val) : (val || ""));
       }
     }
     sheet.appendRow(newRow);
 
-    // 2. שליחת אימייל התראה (לבעל האתר)
+    // Email Notification
     if (NOTIFICATION_EMAIL && NOTIFICATION_EMAIL !== "your-email@example.com") {
-        var subject = "MeLaw - התקבל טופס חדש";
-        
-        // בניית גוף ההודעה בצורה בטוחה
-        var body = "";
-        body += "התקבלו נתונים חדשים:";
-        body += "\\n\\n"; // ירידת שורה
-        
-        for (var key in data) {
-            body += key + ": " + data[key] + "\\n";
-        }
-        
         MailApp.sendEmail({
             to: NOTIFICATION_EMAIL,
-            subject: subject,
-            body: body
+            subject: "MeLaw - טופס חדש: " + (data.formName || ""),
+            body: "התקבלו נתונים חדשים:\\n\\n" + JSON.stringify(data, null, 2)
         });
     }
     
-    return ContentService
-      .createTextOutput(JSON.stringify({ "result": "success", "row": sheet.getLastRow() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ "result": "success" })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (e) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ "result": "error", "error": e.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ "result": "error", "error": e.toString() })).setMimeType(ContentService.MimeType.JSON);
   } finally {
     lock.releaseLock();
   }
+}
+
+function getOrCreateSheet(name) {
+  var doc = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = doc.getSheetByName(name);
+  if (!sheet) {
+    sheet = doc.insertSheet(name);
+  }
+  return sheet;
 }
 `;
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'timelines' | 'forms' | 'team'>('articles');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Mobile sidebar state
+  const [isSavingToCloud, setIsSavingToCloud] = useState(false); // Cloud save loading state
   
   // Timeline/Slider Sub-tab
   const [timelineSubTab, setTimelineSubTab] = useState<'slider' | 'cards'>('slider');
@@ -125,6 +153,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
   // Timeline Item State
   const [editingTimelineItem, setEditingTimelineItem] = useState<TimelineItem | null>(null);
+
+  // --- CLOUD SAVE HANDLER ---
+  const handleSaveToCloud = async () => {
+      const url = state.config.integrations.googleSheetsUrl;
+      if (!url || !url.includes("script.google.com")) {
+          alert("שגיאה: לא הוגדר קישור תקין ל-Google Script בלשונית אינטגרציות.");
+          return;
+      }
+      
+      if (!confirm("האם אתה בטוח שברצונך לפרסם את כל השינויים? זה יעדכן את האתר בכל המכשירים.")) return;
+
+      setIsSavingToCloud(true);
+      try {
+          const success = await cloudService.saveStateToCloud(url, state);
+          if (success) {
+              alert("האתר עודכן בהצלחה בענן! השינויים יופיעו בכל המכשירים בטעינה הבאה.");
+          } else {
+              alert("אירעה שגיאה בשמירה לענן. וודא שהסקריפט מותקן כראוי.");
+          }
+      } catch (e) {
+          alert("שגיאת תקשורת.");
+      } finally {
+          setIsSavingToCloud(false);
+      }
+  };
 
   // --- EXPORT / IMPORT LOGIC ---
   const handleExportData = () => {
@@ -234,6 +287,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
           <h2 className="text-2xl font-bold text-white"><span className="text-[#2EB0D9]">Me</span>Law Admin</h2>
           <button className="md:hidden text-slate-400" onClick={() => setMobileMenuOpen(false)}><X/></button>
         </div>
+        
+        {/* Cloud Save Button in Sidebar */}
+        <div className="p-4 border-b border-slate-800">
+             <Button 
+                onClick={handleSaveToCloud} 
+                className={`w-full flex items-center justify-center gap-2 font-bold shine-effect ${isSavingToCloud ? 'opacity-70 cursor-wait' : ''}`}
+                variant="secondary"
+                disabled={isSavingToCloud}
+             >
+                 {isSavingToCloud ? <Loader2 className="animate-spin" size={18}/> : <CloudUpload size={18} />}
+                 {isSavingToCloud ? 'שומר לענן...' : 'פרסם שינויים'}
+             </Button>
+             <p className="text-[10px] text-slate-500 text-center mt-2">מעדכן את האתר בכל המכשירים</p>
+        </div>
+
         <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
           <button onClick={() => { setActiveTab('articles'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'articles' ? 'bg-[#2EB0D9] text-white font-bold shadow-lg shadow-[#2EB0D9]/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
             <FileText size={20} /> ניהול מאמרים
@@ -270,9 +338,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                  <Menu size={24} />
              </button>
         </div>
+        
+        {/* INTEGRATIONS TAB - UPDATED SCRIPT */}
+        {activeTab === 'integrations' && (
+            <div className="space-y-6 max-w-4xl">
+                <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
+                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Database/> שרת ונתונים (Google Sheets)</h3>
+                    <p className="text-slate-400 mb-4 text-sm">
+                        כדי שהאתר יעבוד כ"ענן" ויתעדכן בכל המכשירים, עליך להגדיר סקריפט Google.
+                        <br/>
+                        1. פתח Google Sheet חדש.<br/>
+                        2. לחץ על Extensions -> Apps Script.<br/>
+                        3. הדבק את הקוד הבא, שמור, ולחץ על <b>Deploy > New Deployment</b>.<br/>
+                        4. בחר ב-Web App, וב-Who has access בחר <b>Anyone</b>.<br/>
+                        5. העתק את ה-Web App URL והדבק אותו למטה.
+                    </p>
+                    
+                    <div className="relative mb-6">
+                        <pre className="bg-slate-950 p-4 rounded-lg text-xs text-green-400 overflow-x-auto border border-slate-800 h-64 font-mono select-all">
+                            {GOOGLE_SCRIPT_TEMPLATE}
+                        </pre>
+                        <button 
+                            onClick={() => navigator.clipboard.writeText(GOOGLE_SCRIPT_TEMPLATE)}
+                            className="absolute top-2 left-2 bg-slate-800 text-white p-2 rounded hover:bg-slate-700 text-xs flex items-center gap-1"
+                        >
+                            <Copy size={14}/> העתק קוד
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className="block text-sm font-bold text-slate-300">Google Script Web App URL</label>
+                        <input 
+                            type="text" 
+                            className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white placeholder-slate-600 focus:border-[#2EB0D9] outline-none" 
+                            placeholder="https://script.google.com/macros/s/..." 
+                            value={state.config.integrations.googleSheetsUrl} 
+                            onChange={e => updateIntegration('googleSheetsUrl', e.target.value)} 
+                        />
+                        <p className="text-xs text-slate-500">כתובת זו משמשת גם לשמירת טפסים וגם לסנכרון האתר בין מכשירים.</p>
+                    </div>
+                </div>
+
+                <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
+                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Sparkles/> בינה מלאכותית (Gemini)</h3>
+                    <input 
+                        type="password" 
+                        className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white placeholder-slate-600 focus:border-[#2EB0D9] outline-none" 
+                        placeholder="AIzaSy..." 
+                        value={state.config.integrations.geminiApiKey} 
+                        onChange={e => updateIntegration('geminiApiKey', e.target.value)} 
+                    />
+                </div>
+            </div>
+        )}
 
         {/* Global Category Selector Header */}
-        {activeTab === 'articles' || activeTab === 'forms' ? (
+        {(activeTab === 'articles' || activeTab === 'forms') && (
             <div className="bg-slate-900 p-4 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row md:items-center justify-between sticky top-20 md:top-0 z-20 border border-slate-800 gap-4">
                 <div className="flex items-center gap-4">
                     <span className="font-bold text-slate-300 text-sm md:text-lg">אזור עריכה:</span>
@@ -291,7 +412,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     מציג תכנים עבור: <b className="text-slate-300">{selectedCategory === 'ALL' ? 'כל הקטגוריות' : selectedCategory}</b>
                 </div>
             </div>
-        ) : null}
+        )}
 
         {/* --- ARTICLES TAB --- */}
         {activeTab === 'articles' && (
@@ -349,13 +470,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
              <div className="space-y-6">
                 
                 {/* --- WARNING BANNER --- */}
-                <div className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-xl flex items-start gap-3">
-                    <AlertTriangle className="text-orange-500 flex-shrink-0 mt-1" />
+                <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl flex items-start gap-3">
+                    <CloudUpload className="text-[#2EB0D9] flex-shrink-0 mt-1" />
                     <div>
-                        <h4 className="font-bold text-orange-500">שים לב: השינויים נשמרים בדפדפן זה בלבד!</h4>
+                        <h4 className="font-bold text-[#2EB0D9]">סנכרון ענן פעיל</h4>
                         <p className="text-sm text-slate-400 mt-1">
-                            מערכת הניהול הזו היא מקומית. השינויים שתבצע כאן (הוספת מאמרים, שינוי טקסטים) יישמרו רק במכשיר הזה. 
-                            כדי להעביר את השינויים לטלפונים אחרים או למשתמשים אחרים, עליך <b>לייצא</b> את הנתונים ולשלוח את הקובץ.
+                            כעת ניתן ללחוץ על הכפתור <b>"פרסם שינויים"</b> בסרגל הצד כדי לעדכן את האתר בכל המכשירים באופן מיידי.
+                            <br/>
+                            עדיין מומלץ לבצע גיבוי ידני מדי פעם.
                         </p>
                     </div>
                 </div>
@@ -431,8 +553,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         )}
 
         {/* --- Render other tabs content (Timelines, Forms, Team) --- */}
-        {/* I am re-rendering the essential logic for these tabs to ensure they appear inside the responsive main container */}
-        
         {activeTab === 'timelines' && (
             <div className="space-y-6">
                 <div className="flex gap-4 border-b border-slate-800 pb-4">
