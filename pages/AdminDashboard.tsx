@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide, CATEGORY_LABELS } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
-import { ImagePickerModal } from '../components/ImagePickerModal.tsx'; // Import Image Picker
-import { emailService } from '../services/api.ts'; // Import for testing connection
+import { ImagePickerModal } from '../components/ImagePickerModal.tsx'; 
+import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; // Import new component
+import { emailService } from '../services/api.ts'; 
 import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code, ArrowRight, RefreshCw, Search, Type } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -501,6 +502,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                             <Button onClick={() => openImagePicker('article', editingArticle.title)} className="bg-slate-700 hover:bg-slate-600">
                                                 <Search size={18} />
                                             </Button>
+                                            {/* Local Upload Button */}
+                                            <ImageUploadButton onImageSelected={(base64) => setEditingArticle({...editingArticle, imageUrl: base64})} />
                                             <img src={editingArticle.imageUrl} className="h-12 w-20 object-cover rounded border border-slate-700" alt="Preview" />
                                         </div>
                                     </div>
@@ -614,6 +617,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                       <div className="flex gap-2">
                                           <input className="flex-1 p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingSlide.imageUrl} onChange={e => setEditingSlide({...editingSlide, imageUrl: e.target.value})}/>
                                           <Button onClick={() => openImagePicker('slide', editingSlide.title)} className="bg-slate-700"><Search size={16}/></Button>
+                                          {/* Local Upload */}
+                                          <ImageUploadButton onImageSelected={(base64) => setEditingSlide({...editingSlide, imageUrl: base64})} />
                                       </div>
                                  </div>
                                  <div className="flex justify-end gap-2 pt-4">
@@ -644,6 +649,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                       <div className="flex gap-2">
                                           <input className="flex-1 p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingTimelineItem.imageUrl} onChange={e => setEditingTimelineItem({...editingTimelineItem, imageUrl: e.target.value})}/>
                                           <Button onClick={() => openImagePicker('timeline', editingTimelineItem.title)} className="bg-slate-700"><Search size={16}/></Button>
+                                          {/* Local Upload */}
+                                          <ImageUploadButton onImageSelected={(base64) => setEditingTimelineItem({...editingTimelineItem, imageUrl: base64})} />
                                       </div>
                                  </div>
                                  <div>
@@ -876,6 +883,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                         <div className="flex gap-2">
                                             <input className="flex-1 p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.imageUrl} onChange={e => setEditingMember({...editingMember, imageUrl: e.target.value})} />
                                             <Button onClick={() => openImagePicker('team', editingMember.fullName)} className="bg-slate-700"><Search size={16}/></Button>
+                                            {/* Local Upload */}
+                                            <ImageUploadButton onImageSelected={(base64) => setEditingMember({...editingMember, imageUrl: base64})} />
                                         </div>
                                     </div>
                                     <div className="col-span-2">
@@ -897,7 +906,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {/* ... Integrations Tab ... */}
         {activeTab === 'integrations' && (
             <div className="max-w-4xl space-y-8 animate-fade-in-up">
-                
+                {/* Same as before... */}
                 {/* 1. AI Generator */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
                     <div className="p-6 border-b border-slate-800 flex items-center gap-3 bg-[#2EB0D9]/5">
@@ -1168,6 +1177,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                     value={state.config.logoUrl} 
                                     onChange={e => updateState({ config: { ...state.config, logoUrl: e.target.value }})}
                                  />
+                                 {/* Local Upload for Logo */}
+                                 <ImageUploadButton onImageSelected={(base64) => updateState({ config: { ...state.config, logoUrl: base64 }})} />
                                  <div className="w-20 h-10 bg-slate-800 rounded flex items-center justify-center p-1 border border-slate-700">
                                      <img src={state.config.logoUrl} className="max-h-full max-w-full" alt="Preview"/>
                                  </div>
