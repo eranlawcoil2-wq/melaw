@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PublicSite } from './pages/PublicSite.tsx';
 import { AdminDashboard } from './pages/AdminDashboard.tsx';
-import { AppState, Category, WillsFormData, FormDefinition, TeamMember } from './types.ts';
+import { AppState, Category, WillsFormData, FormDefinition, TeamMember, Article, SliderSlide, TimelineItem, MenuItem } from './types.ts';
 
-// Mock Initial Data
-const initialArticles = [
+// --- INITIAL DEFAULT DATA (Fallback) ---
+const initialArticles: Article[] = [
   {
     id: '1',
     category: Category.WILLS,
@@ -13,9 +13,9 @@ const initialArticles = [
     imageUrl: 'https://picsum.photos/id/1015/800/600',
     quote: 'הצוואה היא המצפן של רצונך האחרון',
     tabs: [
-        { title: 'החוק בישראל', content: 'סעיף 8א לחוק הירושה קובע את הכללים לגבי צוואות הדדיות. החידוש העיקרי הוא ההגבלה על יכולת הביטול החד-צדדית של הצוואה לאחר מות אחד מבני הזוג. החוק נועד לאזן בין רצון המצווה לבין הסתמכות בן הזוג.' },
-        { title: 'יתרונות', content: 'הבטחת עתידו הכלכלי של בן הזוג הנותר בחיים ומניעת סכסוכים משפחתיים עתידיים על ידי קביעה ברורה של חלוקת הרכוש. זה מעניק שקט נפשי רב לשני הצדדים.' },
-        { title: 'סיכונים', content: 'קושי בשינוי הצוואה בעתיד אם הנסיבות משתנות, במיוחד לאחר פטירת אחד מבני הזוג. יש צורך בפרוצדורה מורכבת של ביטול והודעה בכתב.' }
+        { title: 'ניתוח משפטי', content: 'סעיף 8א לחוק הירושה קובע את הכללים לגבי צוואות הדדיות. החידוש העיקרי הוא ההגבלה על יכולת הביטול החד-צדדית של הצוואה לאחר מות אחד מבני הזוג. החוק נועד לאזן בין רצון המצווה לבין הסתמכות בן הזוג.' },
+        { title: 'סיפור מקרה', content: 'מקרה שהיה: בני זוג שלא ערכו הסכם ונאלצו להתמודד עם התנגדויות ירושה קשות מצד ילדים מנישואים קודמים.' },
+        { title: 'המלצות', content: '• לערוך צוואה הדדית בכתב\n• להפקיד אצל רשם הירושות\n• להתייעץ עם עו"ד מומחה' }
     ]
   },
   {
@@ -25,8 +25,9 @@ const initialArticles = [
     abstract: 'רכישת דירה היא העסקה הגדולה בחייו של אדם. הבנת היבטי המיסוי יכולה לחסוך עשרות אלפי שקלים.',
     imageUrl: 'https://picsum.photos/id/1031/800/600',
     tabs: [
-        { title: 'מס רכישה', content: 'דירה יחידה עד סכום מסוים פטורה ממס רכישה. מעל הסכום, ישנן מדרגות מס מדורגות המתעדכנות מדי שנה על ידי רשות המיסים.' },
-        { title: 'טיפים', content: 'בדקו תמיד זכאות להנחות נוספות (עולה חדש, נכה) לפני הדיווח לרשויות המס. תכנון מס נכון יכול לחסוך הון.' }
+        { title: 'ניתוח משפטי', content: 'דירה יחידה עד סכום מסוים פטורה ממס רכישה. מעל הסכום, ישנן מדרגות מס מדורגות המתעדכנות מדי שנה על ידי רשות המיסים.' },
+        { title: 'סיפור מקרה', content: 'לקוח שרכש דירה ולא ידע על זכאותו לפטור, שילם מס מיותר של 40,000 ש"ח עד שהגיע לייעוץ.' },
+        { title: 'המלצות', content: '• בדקו זכאות לפטור\n• השתמשו בסימולטור רשות המיסים' }
     ]
   },
   {
@@ -36,8 +37,9 @@ const initialArticles = [
       abstract: 'הכלי המשפטי שמאפשר לכם לקבוע מי יטפל בענייניכם אם חלילה לא תוכלו לעשות זאת בעצמכם.',
       imageUrl: 'https://picsum.photos/id/1016/800/600',
       tabs: [
-          { title: 'מה זה?', content: 'מסמך משפטי המאפשר לאדם בגיר למנות מיופה כוח שיהיה מוסמך לקבל החלטות בעניינו אם יאבד את כשירותו.' },
-          { title: 'התהליך', content: 'חתימה בפני עורך דין שעבר הכשרה מיוחדת, והפקדת המסמך אצל האפוטרופוס הכללי.' }
+          { title: 'ניתוח משפטי', content: 'מסמך משפטי המאפשר לאדם בגיר למנות מיופה כוח שיהיה מוסמך לקבל החלטות בעניינו אם יאבד את כשירותו.' },
+          { title: 'סיפור מקרה', content: 'אדם שלקה בשבץ ולא מינה מיופה כוח, משפחתו נאלצה לעבור הליך יקר וממושך למינוי אפוטרופוס בבית משפט.' },
+          { title: 'המלצות', content: '• ערכו ייפוי כוח כעת\n• בחרו מיופה כוח שאתם סומכים עליו' }
       ]
   },
   {
@@ -47,13 +49,14 @@ const initialArticles = [
       abstract: 'כיצד הסכם ממון יכול למנוע סכסוכים ולהגן על נכסים שנצברו לפני הנישואין.',
       imageUrl: 'https://picsum.photos/id/1005/800/600',
       tabs: [
-          { title: 'מתי עושים?', content: 'מומלץ לערוך הסכם לפני הנישואין או המעבר למגורים משותפים, אך ניתן גם לאחר מכן.' },
-          { title: 'אישור', content: 'ההסכם חייב לקבל אישור של בית משפט או נוטריון (לפני הנישואין) כדי שיהיה לו תוקף משפטי מחייב.' }
+          { title: 'ניתוח משפטי', content: 'מומלץ לערוך הסכם לפני הנישואין או המעבר למגורים משותפים, אך ניתן גם לאחר מכן.' },
+          { title: 'סיפור מקרה', content: 'בני זוג שנפרדו לאחר שנתיים נקלעו למאבק על דירה שהייתה שייכת לאישה לפני הנישואין.' },
+          { title: 'המלצות', content: '• ערכו הסכם לפני החתונה\n• אשרו אותו בבית משפט או נוטריון' }
       ]
   }
 ];
 
-const initialTimelines = [
+const initialTimelines: TimelineItem[] = [
     { id: 'gen-wills', title: 'מחולל הצוואות הדיגיטלי', description: 'ערכו צוואה תקפה משפטית ב-5 דקות ללא עלות ראשונית.', imageUrl: 'https://picsum.photos/id/452/400/300', category: [Category.HOME, Category.WILLS], linkTo: 'wills-generator' },
     { id: '1', title: 'עדכון פסיקה: ירושה', description: 'בית המשפט העליון קבע הלכה חדשה בנוגע לפרשנות צוואות שנערכו בכתב יד.', imageUrl: 'https://picsum.photos/id/106/400/300', category: [Category.HOME, Category.WILLS] },
     { id: '2', title: 'המדריך לייפוי כוח', description: 'כל מה שצריך לדעת לפני שממנים מיופה כוח מתמשך.', imageUrl: 'https://picsum.photos/id/109/400/300', category: [Category.HOME, Category.POA] },
@@ -62,13 +65,13 @@ const initialTimelines = [
     { id: '5', title: 'התנגדות לצוואה', description: 'באילו מקרים ניתן לפסול צוואה? השפעה בלתי הוגנת ומעורבות בעריכה.', imageUrl: 'https://picsum.photos/id/200/400/300', category: [Category.WILLS] },
 ];
 
-const initialSlides = [
+const initialSlides: SliderSlide[] = [
     { id: '1', imageUrl: 'https://picsum.photos/id/196/1920/1080', title: 'מצוינות משפטית ללא פשרות', subtitle: 'ליווי אישי ומקצועי ברגעים החשובים של החיים', category: Category.HOME },
     { id: '2', imageUrl: 'https://picsum.photos/id/452/1920/1080', title: 'צוואות וירושות', subtitle: 'דואגים לעתיד היקרים לכם ברגישות ובמקצועיות', category: Category.WILLS },
     { id: '3', imageUrl: 'https://picsum.photos/id/1076/1920/1080', title: 'עסקאות נדל"ן ומקרקעין', subtitle: 'ליווי צמוד בעסקאות מכר ורכישה', category: Category.REAL_ESTATE },
 ];
 
-const initialMenuItems = [
+const initialMenuItems: MenuItem[] = [
     { id: '1', label: 'המשרד', cat: Category.HOME },
     { id: '2', label: 'צוואות וירושות', cat: Category.WILLS },
     { id: '3', label: 'מקרקעין', cat: Category.REAL_ESTATE },
@@ -135,24 +138,22 @@ const initialTeamMembers: TeamMember[] = [
     }
 ];
 
-const App: React.FC = () => {
-  const [appState, setAppState] = useState<AppState>({
+const defaultState: AppState = {
     currentCategory: Category.HOME,
     isAdminLoggedIn: false,
     config: {
         officeName: 'MOR ERAN KAGAN & CO',
-        // Updated Logo: Cyan color to pop on dark background
         logoUrl: 'https://placehold.co/600x120/transparent/2EB0D9?text=MOR+ERAN+KAGAN+%26+CO&font=playfair-display', 
         contactEmail: 'office@melaw.co.il',
         willsEmail: 'wills@melaw.co.il',
         poaEmail: 'poa@melaw.co.il',
         phone: '03-1234567',
         address: 'דרך מנחם בגין 144, תל אביב',
-        theme: 'dark', // DEFAULT THEME
-        adminPassword: 'admin', // DEFAULT PASSWORD - CAN BE CHANGED IN SETTINGS
-        // INITIALIZE INTEGRATIONS WITH EMPTY STRINGS
+        theme: 'dark', 
+        adminPassword: 'admin',
         integrations: {
             geminiApiKey: 'AIzaSyBQkmjb1vw20e90bCMBK0eWC9pA6e05Le0',
+            unsplashAccessKey: '',
             googleSheetsUrl: '',
             emailJsServiceId: '',
             emailJsTemplateId: '',
@@ -168,11 +169,42 @@ const App: React.FC = () => {
     menuItems: initialMenuItems,
     forms: initialForms,
     teamMembers: initialTeamMembers,
+};
+
+const STORAGE_KEY = 'melaw_site_data_v1';
+
+const App: React.FC = () => {
+  // Initialize State from LocalStorage if available, otherwise use Default
+  const [appState, setAppState] = useState<AppState>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Merge with default to ensure structural integrity if schema changes
+        return {
+           ...defaultState,
+           ...parsed,
+           config: { ...defaultState.config, ...parsed.config, integrations: { ...defaultState.config.integrations, ...parsed.config?.integrations } },
+           // Ensure isAdminLoggedIn is false on reload for security
+           isAdminLoggedIn: false, 
+           currentCategory: Category.HOME
+        };
+      } catch (e) {
+        console.error("Failed to load saved state", e);
+        return defaultState;
+      }
+    }
+    return defaultState;
   });
 
   const [isAdminView, setIsAdminView] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
+
+  // Persist State to LocalStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  }, [appState]);
 
   const handleUpdateState = (newState: Partial<AppState>) => {
     setAppState(prev => ({ ...prev, ...newState }));

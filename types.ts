@@ -79,6 +79,9 @@ export interface IntegrationsConfig {
     // AI
     geminiApiKey: string;
     
+    // Images
+    unsplashAccessKey: string;
+
     // Database (Google Sheets)
     googleSheetsUrl: string; // The Web App URL from Google Apps Script
     

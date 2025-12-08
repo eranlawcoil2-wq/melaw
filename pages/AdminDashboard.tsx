@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide, CATEGORY_LABELS } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
-import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code, ArrowRight } from 'lucide-react';
+import { ImagePickerModal } from '../components/ImagePickerModal.tsx'; // Import Image Picker
+import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code, ArrowRight, RefreshCw, Search } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -95,6 +96,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
   const [showScript, setShowScript] = useState(false);
 
+  // Image Picker State
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [imagePickerContext, setImagePickerContext] = useState<{ type: 'article' | 'slide' | 'team' | 'timeline', initialQuery: string } | null>(null);
+
   // Articles State
   const [isGenerating, setIsGenerating] = useState(false);
   const [newArticleTopic, setNewArticleTopic] = useState('');
@@ -152,6 +157,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       const updatedArticles = state.articles.map(a => a.id === editingArticle.id ? editingArticle : a);
       updateState({ articles: updatedArticles });
       setEditingArticle(null);
+  };
+
+  // Generic Image Select Handler
+  const handleImageSelect = (url: string) => {
+      if (!imagePickerContext) return;
+
+      if (imagePickerContext.type === 'article' && editingArticle) {
+          setEditingArticle({ ...editingArticle, imageUrl: url });
+      } else if (imagePickerContext.type === 'slide' && editingSlide) {
+          setEditingSlide({ ...editingSlide, imageUrl: url });
+      } else if (imagePickerContext.type === 'team' && editingMember) {
+          setEditingMember({ ...editingMember, imageUrl: url });
+      } else if (imagePickerContext.type === 'timeline' && editingTimelineItem) {
+          setEditingTimelineItem({ ...editingTimelineItem, imageUrl: url });
+      }
+      setShowImagePicker(false);
+  };
+
+  const openImagePicker = (type: 'article' | 'slide' | 'team' | 'timeline', initialQuery: string) => {
+      setImagePickerContext({ type, initialQuery });
+      setShowImagePicker(true);
   };
 
   const handleSaveForm = () => {
@@ -400,6 +426,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                         <label className="block text-sm font-bold text-slate-400 mb-1">תמונה ראשית (URL)</label>
                                         <div className="flex gap-4">
                                             <input type="text" className="flex-1 p-3 bg-slate-800 border border-slate-700 rounded text-white" value={editingArticle.imageUrl} onChange={e => setEditingArticle({...editingArticle, imageUrl: e.target.value})} />
+                                            <Button onClick={() => openImagePicker('article', editingArticle.title)} className="bg-slate-700 hover:bg-slate-600">
+                                                <Search size={18} />
+                                            </Button>
                                             <img src={editingArticle.imageUrl} className="h-12 w-20 object-cover rounded border border-slate-700" alt="Preview" />
                                         </div>
                                     </div>
@@ -509,7 +538,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             </div>
                             <div>
                                 <label className="block text-sm text-slate-400">URL תמונה</label>
-                                <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingSlide.imageUrl} onChange={e => setEditingSlide({...editingSlide, imageUrl: e.target.value})}/>
+                                <div className="flex gap-2">
+                                    <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingSlide.imageUrl} onChange={e => setEditingSlide({...editingSlide, imageUrl: e.target.value})}/>
+                                    <Button onClick={() => openImagePicker('slide', editingSlide.title)} className="bg-slate-700 hover:bg-slate-600"><Search size={18}/></Button>
+                                </div>
                             </div>
                             <div className="flex justify-end gap-3 mt-4">
                                 <Button variant="outline" onClick={() => setEditingSlide(null)}>ביטול</Button>
@@ -531,6 +563,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             <div>
                                 <label className="block text-sm text-slate-400">תיאור</label>
                                 <textarea className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white h-24" value={editingTimelineItem.description} onChange={e => setEditingTimelineItem({...editingTimelineItem, description: e.target.value})}/>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-slate-400">URL תמונה</label>
+                                <div className="flex gap-2">
+                                    <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingTimelineItem.imageUrl} onChange={e => setEditingTimelineItem({...editingTimelineItem, imageUrl: e.target.value})}/>
+                                    <Button onClick={() => openImagePicker('timeline', editingTimelineItem.title)} className="bg-slate-700 hover:bg-slate-600"><Search size={18}/></Button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm text-slate-400">לינק פנימי (אופציונלי)</label>
@@ -760,7 +799,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                 </div>
                                 <div>
                                     <label className="block text-sm text-slate-400 mb-1">תמונה (URL)</label>
-                                    <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.imageUrl} onChange={e => setEditingMember({...editingMember, imageUrl: e.target.value})}/>
+                                    <div className="flex gap-2">
+                                        <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.imageUrl} onChange={e => setEditingMember({...editingMember, imageUrl: e.target.value})}/>
+                                        <Button onClick={() => openImagePicker('team', editingMember.fullName)} className="bg-slate-700 hover:bg-slate-600"><Search size={18}/></Button>
+                                    </div>
                                 </div>
                                 <div className="col-span-2">
                                     <label className="block text-sm text-slate-400 mb-1">אודות (Bio)</label>
@@ -809,7 +851,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     </div>
                 </div>
 
-                {/* 2. Google Sheets Database & Email */}
+                {/* 2. Image Search */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                    <div className="p-6 border-b border-slate-800 flex items-center gap-3 bg-yellow-500/5">
+                        <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-500"><ImageIcon size={24}/></div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">Unsplash (Stock Images)</h3>
+                            <p className="text-slate-400 text-sm">הגדרות לחיפוש תמונות סטוק חינמיות ישירות מהממשק</p>
+                        </div>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-300 mb-2">Unsplash Access Key</label>
+                            <input 
+                                type="password" 
+                                className="w-full p-3 border border-slate-700 rounded bg-slate-800 text-white font-mono placeholder-slate-600"
+                                placeholder="Access Key..."
+                                value={state.config.integrations.unsplashAccessKey || ''}
+                                onChange={(e) => updateIntegration('unsplashAccessKey', e.target.value)}
+                            />
+                            <p className="text-xs text-slate-500 mt-2">
+                                נדרש כדי לחפש תמונות אמיתיות. 
+                                <a href="https://unsplash.com/developers" target="_blank" className="text-[#2EB0D9] hover:underline mx-1">לחץ כאן להרשמה ל-API</a>.
+                                (ללא מפתח, המערכת תציג תמונות דמה).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Google Sheets Database & Email */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
                     <div className="p-6 border-b border-slate-800 flex items-center gap-3 bg-green-500/5">
                          <div className="p-2 bg-green-500/20 rounded-lg text-green-500"><Database size={24}/></div>
@@ -870,7 +940,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     </div>
                 </div>
 
-                {/* 3. Payment Links */}
+                {/* 4. Payment Links */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
                     <div className="p-6 border-b border-slate-800 flex items-center gap-3 bg-purple-500/5">
                         <div className="p-2 bg-purple-500/20 rounded-lg text-purple-500"><CreditCard size={24}/></div>
@@ -918,7 +988,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {activeTab === 'config' && (
              <div className="space-y-6">
                 <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800 max-w-2xl">
-                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-white"><Monitor/> הגדרות כלליות לאתר</h3>
+                    <div className="flex justify-between items-start mb-6">
+                         <h3 className="text-xl font-bold flex items-center gap-2 text-white"><Monitor/> הגדרות כלליות לאתר</h3>
+                         <button 
+                            onClick={() => {
+                                if(confirm("האם אתה בטוח שברצונך לאפס את כל הנתונים לברירת המחדל? כל המאמרים והשינויים שלך יימחקו.")) {
+                                    localStorage.removeItem('melaw_site_data_v1');
+                                    window.location.reload();
+                                }
+                            }}
+                            className="text-red-400 hover:text-red-300 text-xs flex items-center gap-1 border border-red-900 bg-red-900/20 px-3 py-1 rounded hover:bg-red-900/40 transition-colors"
+                         >
+                             <RefreshCw size={12} /> איפוס נתונים מלא
+                         </button>
+                    </div>
                     
                     <div className="space-y-6">
                         
@@ -1016,6 +1099,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         )}
 
       </main>
+
+      {/* GLOBAL IMAGE PICKER MODAL */}
+      <ImagePickerModal 
+          isOpen={showImagePicker}
+          onClose={() => setShowImagePicker(false)}
+          onSelect={handleImageSelect}
+          initialQuery={imagePickerContext?.initialQuery}
+          unsplashAccessKey={state.config.integrations.unsplashAccessKey}
+      />
     </div>
   );
 };
