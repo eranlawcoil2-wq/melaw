@@ -3,6 +3,7 @@ import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, Fo
 import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
 import { ImagePickerModal } from '../components/ImagePickerModal.tsx'; // Import Image Picker
+import { emailService } from '../services/api.ts'; // Import for testing connection
 import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code, ArrowRight, RefreshCw, Search, Type } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -396,9 +397,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         ) : null}
 
-        {/* ... (Articles, Timelines, Forms, Team Tabs remain same as before, truncated for brevity, assume content is there) ... */}
-        
-        {/* --- ARTICLES TAB (Repeated for context) --- */}
+        {/* --- ARTICLES TAB --- */}
         {activeTab === 'articles' && (
             <div className="animate-fade-in space-y-8">
                 {/* Generator Section */}
@@ -543,7 +542,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* ... Rest of tabs ... */}
+        {/* --- TIMELINES TAB --- */}
         {activeTab === 'timelines' && (
             <div className="space-y-6">
                 <div className="flex gap-4 border-b border-slate-800 pb-4">
@@ -596,12 +595,304 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     </div>
                 )}
 
-                {/* ... Slide & Timeline Modals ... */}
-                {/* (Truncated for brevity but included in output logic if needed) */}
+                 {/* SLIDE EDIT MODAL */}
+                {editingSlide && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-slate-900 p-8 rounded-xl w-full max-w-lg border border-slate-700">
+                             <h3 className="text-xl font-bold mb-4 text-white">עריכת שקופית</h3>
+                             <div className="space-y-4">
+                                 <div>
+                                     <label className="block text-sm font-bold text-slate-400 mb-1">כותרת ראשית</label>
+                                     <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingSlide.title} onChange={e => setEditingSlide({...editingSlide, title: e.target.value})}/>
+                                 </div>
+                                 <div>
+                                     <label className="block text-sm font-bold text-slate-400 mb-1">כותרת משנה</label>
+                                     <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingSlide.subtitle} onChange={e => setEditingSlide({...editingSlide, subtitle: e.target.value})}/>
+                                 </div>
+                                 <div>
+                                      <label className="block text-sm font-bold text-slate-400 mb-1">תמונת רקע (URL)</label>
+                                      <div className="flex gap-2">
+                                          <input className="flex-1 p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingSlide.imageUrl} onChange={e => setEditingSlide({...editingSlide, imageUrl: e.target.value})}/>
+                                          <Button onClick={() => openImagePicker('slide', editingSlide.title)} className="bg-slate-700"><Search size={16}/></Button>
+                                      </div>
+                                 </div>
+                                 <div className="flex justify-end gap-2 pt-4">
+                                     <Button variant="outline" onClick={() => setEditingSlide(null)}>ביטול</Button>
+                                     <Button onClick={handleSaveSlide}>שמור</Button>
+                                 </div>
+                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* TIMELINE EDIT MODAL */}
+                {editingTimelineItem && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-slate-900 p-8 rounded-xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
+                             <h3 className="text-xl font-bold mb-4 text-white">עריכת כרטיס מידע</h3>
+                             <div className="space-y-4">
+                                 <div>
+                                     <label className="block text-sm font-bold text-slate-400 mb-1">כותרת</label>
+                                     <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingTimelineItem.title} onChange={e => setEditingTimelineItem({...editingTimelineItem, title: e.target.value})}/>
+                                 </div>
+                                 <div>
+                                     <label className="block text-sm font-bold text-slate-400 mb-1">תיאור</label>
+                                     <textarea className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white h-24" value={editingTimelineItem.description} onChange={e => setEditingTimelineItem({...editingTimelineItem, description: e.target.value})}/>
+                                 </div>
+                                 <div>
+                                      <label className="block text-sm font-bold text-slate-400 mb-1">תמונה (URL)</label>
+                                      <div className="flex gap-2">
+                                          <input className="flex-1 p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingTimelineItem.imageUrl} onChange={e => setEditingTimelineItem({...editingTimelineItem, imageUrl: e.target.value})}/>
+                                          <Button onClick={() => openImagePicker('timeline', editingTimelineItem.title)} className="bg-slate-700"><Search size={16}/></Button>
+                                      </div>
+                                 </div>
+                                 <div>
+                                      <label className="block text-sm font-bold text-slate-400 mb-2">קטגוריות להצגה (בחר)</label>
+                                      <div className="flex flex-wrap gap-2 p-2 bg-slate-800 border border-slate-700 rounded">
+                                          {Object.values(Category).map(cat => {
+                                              const isSelected = editingTimelineItem.category.includes(cat);
+                                              return (
+                                                  <button 
+                                                      key={cat}
+                                                      onClick={() => setEditingTimelineItem({...editingTimelineItem, category: toggleTimelineCategory(editingTimelineItem, cat)})}
+                                                      className={`px-2 py-1 text-xs rounded border transition-colors ${isSelected ? 'bg-[#2EB0D9] border-[#2EB0D9] text-white' : 'border-slate-600 text-slate-400'}`}
+                                                  >
+                                                      {CATEGORY_LABELS[cat]} {isSelected && '✓'}
+                                                  </button>
+                                              )
+                                          })}
+                                      </div>
+                                 </div>
+                                 <div>
+                                      <label className="block text-sm font-bold text-slate-400 mb-1">קישור מיוחד (אופציונלי)</label>
+                                      <input 
+                                        className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" 
+                                        placeholder="wills-generator / form-formId / https://..."
+                                        value={editingTimelineItem.linkTo || ''} 
+                                        onChange={e => setEditingTimelineItem({...editingTimelineItem, linkTo: e.target.value})}
+                                      />
+                                      <p className="text-xs text-slate-500 mt-1">כתוב 'wills-generator' כדי לפתוח את הצוואה, או 'form-ID' כדי לפתוח טופס ספציפי.</p>
+                                 </div>
+                                 <div className="flex justify-end gap-2 pt-4">
+                                     <Button variant="outline" onClick={() => setEditingTimelineItem(null)}>ביטול</Button>
+                                     <Button onClick={handleSaveTimelineItem}>שמור</Button>
+                                 </div>
+                             </div>
+                        </div>
+                    </div>
+                )}
             </div>
         )}
 
-        {/* ... Forms Tab ... */}
+        {/* --- FORMS TAB --- */}
+        {activeTab === 'forms' && (
+            <div className="space-y-6 animate-fade-in">
+                 <div className="flex justify-end">
+                      <Button onClick={() => setEditingForm({
+                          id: Date.now().toString(),
+                          title: 'טופס חדש',
+                          category: Category.POA,
+                          fields: [],
+                          submitEmail: ''
+                      })}><Plus size={18} className="ml-2"/> צור טופס חדש</Button>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     {state.forms.map(form => (
+                         <div key={form.id} className="bg-slate-900 border border-slate-800 rounded-xl p-6 relative group hover:border-[#2EB0D9] transition-colors">
+                             <div className="absolute top-4 left-4 flex gap-2">
+                                 <button onClick={() => setEditingForm(form)} className="p-2 bg-slate-800 rounded text-[#2EB0D9] hover:bg-slate-700"><Edit size={16}/></button>
+                                 <button onClick={() => updateState({ forms: state.forms.filter(f => f.id !== form.id) })} className="p-2 bg-slate-800 rounded text-red-400 hover:bg-slate-700"><Trash size={16}/></button>
+                             </div>
+                             <h3 className="font-bold text-xl mb-2 text-white">{form.title}</h3>
+                             <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400">{CATEGORY_LABELS[form.category]}</span>
+                             <div className="mt-4 text-sm text-slate-500">
+                                 {form.fields.length} שדות • ID: {form.id}
+                             </div>
+                             <div className="mt-4 p-2 bg-slate-950 rounded border border-slate-800 text-xs text-slate-400 font-mono flex justify-between items-center">
+                                 <span>Link: form-{form.id}</span>
+                                 <Copy size={12} className="cursor-pointer hover:text-white" onClick={() => navigator.clipboard.writeText(`form-${form.id}`)}/>
+                             </div>
+                         </div>
+                     ))}
+                 </div>
+
+                 {/* FORM EDITOR MODAL */}
+                 {editingForm && (
+                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                         <div className="bg-slate-900 rounded-xl w-full max-w-4xl h-[90vh] flex flex-col border border-slate-700 shadow-2xl">
+                             <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                                 <h3 className="text-xl font-bold">עורך הטפסים</h3>
+                                 <button onClick={() => setEditingForm(null)}><X className="text-slate-400 hover:text-white"/></button>
+                             </div>
+                             
+                             <div className="flex-1 overflow-hidden flex">
+                                 {/* Sidebar Settings */}
+                                 <div className="w-1/3 border-l border-slate-800 p-6 overflow-y-auto bg-slate-900">
+                                     <div className="space-y-4">
+                                         <div>
+                                             <label className="block text-sm font-bold text-slate-400 mb-1">שם הטופס</label>
+                                             <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingForm.title} onChange={e => setEditingForm({...editingForm, title: e.target.value})} />
+                                         </div>
+                                         <div>
+                                             <label className="block text-sm font-bold text-slate-400 mb-1">קטגוריה</label>
+                                             <select className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingForm.category} onChange={e => setEditingForm({...editingForm, category: e.target.value as Category})}>
+                                                 {Object.values(Category).map(cat => <option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>)}
+                                             </select>
+                                         </div>
+                                         <div className="pt-4 border-t border-slate-800">
+                                             <h4 className="font-bold mb-2 text-[#2EB0D9]">הוסף שדה</h4>
+                                             <div className="grid grid-cols-2 gap-2">
+                                                 <button onClick={() => addFieldToForm('text')} className="p-2 bg-slate-800 hover:bg-slate-700 rounded text-xs border border-slate-700">טקסט</button>
+                                                 <button onClick={() => addFieldToForm('select')} className="p-2 bg-slate-800 hover:bg-slate-700 rounded text-xs border border-slate-700">בחירה</button>
+                                                 <button onClick={() => addFieldToForm('boolean')} className="p-2 bg-slate-800 hover:bg-slate-700 rounded text-xs border border-slate-700">כן/לא</button>
+                                                 <button onClick={() => addFieldToForm('repeater')} className="p-2 bg-slate-800 hover:bg-slate-700 rounded text-xs border border-slate-700">רשימה</button>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+
+                                 {/* Preview / Field List */}
+                                 <div className="flex-1 p-8 overflow-y-auto bg-slate-950">
+                                     <div className="space-y-4">
+                                         {editingForm.fields.map((field, idx) => (
+                                             <div key={field.id} className="p-4 bg-slate-900 border border-slate-800 rounded-lg group hover:border-[#2EB0D9]">
+                                                 <div className="flex justify-between mb-2">
+                                                     <span className="text-xs font-bold text-[#2EB0D9] uppercase">{field.type}</span>
+                                                     <button onClick={() => removeFormField(idx)} className="text-red-400 hover:text-red-300"><Trash size={14}/></button>
+                                                 </div>
+                                                 <div className="space-y-2">
+                                                     <input 
+                                                        className="w-full bg-transparent border-b border-slate-700 focus:border-[#2EB0D9] outline-none font-bold text-white placeholder-slate-600" 
+                                                        placeholder="שאלת השדה (למשל: שם מלא)"
+                                                        value={field.label}
+                                                        onChange={e => updateFormField(idx, { label: e.target.value })}
+                                                     />
+                                                     
+                                                     {/* Options for Select */}
+                                                     {field.type === 'select' && (
+                                                         <input 
+                                                            className="w-full bg-transparent text-sm text-slate-400 border-b border-slate-800"
+                                                            placeholder="אפשרויות (מופרדות בפסיק)"
+                                                            value={field.options?.join(',') || ''}
+                                                            onChange={e => updateFormField(idx, { options: e.target.value.split(',') })}
+                                                         />
+                                                     )}
+
+                                                     {/* Help Link Logic */}
+                                                     <div className="flex items-center gap-2 mt-2">
+                                                         <span className="text-xs text-slate-500">חיבור למאמר עזרה (ID):</span>
+                                                         <input 
+                                                            className="bg-slate-800 text-xs p-1 rounded border border-slate-700 w-20 text-white"
+                                                            value={field.helpArticleId || ''}
+                                                            onChange={e => updateFormField(idx, { helpArticleId: e.target.value })}
+                                                         />
+                                                         <label className="flex items-center gap-1 text-xs text-slate-400 cursor-pointer ml-auto">
+                                                             <input 
+                                                                type="checkbox" 
+                                                                checked={field.required} 
+                                                                onChange={e => updateFormField(idx, { required: e.target.checked })}
+                                                             /> חובה
+                                                         </label>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         ))}
+                                         {editingForm.fields.length === 0 && (
+                                             <div className="text-center text-slate-600 py-10 border-2 border-dashed border-slate-800 rounded-xl">
+                                                 לחץ על סוג שדה בצד ימין כדי להוסיף
+                                             </div>
+                                         )}
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <div className="p-4 border-t border-slate-800 flex justify-end gap-2 bg-slate-900 rounded-b-xl">
+                                 <Button variant="outline" onClick={() => setEditingForm(null)}>ביטול</Button>
+                                 <Button onClick={handleSaveForm}>שמור טופס</Button>
+                             </div>
+                         </div>
+                     </div>
+                 )}
+            </div>
+        )}
+
+        {/* --- TEAM TAB --- */}
+        {activeTab === 'team' && (
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-end">
+                    <Button onClick={() => setEditingMember({
+                        id: Date.now().toString(),
+                        fullName: '', role: '', specialization: '', email: '', phone: '', bio: '', imageUrl: 'https://picsum.photos/400/400'
+                    })}><Plus size={18} className="ml-2"/> הוסף איש צוות</Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {state.teamMembers.map(member => (
+                        <div key={member.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex gap-4 items-center">
+                            <img src={member.imageUrl} className="w-20 h-20 rounded-full object-cover" alt=""/>
+                            <div className="flex-1">
+                                <h3 className="font-bold text-white text-lg">{member.fullName}</h3>
+                                <p className="text-[#2EB0D9] text-sm">{member.role}</p>
+                                <p className="text-slate-500 text-xs">{member.specialization}</p>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <button onClick={() => setEditingMember(member)} className="p-2 bg-slate-800 rounded text-slate-300 hover:text-white"><Edit size={16}/></button>
+                                <button onClick={() => updateState({ teamMembers: state.teamMembers.filter(m => m.id !== member.id) })} className="p-2 bg-slate-800 rounded text-red-400 hover:text-red-300"><Trash size={16}/></button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* TEAM MEMBER MODAL */}
+                {editingMember && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-slate-900 rounded-xl w-full max-w-2xl border border-slate-700 shadow-2xl p-6 overflow-y-auto max-h-[90vh]">
+                            <h3 className="text-xl font-bold mb-6 text-white">עריכת איש צוות</h3>
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-400 mb-1">שם מלא</label>
+                                        <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.fullName} onChange={e => setEditingMember({...editingMember, fullName: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-400 mb-1">תפקיד</label>
+                                        <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.role} onChange={e => setEditingMember({...editingMember, role: e.target.value})} />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-bold text-slate-400 mb-1">התמחות</label>
+                                        <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.specialization} onChange={e => setEditingMember({...editingMember, specialization: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-400 mb-1">אימייל</label>
+                                        <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.email} onChange={e => setEditingMember({...editingMember, email: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-400 mb-1">טלפון</label>
+                                        <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.phone} onChange={e => setEditingMember({...editingMember, phone: e.target.value})} />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-bold text-slate-400 mb-1">תמונה (URL)</label>
+                                        <div className="flex gap-2">
+                                            <input className="flex-1 p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.imageUrl} onChange={e => setEditingMember({...editingMember, imageUrl: e.target.value})} />
+                                            <Button onClick={() => openImagePicker('team', editingMember.fullName)} className="bg-slate-700"><Search size={16}/></Button>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-bold text-slate-400 mb-1">ביוגרפיה (Bio)</label>
+                                        <textarea className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white h-24" value={editingMember.bio} onChange={e => setEditingMember({...editingMember, bio: e.target.value})} />
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-2 pt-4 border-t border-slate-800">
+                                    <Button variant="outline" onClick={() => setEditingMember(null)}>ביטול</Button>
+                                    <Button onClick={handleSaveMember}>שמור</Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        )}
         
         {/* ... Integrations Tab ... */}
         {activeTab === 'integrations' && (
@@ -675,13 +966,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     <div className="p-6 space-y-4">
                         <div>
                             <label className="block text-sm font-bold text-slate-300 mb-2">Google Apps Script Web App URL</label>
-                            <input 
-                                type="text" 
-                                className="w-full p-3 border border-slate-700 rounded bg-slate-800 text-white font-mono placeholder-slate-600"
-                                placeholder="https://script.google.com/macros/s/..."
-                                value={state.config.integrations.googleSheetsUrl}
-                                onChange={(e) => updateIntegration('googleSheetsUrl', e.target.value)}
-                            />
+                            <div className="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    className="w-full p-3 border border-slate-700 rounded bg-slate-800 text-white font-mono placeholder-slate-600"
+                                    placeholder="https://script.google.com/macros/s/..."
+                                    value={state.config.integrations.googleSheetsUrl}
+                                    onChange={(e) => updateIntegration('googleSheetsUrl', e.target.value)}
+                                />
+                                <Button 
+                                    onClick={async () => {
+                                        if(!state.config.integrations.googleSheetsUrl) {
+                                            alert("אנא הזן כתובת URL לפני הבדיקה");
+                                            return;
+                                        }
+                                        alert("שולח נתוני בדיקה... אנא בדוק את הגיליון שלך בעוד מספר שניות.");
+                                        await emailService.sendForm('TEST_CONNECTION', { message: 'בדיקת חיבור תקינה', time: new Date().toString() }, state.config.integrations);
+                                    }}
+                                    className="whitespace-nowrap bg-green-600 hover:bg-green-700"
+                                >
+                                    בדוק חיבור
+                                </Button>
+                            </div>
+                            <p className="text-xs text-green-400 mt-2 font-bold">
+                                מתי נשלחים נתונים? 
+                                <span className="text-slate-400 font-normal ml-1">
+                                    בכל פעם שלקוח שולח טופס ב"מחולל הצוואות" או ב"טפסים הדינמיים" שבנית בלשונית הטפסים.
+                                </span>
+                            </p>
                         </div>
                         
                         <div className="bg-slate-950 p-4 rounded-lg border border-slate-700">

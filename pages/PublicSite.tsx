@@ -64,6 +64,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   // Dynamic Form State
   const [activeDynamicFormId, setActiveDynamicFormId] = useState<string | null>(null);
   const [dynamicFormValues, setDynamicFormValues] = useState<Record<string, any>>({});
+  const [isSubmittingDynamic, setIsSubmittingDynamic] = useState(false);
   
   // Theme Helper Logic
   const isDark = state.config.theme === 'dark'; // Check theme preference
@@ -162,7 +163,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const handleRealWillsSubmit = async () => {
       setIsSubmittingWill(true);
       try {
-          await emailService.sendWillsForm(willsData);
+          // Pass config to api to allow sending
+          await emailService.sendWillsForm(willsData, state.config.integrations);
           onWillsFormSubmit(willsData);
           alert("הטופס נקלט בהצלחה! קובץ הצוואה יורד כעת למחשב שלך."); 
           setShowWillsModal(false);
@@ -649,7 +651,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                         }} 
                                         variant="secondary" 
                                         size="lg" 
-                                        className="shadow-2xl shadow-[#2EB0D9]/40 transition-transform hover:scale-105 border-none text-lg px-10 py-4 shine-effect"
+                                        className="shadow-2xl shadow-[#2EB0D9]/40 transition-transform hover:scale-110 border-none text-lg px-10 py-4 shine-effect"
                                     >
                                         {slide.buttonText || 'קבע פגישת ייעוץ'}
                                     </Button>
@@ -902,11 +904,26 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                    </div>
                                ))}
 
-                               <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" onClick={() => {
-                                   console.log("Form Submitted", currentDynamicForm.submitEmail, dynamicFormValues);
-                                   alert("הטופס נשלח בהצלחה! תודה רבה.");
-                                   setActiveDynamicFormId(null);
-                               }}>שלח טופס</Button>
+                               <Button 
+                                  className="w-full mt-6 py-4 text-lg font-bold shine-effect" 
+                                  variant="secondary" 
+                                  disabled={isSubmittingDynamic}
+                                  onClick={async () => {
+                                      setIsSubmittingDynamic(true);
+                                      try {
+                                          await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations);
+                                          alert("הטופס נשלח בהצלחה! תודה רבה.");
+                                          setActiveDynamicFormId(null);
+                                          setDynamicFormValues({});
+                                      } catch (error) {
+                                          alert("אירעה שגיאה בשליחת הטופס");
+                                      } finally {
+                                          setIsSubmittingDynamic(false);
+                                      }
+                                  }}
+                                >
+                                   {isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}
+                                </Button>
                            </div>
                        </div>
                   </div>

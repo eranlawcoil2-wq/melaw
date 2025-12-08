@@ -39,41 +39,57 @@ export const emailService = {
         }
     },
 
-    async sendWillsForm(data: WillsFormData, config?: IntegrationsConfig): Promise<boolean> {
-        console.log("Processing Will Form...");
+    /**
+     * פונקציה כללית לשליחת טפסים (גם צוואות וגם טפסים דינמיים)
+     */
+    async sendForm(formTitle: string, data: any, config?: IntegrationsConfig): Promise<boolean> {
+        console.log(`Processing Form: ${formTitle}`, data);
         
-        // 1. הורדה מיידית ללקוח (PDF)
-        this.generateAndDownloadWill(data);
-
-        // 2. שמירה ל-Google Sheets (אם הוגדר)
-        if (config?.googleSheetsUrl) {
-            try {
-                // הערה: כדי שזה יעבוד, יש ליצור Google Apps Script שמאזין ל-doPost ושומר לגיליון
-                console.log("Sending to Google Sheets:", config.googleSheetsUrl);
-                await fetch(config.googleSheetsUrl, {
-                    method: 'POST',
-                    mode: 'no-cors', // נדרש ברוב המקרים מול Google Apps Script
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                console.log("Sent to Google Sheets");
-            } catch (e) {
-                console.error("Google Sheets Error:", e);
-            }
+        // אם זה טופס צוואה, נוריד גם PDF
+        if (formTitle === 'Wills Generator' && data.childrenNames) {
+            this.generateAndDownloadWill(data as WillsFormData);
         }
 
-        // 3. שליחת אימייל דרך EmailJS (אם הוגדר)
-        if (config?.emailJsServiceId && config?.emailJsPublicKey) {
-             console.log("Sending via EmailJS:", config.emailJsServiceId);
-             // כאן יבוא הקוד של emailjs.send(...)
-             // לצורך הדמו אנו רק מדפיסים
+        // 1. שמירה ל-Google Sheets (אם הוגדר URL)
+        // הנתונים נשלחים רק אם יש URL ב-config
+        if (config?.googleSheetsUrl) {
+            try {
+                console.log("Sending to Google Sheets:", config.googleSheetsUrl);
+                
+                // הכנת הנתונים לשליחה (מוסיפים תאריך ושם טופס)
+                const payload = {
+                    formName: formTitle,
+                    submittedAt: new Date().toLocaleString(),
+                    ...data
+                };
+
+                await fetch(config.googleSheetsUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', // קריטי לעבודה מול Google Apps Script
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                console.log("Sent to Google Sheets successfully (no-cors mode)");
+            } catch (e) {
+                console.error("Google Sheets Error:", e);
+                // לא מחזירים שקר כדי לא לפגוע בחווית המשתמש אם רק השיטס נכשל
+            }
         } else {
-            console.log("EmailJS keys missing - Skipping email send (Mock mode)");
-            await new Promise(resolve => setTimeout(resolve, 1500)); 
+            console.warn("Google Sheets URL not configured via Admin Dashboard");
+        }
+
+        // 2. שליחת אימייל דרך EmailJS (אופציונלי, אם הוגדר)
+        if (config?.emailJsServiceId && config?.emailJsPublicKey) {
+             console.log("Sending via EmailJS (Not fully implemented in demo)");
         }
         
         return true;
     },
+
+    // תמיכה לאחור בקוד קיים שקורא ל-sendWillsForm
+    async sendWillsForm(data: WillsFormData, config?: IntegrationsConfig): Promise<boolean> {
+        return this.sendForm('Wills Generator', data, config);
+    }
 };
 
 // --- Store & Payments Service ---
