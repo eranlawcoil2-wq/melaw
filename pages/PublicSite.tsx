@@ -3,7 +3,8 @@ import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember,
 import { Button } from '../components/Button.tsx';
 import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
-import { emailService, storeService } from '../services/api.ts'; // IMPORT SERVICES
+import { ShareMenu } from '../components/ShareMenu.tsx'; // Import ShareMenu
+import { emailService, storeService } from '../services/api.ts'; 
 import { Search, Phone, MapPin, Mail, Menu, X, Check, ArrowLeft, Navigation, FileText, Quote, Lock, Settings, Briefcase, User, ArrowRight, ChevronLeft, ChevronRight, FileCheck, HelpCircle, Loader2, ShoppingBag } from 'lucide-react';
 
 // --- Scroll Reveal Helper Component ---
@@ -91,7 +92,12 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
   // Filter content
   const currentSlides = state.slides.filter(s => s.category === state.currentCategory || s.category === Category.HOME);
-  const currentArticles = state.articles.filter(a => a.category === state.currentCategory || state.currentCategory === Category.HOME);
+  
+  // Updated filtering logic for array-based categories
+  const currentArticles = state.articles.filter(a => 
+      state.currentCategory === Category.HOME || a.categories.includes(state.currentCategory)
+  );
+  
   const currentTimelines = state.timelines.filter(t => t.category.includes(state.currentCategory) || state.currentCategory === Category.HOME);
   const teamMembers = state.teamMembers;
 
@@ -172,7 +178,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const activeTabContent = selectedArticle?.tabs?.[activeArticleTab]?.content || "";
   
   const relatedArticles = selectedArticle 
-    ? state.articles.filter(a => a.category === selectedArticle.category && a.id !== selectedArticle.id).slice(0, 3)
+    ? state.articles.filter(a => a.categories.some(c => selectedArticle.categories.includes(c)) && a.id !== selectedArticle.id).slice(0, 3)
     : [];
 
   // --- STORE VIEW RENDERER ---
@@ -183,7 +189,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
               {/* Reuse Header logic for consistency */}
               <header className={`fixed top-0 left-0 right-0 backdrop-blur-md shadow-lg z-40 h-20 transition-all border-b ${theme.headerBg}`}>
                 <div className="container mx-auto px-4 h-full flex items-center justify-between">
-                  <h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer font-serif leading-none" onClick={() => onCategoryChange(Category.HOME)}>
+                  <h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer leading-none" onClick={() => onCategoryChange(Category.HOME)}
+                      style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}
+                  >
                        <span className="block text-[#2EB0D9]">MOR ERAN KAGAN</span>
                        <span className={`${theme.textMuted} text-sm tracking-widest font-sans font-normal`}>& CO</span>
                   </h1>
@@ -282,12 +290,26 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                     {/* Compact Header */}
                     <div className={`p-4 border-b flex justify-between items-start flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div>
-                            <span className="text-[10px] font-bold text-[#2EB0D9] uppercase tracking-wider mb-1 block">
-                                {CATEGORY_LABELS[selectedArticle.category]}
-                            </span>
+                            <div className="flex gap-2 flex-wrap mb-1">
+                                {selectedArticle.categories.map(cat => (
+                                    <span key={cat} className="text-[10px] font-bold text-[#2EB0D9] uppercase tracking-wider bg-[#2EB0D9]/10 px-2 py-0.5 rounded">
+                                        {CATEGORY_LABELS[cat]}
+                                    </span>
+                                ))}
+                            </div>
                             <h2 className={`text-xl md:text-2xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
                         </div>
-                        <button onClick={() => setSelectedArticle(null)} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={20} /></button>
+                        
+                        <div className="flex gap-2">
+                            {/* Share Button Inside Modal */}
+                            <ShareMenu 
+                                variant="inline" 
+                                title={selectedArticle.title}
+                                text="קרא את המאמר המעניין הזה:"
+                                colorClass={theme.textMuted}
+                            />
+                            <button onClick={() => setSelectedArticle(null)} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={20} /></button>
+                        </div>
                     </div>
                     
                     {/* Tabs Container - Scrollbar HIDDEN via Class and Inline Styles */}
@@ -321,7 +343,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                 <div className={`mt-auto border-t pt-6 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                                     <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${theme.textTitle}`}>
                                         <span className="w-1 h-5 bg-[#2EB0D9] rounded-full"></span>
-                                        עוד בנושא {CATEGORY_LABELS[selectedArticle.category]}
+                                        מאמרים נוספים
                                     </h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {relatedArticles.map(relArticle => (
@@ -383,6 +405,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                          <button onClick={() => setShowWillsModal(false)} className={`p-2 rounded-full hover:bg-black/10 ${theme.textMuted}`}><X size={24}/></button>
                      </div>
                      <div className={`flex-1 overflow-y-auto p-8 md:p-12 ${theme.textMain}`}>
+                         {/* ... form content omitted for brevity, same as previous ... */}
                          {formStep === 0 && (
                             <div className="space-y-6 animate-fade-in">
                                <div>
@@ -521,8 +544,12 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       <header className={`fixed top-0 left-0 right-0 backdrop-blur-md shadow-lg z-40 h-20 transition-all border-b ${theme.headerBg}`}>
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Header Text Logo */}
-            <h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer font-serif leading-none" onClick={() => onCategoryChange(Category.HOME)}>
+            {/* Header Text Logo with Custom Font Support */}
+            <h1 
+                className="text-lg md:text-xl font-black tracking-wide cursor-pointer leading-none" 
+                onClick={() => onCategoryChange(Category.HOME)}
+                style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}
+            >
                <span className="block text-[#2EB0D9] drop-shadow-md">MOR ERAN KAGAN</span>
                <span className={`${theme.textMuted} text-sm tracking-widest font-sans font-normal`}>& CO</span>
             </h1>
@@ -924,7 +951,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 
                 {/* Brand Column (Rightmost) */}
                 <div className="col-span-1 flex flex-col items-start">
-                    <h2 className="text-2xl font-black text-white mb-6 font-serif leading-tight">
+                    <h2 
+                        className="text-2xl font-black text-white mb-6 leading-tight"
+                        style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}
+                    >
                        <span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO
                     </h2>
                     <p className="mb-6 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי בכל תחומי המשפט האזרחי והמסחרי.</p>

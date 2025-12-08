@@ -43,7 +43,7 @@ export interface ArticleTab {
 
 export interface Article {
   id: string;
-  category: Category;
+  categories: Category[]; // Changed from single 'category' to array 'categories'
   title: string;
   abstract: string;
   imageUrl: string;

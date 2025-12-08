@@ -133,7 +133,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       
       const newArticle: Article = {
         id: Date.now().toString(),
-        category: selectedCategory === 'ALL' ? Category.HOME : selectedCategory,
+        // Assign initial category array based on selection
+        categories: selectedCategory === 'ALL' ? [Category.HOME] : [selectedCategory],
         title: generated.title || newArticleTopic,
         abstract: generated.abstract || '',
         imageUrl: `https://picsum.photos/seed/${Date.now()}/800/600`, // Placeholder
@@ -282,8 +283,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       });
   };
 
-  // Filter helpers
-  const filteredArticles = state.articles.filter(a => selectedCategory === 'ALL' || a.category === selectedCategory);
+  // Helper to toggle article categories in multi-select mode
+  const toggleArticleCategory = (article: Article, category: Category) => {
+      let newCategories;
+      if (article.categories.includes(category)) {
+          newCategories = article.categories.filter(c => c !== category);
+      } else {
+          newCategories = [...article.categories, category];
+      }
+      return newCategories;
+  };
+
+  // Filter helpers - Updated for multi-category support
+  const filteredArticles = state.articles.filter(a => selectedCategory === 'ALL' || a.categories.includes(selectedCategory));
   const filteredTimelines = state.timelines.filter(t => selectedCategory === 'ALL' || t.category.includes(selectedCategory));
 
   return (
@@ -372,7 +384,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                         <div key={article.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-[#2EB0D9] transition-all group">
                             <div className="h-40 overflow-hidden relative">
                                 <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                <div className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white">{CATEGORY_LABELS[article.category]}</div>
+                                <div className="absolute top-2 right-2 flex gap-1">
+                                    {article.categories.slice(0,2).map(cat => (
+                                        <span key={cat} className="bg-black/60 px-2 py-1 rounded text-xs text-white border border-white/10">{CATEGORY_LABELS[cat]}</span>
+                                    ))}
+                                </div>
                             </div>
                             <div className="p-4">
                                 <h4 className="font-bold text-lg mb-2 line-clamp-1">{article.title}</h4>
@@ -413,10 +429,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                         <input type="text" className="w-full p-3 bg-slate-800 border border-slate-700 rounded text-white" value={editingArticle.title} onChange={e => setEditingArticle({...editingArticle, title: e.target.value})} />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-400 mb-1">קטגוריה</label>
-                                        <select className="w-full p-3 bg-slate-800 border border-slate-700 rounded text-white" value={editingArticle.category} onChange={e => setEditingArticle({...editingArticle, category: e.target.value as Category})}>
-                                            {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
+                                        {/* Multi-Select Category UI */}
+                                        <label className="block text-sm font-bold text-slate-400 mb-2">קטגוריות (ניתן לבחור מספר)</label>
+                                        <div className="flex flex-wrap gap-2 p-2 bg-slate-800 border border-slate-700 rounded min-h-[50px]">
+                                            {Object.values(Category).map(cat => {
+                                                const isSelected = editingArticle.categories.includes(cat);
+                                                return (
+                                                    <button 
+                                                        key={cat}
+                                                        onClick={() => {
+                                                            const newCategories = toggleArticleCategory(editingArticle, cat);
+                                                            setEditingArticle({ ...editingArticle, categories: newCategories });
+                                                        }}
+                                                        className={`px-3 py-1 rounded-full text-xs border transition-all ${isSelected ? 'bg-[#2EB0D9] border-[#2EB0D9] text-white shadow-lg shadow-[#2EB0D9]/20' : 'bg-transparent border-slate-600 text-slate-400 hover:border-slate-400'}`}
+                                                    >
+                                                        {CATEGORY_LABELS[cat]} {isSelected && '✓'}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                     <div className="col-span-2">
                                         <label className="block text-sm font-bold text-slate-400 mb-1">תקציר</label>
@@ -731,89 +762,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                  <Button onClick={handleSaveForm}>שמור טופס</Button>
                              </div>
                          </div>
-                     </div>
-                 )}
-            </div>
-        )}
-
-        {/* --- TEAM TAB --- */}
-        {activeTab === 'team' && (
-            <div className="space-y-6 animate-fade-in">
-                <div className="flex justify-between items-center bg-slate-900 p-6 rounded-xl border border-slate-800">
-                     <div>
-                         <h3 className="text-xl font-bold text-white">חברי הצוות</h3>
-                         <p className="text-slate-400 text-sm">ניהול עורכי הדין והצוות המקצועי</p>
-                     </div>
-                     <Button onClick={() => setEditingMember({
-                         id: Date.now().toString(),
-                         fullName: '', role: '', specialization: '', email: '', phone: '', bio: '', imageUrl: 'https://picsum.photos/400/400'
-                     })}><Plus size={18} className="ml-2"/> הוסף איש צוות</Button>
-                 </div>
-
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                     {state.teamMembers.map(member => (
-                         <div key={member.id} className="bg-slate-900 rounded-xl overflow-hidden border border-slate-800 group hover:border-[#2EB0D9] transition-all">
-                             <div className="h-64 overflow-hidden relative">
-                                 <img src={member.imageUrl} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" alt={member.fullName}/>
-                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-4">
-                                     <h4 className="text-white font-bold text-lg">{member.fullName}</h4>
-                                     <p className="text-[#2EB0D9] text-sm">{member.role}</p>
-                                 </div>
-                             </div>
-                             <div className="p-4 flex justify-between items-center bg-slate-950">
-                                 <span className="text-xs text-slate-500 truncate max-w-[120px]">{member.email}</span>
-                                 <div className="flex gap-2">
-                                     <button onClick={() => setEditingMember(member)} className="text-slate-400 hover:text-white"><Edit size={16}/></button>
-                                     <button onClick={() => updateState({ teamMembers: state.teamMembers.filter(m => m.id !== member.id) })} className="text-slate-400 hover:text-red-400"><Trash size={16}/></button>
-                                 </div>
-                             </div>
-                         </div>
-                     ))}
-                 </div>
-
-                 {/* Edit Team Member Modal */}
-                 {editingMember && (
-                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                        <div className="bg-slate-900 rounded-xl w-full max-w-2xl p-6 border border-slate-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-                            <h3 className="text-xl font-bold mb-4">עריכת איש צוות</h3>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-1">שם מלא</label>
-                                    <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.fullName} onChange={e => setEditingMember({...editingMember, fullName: e.target.value})}/>
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-1">תפקיד</label>
-                                    <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.role} onChange={e => setEditingMember({...editingMember, role: e.target.value})}/>
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-1">התמחות</label>
-                                    <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.specialization} onChange={e => setEditingMember({...editingMember, specialization: e.target.value})}/>
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-1">אימייל</label>
-                                    <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.email} onChange={e => setEditingMember({...editingMember, email: e.target.value})}/>
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-1">טלפון</label>
-                                    <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.phone} onChange={e => setEditingMember({...editingMember, phone: e.target.value})}/>
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-1">תמונה (URL)</label>
-                                    <div className="flex gap-2">
-                                        <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white" value={editingMember.imageUrl} onChange={e => setEditingMember({...editingMember, imageUrl: e.target.value})}/>
-                                        <Button onClick={() => openImagePicker('team', editingMember.fullName)} className="bg-slate-700 hover:bg-slate-600"><Search size={18}/></Button>
-                                    </div>
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-sm text-slate-400 mb-1">אודות (Bio)</label>
-                                    <textarea className="w-full p-2 bg-slate-800 border border-slate-700 rounded text-white h-24" value={editingMember.bio} onChange={e => setEditingMember({...editingMember, bio: e.target.value})}/>
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <Button variant="outline" onClick={() => setEditingMember(null)}>ביטול</Button>
-                                <Button onClick={handleSaveMember}>שמור</Button>
-                            </div>
-                        </div>
                      </div>
                  )}
             </div>

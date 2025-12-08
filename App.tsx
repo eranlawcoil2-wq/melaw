@@ -7,7 +7,7 @@ import { AppState, Category, WillsFormData, FormDefinition, TeamMember, Article,
 const initialArticles: Article[] = [
   {
     id: '1',
-    category: Category.WILLS,
+    categories: [Category.WILLS],
     title: 'החשיבות של עריכת צוואה הדדית',
     abstract: 'צוואה הדדית מאפשרת לבני זוג להוריש את רכושם זה לזו, אך יש לה השלכות משפטיות שחשוב להכיר לפני החתימה.',
     imageUrl: 'https://picsum.photos/id/1015/800/600',
@@ -20,7 +20,7 @@ const initialArticles: Article[] = [
   },
   {
     id: '2',
-    category: Category.REAL_ESTATE,
+    categories: [Category.REAL_ESTATE],
     title: 'מיסוי מקרקעין: מדריך לרוכש דירה ראשונה',
     abstract: 'רכישת דירה היא העסקה הגדולה בחייו של אדם. הבנת היבטי המיסוי יכולה לחסוך עשרות אלפי שקלים.',
     imageUrl: 'https://picsum.photos/id/1031/800/600',
@@ -32,7 +32,7 @@ const initialArticles: Article[] = [
   },
   {
       id: '3',
-      category: Category.WILLS,
+      categories: [Category.WILLS, Category.POA],
       title: 'יפוי כוח מתמשך - למה זה חשוב?',
       abstract: 'הכלי המשפטי שמאפשר לכם לקבוע מי יטפל בענייניכם אם חלילה לא תוכלו לעשות זאת בעצמכם.',
       imageUrl: 'https://picsum.photos/id/1016/800/600',
@@ -44,7 +44,7 @@ const initialArticles: Article[] = [
   },
   {
       id: '4',
-      category: Category.REAL_ESTATE,
+      categories: [Category.REAL_ESTATE],
       title: 'הסכם ממון - לא רק לעשירים',
       abstract: 'כיצד הסכם ממון יכול למנוע סכסוכים ולהגן על נכסים שנצברו לפני הנישואין.',
       imageUrl: 'https://picsum.photos/id/1005/800/600',
@@ -180,6 +180,18 @@ const App: React.FC = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        
+        // --- DATA MIGRATION LOGIC (For Existing Users) ---
+        // If loaded articles use the old 'category' string instead of 'categories' array, convert them.
+        if (parsed.articles && parsed.articles.length > 0) {
+            parsed.articles = parsed.articles.map((art: any) => {
+                if (!art.categories && art.category) {
+                    return { ...art, categories: [art.category] };
+                }
+                return art;
+            });
+        }
+
         // Merge with default to ensure structural integrity if schema changes
         return {
            ...defaultState,

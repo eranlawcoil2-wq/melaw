@@ -23,9 +23,18 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onClick }) =>
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
         
-        {/* Category Label (Hebrew) */}
-        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10 z-10 shadow-lg">
-            {CATEGORY_LABELS[article.category]}
+        {/* Category Labels (Hebrew) - Display up to 2 */}
+        <div className="absolute top-3 right-3 flex gap-2 flex-wrap justify-end pl-4">
+            {article.categories.slice(0, 2).map((cat) => (
+                <span key={cat} className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10 z-10 shadow-lg">
+                    {CATEGORY_LABELS[cat]}
+                </span>
+            ))}
+            {article.categories.length > 2 && (
+                <span className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-full text-xs font-bold text-white border border-white/10 z-10 shadow-lg">
+                    +{article.categories.length - 2}
+                </span>
+            )}
         </div>
 
         {article.videoUrl && (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MessageCircle, Accessibility, X, Type, Eye, PauseCircle } from 'lucide-react';
+import { ShareMenu } from './ShareMenu.tsx';
 
 export const FloatingWidgets: React.FC = () => {
   const [showAccess, setShowAccess] = useState(false);
@@ -34,7 +35,7 @@ export const FloatingWidgets: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3">
+    <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3 items-start">
       {/* WhatsApp */}
       <a 
         href="https://wa.me/" 
@@ -45,6 +46,12 @@ export const FloatingWidgets: React.FC = () => {
       >
         <MessageCircle size={28} />
       </a>
+
+      {/* Share Widget */}
+      <ShareMenu 
+        title="MeLaw - משרד עורכי דין דיגיטלי" 
+        text="היי, שווה להסתכל על האתר הזה:" 
+      />
 
       {/* Accessibility Trigger */}
       <button 
