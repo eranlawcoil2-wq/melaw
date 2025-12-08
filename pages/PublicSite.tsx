@@ -279,36 +279,36 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                     )}
                 </div>
                 <div className={`flex-1 flex flex-col h-full relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-                    <div className={`p-6 md:p-8 border-b flex justify-between items-start flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+                    {/* Compact Header */}
+                    <div className={`p-4 border-b flex justify-between items-start flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div>
-                            {/* Category Label in Modal Header */}
-                            <span className="text-xs font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-1 rounded border border-[#2EB0D9]/20 mb-2 inline-block">
+                            <span className="text-[10px] font-bold text-[#2EB0D9] uppercase tracking-wider mb-1 block">
                                 {CATEGORY_LABELS[selectedArticle.category]}
                             </span>
-                            <h2 className={`text-2xl md:text-3xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
+                            <h2 className={`text-xl md:text-2xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
                         </div>
-                        <button onClick={() => setSelectedArticle(null)} className={`p-2 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={24} /></button>
+                        <button onClick={() => setSelectedArticle(null)} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={20} /></button>
                     </div>
-                    <div className={`px-6 md:px-8 pt-4 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-                        <div className={`flex gap-2 border-b overflow-x-auto ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+                    
+                    {/* Tabs Container - Scrollbar HIDDEN via Class and Inline Styles */}
+                    <div className={`px-4 pt-4 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+                        <div 
+                            className={`flex gap-2 border-b overflow-x-auto scrollbar-hide ${isDark ? 'border-slate-800' : 'border-slate-200'}`}
+                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        >
                             {selectedArticle.tabs.map((tab, idx) => (
-                                <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-6 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white shadow-lg shadow-[#2EB0D9]/20 translate-y-[1px]' : `${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'} hover:opacity-80`}`}>{tab.title}</button>
+                                <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white shadow-lg shadow-[#2EB0D9]/20 translate-y-[1px]' : `${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'} hover:opacity-80`}`}>{tab.title}</button>
                             ))}
                         </div>
                     </div>
-                    {/* SCROLLBAR HIDDEN HERE WITH INLINE STYLE FALLBACK */}
+
+                    {/* Content Area - Scrollbar HIDDEN via Class and Inline Styles */}
                     <div 
                         ref={articleContentTopRef} 
                         className="flex-1 overflow-y-auto scrollbar-hide"
                         style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}
                     >
-                        {/* Hidden Scrollbar Webkit Style */}
-                        <style>{`
-                            .scrollbar-hide::-webkit-scrollbar {
-                                display: none;
-                            }
-                        `}</style>
-                        <div className="p-6 md:p-10 min-h-full flex flex-col">
+                        <div className="p-6 md:p-8 min-h-full flex flex-col">
                             <div className="md:hidden mb-6 rounded-xl overflow-hidden h-48 relative flex-shrink-0">
                                 <img src={selectedArticle.imageUrl} className="w-full h-full object-cover" alt=""/>
                             </div>
