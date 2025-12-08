@@ -139,8 +139,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       updateState({ articles: [newArticle, ...state.articles] });
       setNewArticleTopic('');
       alert("מאמר נוצר בהצלחה באמצעות AI!");
-    } catch (e) {
-      alert("שגיאה ביצירת מאמר");
+    } catch (e: any) {
+      console.error(e);
+      alert("שגיאה ביצירת מאמר:\n" + (e.message || "אירעה תקלה בחיבור ל-Gemini. אנא בדוק את מפתח ה-API."));
     } finally {
       setIsGenerating(false);
     }
@@ -440,7 +441,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* --- TIMELINES & SLIDER TAB --- */}
+        {/* ... Rest of tabs ... */}
         {activeTab === 'timelines' && (
             <div className="space-y-6">
                 <div className="flex gap-4 border-b border-slate-800 pb-4">

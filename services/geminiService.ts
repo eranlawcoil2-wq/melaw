@@ -5,7 +5,6 @@ import { Article, Category } from "../types.ts";
 const getAiClient = (apiKey: string) => {
   try {
     if (!apiKey) {
-      console.warn("API Key is missing.");
       return null;
     }
     return new GoogleGenAI({ apiKey });
@@ -16,48 +15,50 @@ const getAiClient = (apiKey: string) => {
 };
 
 export const generateArticleContent = async (topic: string, category: Category | 'ALL', apiKey: string): Promise<Partial<Article>> => {
-  // Mock response generator for fallback
+  
+  // Internal Mock Generator
   const getMockResponse = () => ({
       title: topic,
       abstract: `זהו תקציר שנוצר אוטומטית (מצב דמו) עבור הנושא: "${topic}". כדי לקבל תוכן אמיתי, אנא הזן מפתח API של Gemini בממשק הניהול.`,
       quote: "המשפט הוא מעוז החלש ומגן היתום.",
       tabs: [
-        { title: "הסבר משפטי", content: `בחלק זה נסקור את העקרונות הרלוונטיים לנושא ${topic} בצורה בהירה ומקצועית. (תוכן דמו).` },
-        { title: "דוגמאות מהחיים", content: "מקרה שהיה: בני זוג שלא ערכו הסכם ונאלצו להתמודד עם..." },
-        { title: "מה חשוב לרשום", content: "• סעיף ראשון חשוב\n• סעיף שני חשוב" }
+        { title: "ניתוח משפטי", content: `בחלק זה נסקור את העקרונות הרלוונטיים לנושא ${topic} בצורה בהירה ומקצועית. (תוכן דמו).` },
+        { title: "סיפור מקרה", content: "מקרה שהיה: בני זוג שלא ערכו הסכם ונאלצו להתמודד עם..." },
+        { title: "המלצות", content: "• סעיף ראשון חשוב\n• סעיף שני חשוב" }
       ]
   });
+
+  // If no key provided, return mock immediately without error
+  if (!apiKey || apiKey === 'demo') {
+      return getMockResponse();
+  }
 
   try {
     const ai = getAiClient(apiKey);
     
-    // If no client (no key), throw immediately to catch block
-    if (!ai) throw new Error("No API Key Provided");
+    if (!ai) throw new Error("Could not initialize Gemini Client");
 
     const prompt = `
-      You are a top-tier, sharp, and charismatic Israeli attorney (עורך דין תותח, כריזמטי ומקצועי).
-      Your task is to write a powerful legal article in Hebrew about: "${topic}".
+      You are an elite, Senior Partner Israeli Attorney (עורך דין בכיר, כריזמטי וחד).
+      Your task: Write a premium, high-level legal article in Hebrew about: "${topic}".
+      
+      Category Context: ${category === 'ALL' ? 'General Israeli Law' : category}
 
-      Category Context: ${category === 'ALL' ? 'General Law' : category}
+      **INSTRUCTIONS FOR "GEMINI-QUALITY" OUTPUT:**
+      1.  **Tone:** Sophisticated, persuasive, and fluent. Avoid robotic or repetitive phrasing. Use rich Hebrew (שפה עשירה ומקצועית) but make it accessible to clients.
+      2.  **Depth:** Do not just list facts. Explain the *strategy*, the *risks*, and the *implications* of the law.
+      3.  **Realism:** In the "Case Study" tab, write a detailed, plausible narrative with names and specific conflicts. Make the reader feel the drama and the resolution.
+      4.  **Structure**:
+          - **Abstract**: A powerful hook (3-5 sentences) that explains why this topic is critical *right now*.
+          - **Tab 1 Title MUST be "ניתוח משפטי"**: Deep dive into the legal principles. Explain the logic behind the law.
+          - **Tab 2 Title MUST be "סיפור מקרה"**: A real-world story illustrating what happens when you don't act correctly.
+          - **Tab 3 Title MUST be "המלצות"**: Concrete, actionable steps (Checklist).
 
-      CRITICAL INSTRUCTIONS:
-      1.  **Expert Tone:** Write with confidence and authority. Be sharp. Explain the logic, not just the rules.
-      2.  **NO Law Citations:** Do NOT cite specific section numbers (e.g., do NOT write "According to Section 8(a) of the Inheritance Law"). Instead, explain the *principle* ("The law determines that..."). Keep it readable.
-      3.  **Mandatory Examples Tab:** You MUST include a tab with real-life scenarios/examples (stories of what happens when things go wrong vs right).
-      4.  **Practical Checklist:** The final tab must be actionable points for the client.
-
-      Structure the response as a JSON object with:
-      - title: A sharp, professional title in Hebrew.
-      - abstract: A punchy summary (3-4 sentences) that makes the reader realize they need to act.
-      - quote: A powerful, sophisticated sentence/motto related to the topic (in Hebrew).
-      - tabs: An array of exactly 3 objects with these specific titles:
-        - Tab 1 Title: "הסבר משפטי" (Legal Explanation). Content: The core legal argument. Why is this important? What is the logic? (No dry statute numbers).
-        - Tab 2 Title: "דוגמאות מהחיים" (Real Life Examples). Content: "Imagine a case where..." or "A common mistake is...". Concrete stories illustrating definitions (like Yeduim BeTzibur) or conflicts.
-        - Tab 3 Title: "מה חשוב לרשום" (What to Include). Content: A bulleted list (•) of essential clauses or actions.
+      Output MUST be a valid JSON object matching the schema below.
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-pro-preview", // Upgraded model for better reasoning and writing
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -86,11 +87,11 @@ export const generateArticleContent = async (topic: string, category: Category |
       return JSON.parse(response.text);
     }
     throw new Error("No text returned from Gemini");
-  } catch (error) {
-    console.log("Gemini generation skipped or failed, using fallback:", error);
-    // Simulate network delay for realistic feel
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return getMockResponse();
+  } catch (error: any) {
+    console.error("Gemini Generation Failed:", error);
+    // We THROW the error here so the UI knows it failed, instead of silently showing mock data.
+    // This answers the user's complaint about "why is it not writing for real".
+    throw new Error(error.message || "Failed to generate content");
   }
 };
 
