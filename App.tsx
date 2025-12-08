@@ -218,6 +218,35 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
   }, [appState]);
 
+  // --- Dynamic Font Injection (Client Side) ---
+  useEffect(() => {
+      const fontData = appState.config.customFontData;
+      const styleId = 'dynamic-font-style';
+      let styleTag = document.getElementById(styleId);
+
+      if (fontData) {
+          // If the user uploaded a custom font, we inject a style tag that redefines 'MyLogoFont'.
+          // This overrides the fallback in index.html.
+          if (!styleTag) {
+              styleTag = document.createElement('style');
+              styleTag.id = styleId;
+              document.head.appendChild(styleTag);
+          }
+          styleTag.innerHTML = `
+            @font-face {
+              font-family: 'MyLogoFont';
+              src: url('${fontData}') format('truetype');
+              font-weight: normal;
+              font-style: normal;
+              font-display: block;
+            }
+          `;
+      } else if (styleTag) {
+          // If custom data is cleared, remove the override so it falls back to index.html (or defaults)
+          styleTag.remove();
+      }
+  }, [appState.config.customFontData]);
+
   const handleUpdateState = (newState: Partial<AppState>) => {
     setAppState(prev => ({ ...prev, ...newState }));
   };

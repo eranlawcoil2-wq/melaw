@@ -99,6 +99,7 @@ export interface IntegrationsConfig {
 export interface SiteConfig {
   officeName: string;
   logoUrl: string;
+  customFontData?: string; // Base64 string of the uploaded TTF file
   contactEmail: string;
   willsEmail: string;
   poaEmail: string;

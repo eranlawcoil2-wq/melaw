@@ -35,11 +35,12 @@ const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: 
 
 // --- Reusable Section Title Component (Enhanced) ---
 const SectionTitle: React.FC<{ title: string; isDark: boolean }> = ({ title, isDark }) => (
-    <div className="mb-10">
-        <h3 className={`text-4xl font-black inline-block relative z-10 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+    <div className="mb-6 md:mb-10 relative z-10">
+        <h3 className={`text-3xl md:text-4xl font-black inline-block tracking-tight leading-relaxed ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {title}
         </h3>
-        <div className="h-1.5 w-24 bg-gradient-to-r from-[#2EB0D9] to-blue-600 mt-3 rounded-full"></div>
+        {/* Restored Underline with generous margin to prevent overlap */}
+        <div className="h-1.5 w-24 bg-gradient-to-r from-[#2EB0D9] to-blue-600 mt-4 rounded-full"></div>
     </div>
 );
 
@@ -630,7 +631,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             <h2 className="text-4xl md:text-6xl font-black leading-tight drop-shadow-2xl text-white">
                                 {slide.title}
                             </h2>
-                            <p className="text-2xl text-slate-300 md:w-3/4 border-r-4 border-[#2EB0D9] pr-6 leading-relaxed font-light">
+                            {/* Removed border-r to avoid visual line conflicts */}
+                            <p className="text-2xl text-slate-300 md:w-3/4 pr-4 leading-relaxed font-light">
                                 {slide.subtitle}
                             </p>
                             
@@ -680,7 +682,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                         {/* New Styled Title */}
                         <SectionTitle title="הנבחרת שלנו" isDark={isDark} />
                         
-                        <div className="flex gap-2">
+                        <div className="hidden md:flex gap-2">
                             <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
                             <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
                         </div>
@@ -688,15 +690,16 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                      
                      <div 
                         ref={teamScrollRef}
-                        className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-fit max-w-full"
+                        className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full"
                      >
                          {teamMembers.map(member => (
                              <div 
                                 key={member.id} 
                                 onClick={() => setSelectedTeamMember(member)}
-                                className={`flex-shrink-0 w-[85vw] md:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}
+                                // Reduced width to 110px for mobile
+                                className={`flex-shrink-0 w-[110px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}
                              >
-                                 <div className="h-72 w-full overflow-hidden relative">
+                                 <div className="h-60 md:h-72 w-full overflow-hidden relative">
                                      {/* Added animation class here + Grayscale Logic */}
                                      <img 
                                         src={member.imageUrl} 
@@ -707,14 +710,14 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                          <span className="text-white font-bold text-sm bg-[#2EB0D9] px-3 py-1 rounded-full">לחץ לפרטים</span>
                                      </div>
                                  </div>
-                                 <div className="p-6 text-center">
-                                     <h4 className={`font-bold text-2xl mb-1 group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{member.fullName}</h4>
-                                     <p className={`text-sm font-medium uppercase tracking-wide ${theme.textMuted}`}>{member.role}</p>
+                                 <div className="p-4 md:p-6 text-center">
+                                     <h4 className={`font-bold text-lg md:text-2xl mb-1 group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{member.fullName}</h4>
+                                     <p className={`text-xs md:text-sm font-medium uppercase tracking-wide ${theme.textMuted}`}>{member.role}</p>
                                  </div>
                              </div>
                          ))}
-                         {/* Hidden fifth element simulation for scroll test */}
-                         {teamMembers.length > 4 && (
+                         {/* Hidden element for right spacing on mobile */}
+                         {teamMembers.length > 2 && (
                              <div className="flex-shrink-0 w-[20px]"></div>
                          )}
                      </div>
@@ -727,7 +730,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
            <div className="container mx-auto px-4 mb-8 flex justify-between items-end">
               <SectionTitle title={state.currentCategory === Category.HOME ? 'חדשות ועדכונים' : 'מדריכים ומידע מקצועי'} isDark={isDark} />
               
-              <div className="flex gap-2">
+              <div className="hidden md:flex gap-2">
                   <button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
                   <button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
               </div>
@@ -736,7 +739,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
            <div className="container mx-auto px-4">
               <div 
                  ref={timelineScrollRef}
-                 className="flex gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x"
+                 className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x"
               >
                   {currentTimelines.map((item, index) => {
                       const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-'));
@@ -764,24 +767,24 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                           <div 
                             key={item.id} 
                             onClick={() => handleTimelineClick(item)}
-                            // Sizing adjusted to fit ~4 items on desktop (25% minus gap)
-                            className={`flex-shrink-0 w-[300px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[240px] border border-transparent ${bgClass}`}
+                            // Mobile: 120px width to show even more items. Desktop: 25%.
+                            className={`flex-shrink-0 w-[120px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[220px] md:h-[240px] border border-transparent ${bgClass}`}
                           >
-                              <div className="p-8 flex flex-col h-full relative">
+                              <div className="p-5 md:p-8 flex flex-col h-full relative">
                                   {/* Icon - Positioned absolutely or in flow */}
-                                   <div className={`absolute top-6 left-6 p-3 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>
-                                      {isGenerator ? <FileText size={24} className="text-white"/> : <ArrowLeft size={24} className=""/>}
+                                   <div className={`absolute top-4 md:top-6 left-4 md:left-6 p-2 md:p-3 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>
+                                      {isGenerator ? <FileText size={20} className="text-white"/> : <ArrowLeft size={20} className=""/>}
                                    </div>
 
                                   {/* Content - No top image */}
-                                  <div className="mt-10">
-                                       <h4 className={`text-2xl font-black mb-3 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4>
-                                       <p className={`text-sm leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p>
+                                  <div className="mt-8 md:mt-10">
+                                       <h4 className={`text-base md:text-2xl font-black mb-2 md:mb-3 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4>
+                                       <p className={`text-xs md:text-sm leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p>
                                   </div>
                                   
                                   {/* Footer link */}
                                   <div className="mt-auto pt-4 flex items-center justify-between">
-                                       <span className={`text-sm font-bold flex items-center gap-2 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>
+                                       <span className={`text-xs md:text-sm font-bold flex items-center gap-2 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>
                                           {isGenerator ? 'התחל עכשיו' : 'קרא עוד'} <ArrowLeft size={16}/>
                                        </span>
                                   </div>
@@ -914,7 +917,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
               <Reveal delay={300}>
                   <div className="flex items-center justify-between mb-10">
                      <SectionTitle title="מאמרים נבחרים" isDark={isDark} />
-                     <div className="flex gap-2">
+                     <div className="hidden md:flex gap-2">
                          <button onClick={() => scrollContainer(articlesScrollRef, 'right')} className={`p-3 border rounded-full hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMuted} ${theme.border}`}><ChevronRight size={24}/></button>
                          <button onClick={() => scrollContainer(articlesScrollRef, 'left')} className={`p-3 border rounded-full hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMuted} ${theme.border}`}><ChevronLeft size={24}/></button>
                      </div>
@@ -922,12 +925,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
                   <div 
                      ref={articlesScrollRef}
-                     className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x"
+                     className="flex gap-4 md:gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x"
                   >
                      {currentArticles.map(article => (
                         <div 
                             key={article.id} 
-                            className="flex-shrink-0 w-[320px] md:w-[calc(25%-18px)] h-[380px] snap-start"
+                            // Mobile: 180px (peeking more). Desktop: 25%.
+                            className="flex-shrink-0 w-[180px] md:w-[calc(25%-18px)] h-[300px] md:h-[380px] snap-start"
                         >
                             <ArticleCard 
                                 article={article} 
