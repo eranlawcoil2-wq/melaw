@@ -19,15 +19,11 @@ export const cloudService = {
                 }
             };
 
-            // Using no-cors might prevent reading the response, but it sends the data.
-            // For a better implementation, the Google Script returns JSONP or simple JSON with correct CORS headers.
-            // Here we assume standard fetch.
             const response = await fetch(url, {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
             
-            // With Google Apps Script Web App, a 200 or 302 usually means success even if opaque
             return true;
         } catch (e) {
             console.error("Cloud Save Error:", e);
@@ -48,6 +44,41 @@ export const cloudService = {
             return null;
         } catch (e) {
             console.warn("Could not load state from cloud (using local fallback)", e);
+            return null;
+        }
+    },
+
+    /**
+     * Uploads an image (Base64) to Google Drive via the Apps Script
+     * Returns the public URL of the image
+     */
+    async uploadImage(url: string, base64Data: string, fileName: string): Promise<string | null> {
+        try {
+            // Extract pure base64 if it has the prefix
+            const cleanBase64 = base64Data.split(',')[1] || base64Data;
+            const mimeType = base64Data.match(/data:([^;]+);/)?.[1] || 'image/jpeg';
+
+            const payload = {
+                action: 'uploadImage',
+                data: {
+                    imageData: cleanBase64,
+                    mimeType: mimeType,
+                    fileName: fileName || `image_${Date.now()}.jpg`
+                }
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (result && result.status === 'success' && result.url) {
+                return result.url;
+            }
+            return null;
+        } catch (e) {
+            console.error("Image Upload Error:", e);
             return null;
         }
     }

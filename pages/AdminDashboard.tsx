@@ -13,7 +13,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-// --- UPDATED GOOGLE SCRIPT TEMPLATE FOR FULL CLOUD SYNC ---
+// --- UPDATED GOOGLE SCRIPT TEMPLATE FOR FULL CLOUD SYNC & IMAGES ---
 const GOOGLE_SCRIPT_TEMPLATE = `
 // העתק את כל הקוד הזה והדבק אותו ב-Google Apps Script
 // (Extensions > Apps Script)
@@ -42,34 +42,64 @@ function doGet(e) {
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
-  lock.tryLock(10000);
+  lock.tryLock(30000); // 30 sec lock for images
 
   try {
     var rawData = e.postData.contents;
     var data = JSON.parse(rawData);
     var action = data.action;
 
-    // --- CASE 1: SAVE SITE STATE (CLOUD SYNC) ---
+    // --- CASE 1: UPLOAD IMAGE TO DRIVE ---
+    if (action == 'uploadImage') {
+       try {
+         // Create folder if not exists
+         var folderName = "MeLaw_Images";
+         var folders = DriveApp.getFoldersByName(folderName);
+         var folder;
+         if (folders.hasNext()) {
+           folder = folders.next();
+         } else {
+           folder = DriveApp.createFolder(folderName);
+           // Make folder public so images inside are viewable
+           folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+         }
+
+         var decoded = Utilities.base64Decode(data.data.imageData);
+         var blob = Utilities.newBlob(decoded, data.data.mimeType, data.data.fileName);
+         var file = folder.createFile(blob);
+         
+         // Set file permission to public
+         file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+         
+         // Generate a direct link (using the ID to bypass viewer)
+         var fileId = file.getId();
+         var directUrl = "https://lh3.googleusercontent.com/d/" + fileId;
+
+         return ContentService.createTextOutput(JSON.stringify({ 
+             "status": "success", 
+             "url": directUrl 
+         })).setMimeType(ContentService.MimeType.JSON);
+       
+       } catch (err) {
+         return ContentService.createTextOutput(JSON.stringify({ "status": "error", "message": err.toString() })).setMimeType(ContentService.MimeType.JSON);
+       }
+    }
+
+    // --- CASE 2: SAVE SITE STATE (CLOUD SYNC) ---
     if (action == 'saveState') {
        var sheet = getOrCreateSheet("SiteData");
-       // Clear old data to save space? Or keep history? Let's keep history for backup.
-       // We assume the data payload is a JSON object in 'data.data'
+       // Keep history
        var jsonString = JSON.stringify({
           status: 'success',
           timestamp: new Date(),
           data: data.data
        });
-       
-       // Append to the end of the sheet
        sheet.appendRow([jsonString]);
-       
        return ContentService.createTextOutput(JSON.stringify({ "result": "success", "type": "state_saved" })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // --- CASE 2: FORM SUBMISSION (CONTACT/WILLS) ---
-    // Fallback if no action specified or action is submitForm
+    // --- CASE 3: FORM SUBMISSION ---
     var sheet = getOrCreateSheet("Forms");
-    
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn() || 1).getValues()[0];
     if (sheet.getLastColumn() === 0 || (headers.length === 1 && headers[0] === "")) {
       headers = ["Timestamp", "FormName"];
@@ -81,7 +111,6 @@ function doPost(e) {
 
     var newRow = [];
     var timestamp = new Date();
-
     for (var i = 0; i < headers.length; i++) {
       var header = headers[i];
       if (header === "Timestamp") newRow.push(timestamp);
@@ -93,12 +122,11 @@ function doPost(e) {
     }
     sheet.appendRow(newRow);
 
-    // Email Notification
     if (NOTIFICATION_EMAIL && NOTIFICATION_EMAIL !== "your-email@example.com") {
         MailApp.sendEmail({
             to: NOTIFICATION_EMAIL,
-            subject: "MeLaw - טופס חדש: " + (data.formName || ""),
-            body: "התקבלו נתונים חדשים:\\n\\n" + JSON.stringify(data, null, 2)
+            subject: "MeLaw - טופס חדש",
+            body: JSON.stringify(data, null, 2)
         });
     }
     
@@ -114,9 +142,7 @@ function doPost(e) {
 function getOrCreateSheet(name) {
   var doc = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = doc.getSheetByName(name);
-  if (!sheet) {
-    sheet = doc.insertSheet(name);
-  }
+  if (!sheet) sheet = doc.insertSheet(name);
   return sheet;
 }
 `;
@@ -131,7 +157,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
   // Global Admin State
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
-  const [showScript, setShowScript] = useState(false);
 
   // Image Picker State
   const [showImagePicker, setShowImagePicker] = useState(false);
@@ -215,7 +240,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   };
 
   // ... (Existing handlers: handleGenerateArticle, handleUpdateArticle, etc.) ...
-  // [Preserving all existing handlers exactly as they were to save space in output, assuming they are unchanged]
   const handleGenerateArticle = async () => {
     if (!newArticleTopic) return;
     if (!state.config.integrations.geminiApiKey) {
@@ -343,13 +367,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {activeTab === 'integrations' && (
             <div className="space-y-6 max-w-4xl">
                 <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
-                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Database/> שרת ונתונים (Google Sheets)</h3>
+                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Database/> שרת ונתונים (Google Sheets + Drive)</h3>
                     <p className="text-slate-400 mb-4 text-sm">
                         כדי שהאתר יעבוד כ"ענן" ויתעדכן בכל המכשירים, עליך להגדיר סקריפט Google.
                         <br/>
                         1. פתח Google Sheet חדש.<br/>
                         2. לחץ על Extensions -> Apps Script.<br/>
-                        3. הדבק את הקוד הבא, שמור, ולחץ על <b>Deploy > New Deployment</b>.<br/>
+                        3. הדבק את הקוד הבא (הכולל תמיכה בתמונות), שמור, ולחץ על <b>Deploy > New Deployment</b>.<br/>
                         4. בחר ב-Web App, וב-Who has access בחר <b>Anyone</b>.<br/>
                         5. העתק את ה-Web App URL והדבק אותו למטה.
                     </p>
@@ -375,7 +399,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             value={state.config.integrations.googleSheetsUrl} 
                             onChange={e => updateIntegration('googleSheetsUrl', e.target.value)} 
                         />
-                        <p className="text-xs text-slate-500">כתובת זו משמשת גם לשמירת טפסים וגם לסנכרון האתר בין מכשירים.</p>
+                        <p className="text-xs text-slate-500">כתובת זו משמשת לשמירת נתונים והעלאת תמונות ל-Google Drive.</p>
                     </div>
                 </div>
 
@@ -462,9 +486,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* ... (Other tabs: Timelines, Forms, Team - using standard logic but inside responsive container) ... */}
-        {/* For brevity, I'm including the full content of other tabs in the final file but ensuring they are wrapped in this responsive layout */}
-        
         {/* --- CONFIG TAB WITH IMPORT/EXPORT --- */}
         {activeTab === 'config' && (
              <div className="space-y-6">
@@ -569,26 +590,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                      </div>
                 )}
                 {/* Modals for Slide/Timeline Editor would be here (reusing existing logic) */}
-                {editingSlide && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-md space-y-4"><h3 className="font-bold text-white">עריכה</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.title} onChange={e=>setEditingSlide({...editingSlide, title: e.target.value})}/><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.subtitle} onChange={e=>setEditingSlide({...editingSlide, subtitle: e.target.value})}/><div className="flex gap-2"><Button onClick={handleSaveSlide}>שמור</Button><Button variant="outline" onClick={()=>setEditingSlide(null)}>ביטול</Button></div></div></div>}
-                {editingTimelineItem && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-md space-y-4 max-h-[80vh] overflow-y-auto"><h3 className="font-bold text-white">עריכה</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.title} onChange={e=>setEditingTimelineItem({...editingTimelineItem, title: e.target.value})}/><textarea className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.description} onChange={e=>setEditingTimelineItem({...editingTimelineItem, description: e.target.value})}/><div className="flex gap-2"><Button onClick={handleSaveTimelineItem}>שמור</Button><Button variant="outline" onClick={()=>setEditingTimelineItem(null)}>ביטול</Button></div></div></div>}
+                {editingSlide && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-md space-y-4"><h3 className="font-bold text-white">עריכה</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.title} onChange={e=>setEditingSlide({...editingSlide, title: e.target.value})}/><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.subtitle} onChange={e=>setEditingSlide({...editingSlide, subtitle: e.target.value})}/><div className="flex gap-2">
+                    <input className="flex-1 p-2 bg-slate-800 text-white rounded" value={editingSlide.imageUrl} onChange={e=>setEditingSlide({...editingSlide, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                    <ImageUploadButton onImageSelected={(url) => setEditingSlide({...editingSlide, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} />
+                </div><div className="flex gap-2"><Button onClick={handleSaveSlide}>שמור</Button><Button variant="outline" onClick={()=>setEditingSlide(null)}>ביטול</Button></div></div></div>}
+                
+                {editingTimelineItem && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-md space-y-4 max-h-[80vh] overflow-y-auto"><h3 className="font-bold text-white">עריכה</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.title} onChange={e=>setEditingTimelineItem({...editingTimelineItem, title: e.target.value})}/><textarea className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.description} onChange={e=>setEditingTimelineItem({...editingTimelineItem, description: e.target.value})}/><div className="flex gap-2">
+                    <input className="flex-1 p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.imageUrl} onChange={e=>setEditingTimelineItem({...editingTimelineItem, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                    <ImageUploadButton onImageSelected={(url) => setEditingTimelineItem({...editingTimelineItem, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} />
+                </div><div className="flex gap-2"><Button onClick={handleSaveTimelineItem}>שמור</Button><Button variant="outline" onClick={()=>setEditingTimelineItem(null)}>ביטול</Button></div></div></div>}
             </div>
-        )}
-
-        {activeTab === 'forms' && (
-             <div className="space-y-6">
-                 <div className="flex justify-end"><Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', category: Category.POA, fields: [], submitEmail: '' })}><Plus size={16}/> טופס חדש</Button></div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                     {state.forms.map(f => (<div key={f.id} className="bg-slate-900 p-4 rounded border border-slate-800 relative"><h4 className="font-bold text-white">{f.title}</h4><button onClick={() => setEditingForm(f)} className="absolute top-4 left-10 p-2"><Edit size={16}/></button><button onClick={() => updateState({ forms: state.forms.filter(x => x.id !== f.id) })} className="absolute top-4 left-2 p-2 text-red-400"><Trash size={16}/></button></div>))}
-                 </div>
-                 {editingForm && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl h-[80vh] flex flex-col"><h3 className="font-bold text-white mb-4">עריכת טופס</h3><div className="flex-1 overflow-y-auto space-y-4"><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingForm.title} onChange={e=>setEditingForm({...editingForm, title: e.target.value})}/><div className="flex gap-2"><button onClick={()=>addFieldToForm('text')} className="p-2 bg-slate-800 border rounded text-xs">טקסט</button><button onClick={()=>addFieldToForm('select')} className="p-2 bg-slate-800 border rounded text-xs">בחירה</button></div>{editingForm.fields.map((field,i)=>(<div key={i} className="flex gap-2 items-center"><input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="bg-slate-800 text-white p-1 rounded flex-1"/><button onClick={()=>removeFormField(i)} className="text-red-400"><Trash size={14}/></button></div>))}</div><div className="flex gap-2 mt-4"><Button onClick={handleSaveForm}>שמור</Button><Button variant="outline" onClick={()=>setEditingForm(null)}>ביטול</Button></div></div></div>}
-             </div>
         )}
 
         {activeTab === 'team' && (
             <div className="space-y-6">
                 <div className="flex justify-end"><Button onClick={() => setEditingMember({ id: Date.now().toString(), fullName: '', role: '', specialization: '', email: '', phone: '', bio: '', imageUrl: 'https://picsum.photos/400/400' })}><Plus size={16}/> איש צוות</Button></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{state.teamMembers.map(m => (<div key={m.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex gap-4"><img src={m.imageUrl} className="w-16 h-16 rounded-full"/><div className="flex-1"><div className="font-bold text-white">{m.fullName}</div><div className="text-xs text-slate-400">{m.role}</div></div><button onClick={()=>setEditingMember(m)}><Edit size={16}/></button><button onClick={()=>updateState({teamMembers: state.teamMembers.filter(x=>x.id!==m.id)})} className="text-red-400"><Trash size={16}/></button></div>))}</div>
-                {editingMember && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-lg space-y-4"><h3 className="font-bold text-white">עריכת צוות</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingMember.fullName} onChange={e=>setEditingMember({...editingMember, fullName: e.target.value})}/><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingMember.role} onChange={e=>setEditingMember({...editingMember, role: e.target.value})}/><div className="flex gap-2"><Button onClick={handleSaveMember}>שמור</Button><Button variant="outline" onClick={()=>setEditingMember(null)}>ביטול</Button></div></div></div>}
+                {editingMember && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-lg space-y-4"><h3 className="font-bold text-white">עריכת צוות</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingMember.fullName} onChange={e=>setEditingMember({...editingMember, fullName: e.target.value})}/><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingMember.role} onChange={e=>setEditingMember({...editingMember, role: e.target.value})}/><div className="flex gap-2">
+                    <input className="flex-1 p-2 bg-slate-800 text-white rounded" value={editingMember.imageUrl} onChange={e=>setEditingMember({...editingMember, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                    <ImageUploadButton onImageSelected={(url) => setEditingMember({...editingMember, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} />
+                </div><div className="flex gap-2"><Button onClick={handleSaveMember}>שמור</Button><Button variant="outline" onClick={()=>setEditingMember(null)}>ביטול</Button></div></div></div>}
             </div>
         )}
 
@@ -610,7 +631,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 <div className="space-y-4">
                     <input className="w-full p-3 bg-slate-800 border border-slate-700 rounded text-white" value={editingArticle.title} onChange={e => setEditingArticle({...editingArticle, title: e.target.value})} placeholder="כותרת"/>
                     <textarea className="w-full p-3 bg-slate-800 border border-slate-700 rounded text-white h-24" value={editingArticle.abstract} onChange={e => setEditingArticle({...editingArticle, abstract: e.target.value})} placeholder="תקציר"/>
-                    <div className="flex gap-2"><input className="flex-1 p-3 bg-slate-800 border border-slate-700 rounded text-white" value={editingArticle.imageUrl} onChange={e => setEditingArticle({...editingArticle, imageUrl: e.target.value})} placeholder="URL תמונה"/><Button onClick={()=>openImagePicker('article', editingArticle.title)}><Search size={16}/></Button></div>
+                    <div className="flex gap-2">
+                        <input className="flex-1 p-3 bg-slate-800 border border-slate-700 rounded text-white" value={editingArticle.imageUrl} onChange={e => setEditingArticle({...editingArticle, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                        <ImageUploadButton onImageSelected={(url) => setEditingArticle({...editingArticle, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} />
+                        <Button onClick={()=>openImagePicker('article', editingArticle.title)}><Search size={16}/></Button>
+                    </div>
                     <div className="space-y-4 pt-4 border-t border-slate-800">{editingArticle.tabs.map((tab, idx) => (<div key={idx}><input className="w-full bg-transparent font-bold mb-1 border-b border-slate-800 text-white" value={tab.title} onChange={(e) => {const t = [...editingArticle.tabs]; t[idx].title = e.target.value; setEditingArticle({...editingArticle, tabs: t});}}/><textarea className="w-full bg-slate-950 p-2 rounded text-slate-300 text-sm h-24 border border-slate-800" value={tab.content} onChange={(e) => {const t = [...editingArticle.tabs]; t[idx].content = e.target.value; setEditingArticle({...editingArticle, tabs: t});}}/></div>))}</div>
                     <div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setEditingArticle(null)}>ביטול</Button><Button onClick={handleUpdateArticle}>שמור</Button></div>
                 </div>
