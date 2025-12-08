@@ -267,7 +267,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       {selectedArticle && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setSelectedArticle(null)}></div>
-            <div className={`md:rounded-2xl shadow-2xl w-full max-w-6xl h-full md:h-[90vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
+            <div className={`md:rounded-2xl shadow-2xl w-full max-w-6xl h-full md:h-[80vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
                 <div className={`hidden md:block w-1/4 h-full relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                     <img src={selectedArticle.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-70" />
                     <div className={`absolute inset-0 bg-gradient-to-t ${isDark ? 'from-slate-900' : 'from-white'} to-transparent`}></div>
@@ -285,45 +285,55 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             <span className="text-xs font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-1 rounded border border-[#2EB0D9]/20 mb-2 inline-block">
                                 {CATEGORY_LABELS[selectedArticle.category]}
                             </span>
-                            <h2 className={`text-2xl md:text-4xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
+                            <h2 className={`text-2xl md:text-3xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
                         </div>
                         <button onClick={() => setSelectedArticle(null)} className={`p-2 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={24} /></button>
                     </div>
-                    <div className={`px-6 md:px-8 pt-6 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+                    <div className={`px-6 md:px-8 pt-4 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                         <div className={`flex gap-2 border-b overflow-x-auto ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                             {selectedArticle.tabs.map((tab, idx) => (
-                                <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-6 py-3 text-sm md:text-base font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white shadow-lg shadow-[#2EB0D9]/20 translate-y-[1px]' : `${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'} hover:opacity-80`}`}>{tab.title}</button>
+                                <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-6 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white shadow-lg shadow-[#2EB0D9]/20 translate-y-[1px]' : `${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'} hover:opacity-80`}`}>{tab.title}</button>
                             ))}
                         </div>
                     </div>
-                    {/* SCROLLBAR HIDDEN HERE */}
-                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto scrollbar-hide">
-                        <div className="p-6 md:p-12 min-h-full flex flex-col">
+                    {/* SCROLLBAR HIDDEN HERE WITH INLINE STYLE FALLBACK */}
+                    <div 
+                        ref={articleContentTopRef} 
+                        className="flex-1 overflow-y-auto scrollbar-hide"
+                        style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}
+                    >
+                        {/* Hidden Scrollbar Webkit Style */}
+                        <style>{`
+                            .scrollbar-hide::-webkit-scrollbar {
+                                display: none;
+                            }
+                        `}</style>
+                        <div className="p-6 md:p-10 min-h-full flex flex-col">
                             <div className="md:hidden mb-6 rounded-xl overflow-hidden h-48 relative flex-shrink-0">
                                 <img src={selectedArticle.imageUrl} className="w-full h-full object-cover" alt=""/>
                             </div>
-                            <div className={`prose max-w-none leading-relaxed text-lg md:text-xl mb-12 ${theme.textMain}`}>
+                            <div className={`prose max-w-none leading-relaxed text-lg mb-8 ${theme.textMain}`}>
                                 {activeTabContent.split('\n').map((paragraph, i) => (
                                     <p key={i} className="mb-4">{paragraph}</p>
                                 ))}
                             </div>
                             {relatedArticles.length > 0 && (
-                                <div className={`mt-auto border-t pt-8 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
-                                    <h4 className={`text-xl font-bold mb-6 flex items-center gap-2 ${theme.textTitle}`}>
-                                        <span className="w-1 h-6 bg-[#2EB0D9] rounded-full"></span>
+                                <div className={`mt-auto border-t pt-6 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+                                    <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${theme.textTitle}`}>
+                                        <span className="w-1 h-5 bg-[#2EB0D9] rounded-full"></span>
                                         עוד בנושא {CATEGORY_LABELS[selectedArticle.category]}
                                     </h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {relatedArticles.map(relArticle => (
                                             <div key={relArticle.id} onClick={() => setSelectedArticle(relArticle)} className={`group cursor-pointer flex gap-3 items-center p-2 rounded-lg hover:bg-black/5 transition-colors border ${theme.cardBg} hover:border-[#2EB0D9]/50`}>
-                                                <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                                                <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
                                                     <img src={relArticle.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform opacity-80 group-hover:opacity-100" alt=""/>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <h5 className={`font-bold text-sm leading-tight mb-1 truncate group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{relArticle.title}</h5>
-                                                    <p className={`text-xs line-clamp-1 ${theme.textMuted}`}>לחץ לקריאה</p>
+                                                    <h5 className={`font-bold text-xs leading-tight mb-1 truncate group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{relArticle.title}</h5>
+                                                    <p className={`text-[10px] line-clamp-1 ${theme.textMuted}`}>לחץ לקריאה</p>
                                                 </div>
-                                                <ArrowLeft size={16} className={`group-hover:text-[#2EB0D9] group-hover:-translate-x-1 transition-all ${theme.textMuted}`}/>
+                                                <ArrowLeft size={14} className={`group-hover:text-[#2EB0D9] group-hover:-translate-x-1 transition-all ${theme.textMuted}`}/>
                                             </div>
                                         ))}
                                     </div>

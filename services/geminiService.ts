@@ -22,9 +22,9 @@ export const generateArticleContent = async (topic: string, category: Category |
       abstract: `זהו תקציר שנוצר אוטומטית (מצב דמו) עבור הנושא: "${topic}". כדי לקבל תוכן אמיתי, אנא הזן מפתח API של Gemini בממשק הניהול.`,
       quote: "המשפט הוא מעוז החלש ומגן היתום.",
       tabs: [
-        { title: "המסגרת הנורמטיבית", content: `בחלק זה נסקור את החוקים הרלוונטיים לנושא ${topic}. (תוכן זה הוא דוגמה בלבד מכיוון שלא הוזן מפתח API תקין).` },
-        { title: "פסיקה עדכנית", content: "בתי המשפט דנו בסוגיה זו לאחרונה וקבעו הלכות חדשות. חשוב להכיר את פסקי הדין המנחים." },
-        { title: "המלצות מעשיות", content: "מומלץ להיוועץ בעורך דין מומחה בטרם נקיטת פעולה." }
+        { title: "הסבר משפטי", content: `בחלק זה נסקור את העקרונות הרלוונטיים לנושא ${topic} בצורה בהירה ומקצועית. (תוכן דמו).` },
+        { title: "דוגמאות מהחיים", content: "מקרה שהיה: בני זוג שלא ערכו הסכם ונאלצו להתמודד עם..." },
+        { title: "מה חשוב לרשום", content: "• סעיף ראשון חשוב\n• סעיף שני חשוב" }
       ]
   });
 
@@ -35,25 +35,25 @@ export const generateArticleContent = async (topic: string, category: Category |
     if (!ai) throw new Error("No API Key Provided");
 
     const prompt = `
-      You are an expert, senior Israeli attorney (עורך דין בכיר בישראל) specializing in Family Law, Inheritance, Real Estate, and Torts.
-      Your task is to write a high-quality, comprehensive, and persuasive legal article in Hebrew about: "${topic}".
+      You are a top-tier, sharp, and charismatic Israeli attorney (עורך דין תותח, כריזמטי ומקצועי).
+      Your task is to write a powerful legal article in Hebrew about: "${topic}".
 
       Category Context: ${category === 'ALL' ? 'General Law' : category}
 
       CRITICAL INSTRUCTIONS:
-      1.  **Real Legal Content:** Do NOT write "consult a lawyer" as the main content. Write the ACTUAL legal explanation.
-      2.  **Definitions:** Explain clearly who falls under this definition (e.g., if the topic is "Common Law Partners/Yeduim BeTzibur", explain the legal criteria: joint household, financial interdependence, living together).
-      3.  **Conflicts & Precedents:** Describe REAL conflicts that happen when people don't take action. Mention what happens in court (e.g., family fighting over assets, disinheritance of partners).
-      4.  **Actionable Advice:** Provide a bulleted list of exactly what needs to be written in the legal document/will.
+      1.  **Expert Tone:** Write with confidence and authority. Be sharp. Explain the logic, not just the rules.
+      2.  **NO Law Citations:** Do NOT cite specific section numbers (e.g., do NOT write "According to Section 8(a) of the Inheritance Law"). Instead, explain the *principle* ("The law determines that..."). Keep it readable.
+      3.  **Mandatory Examples Tab:** You MUST include a tab with real-life scenarios/examples (stories of what happens when things go wrong vs right).
+      4.  **Practical Checklist:** The final tab must be actionable points for the client.
 
       Structure the response as a JSON object with:
-      - title: Professional and catchy title in Hebrew.
-      - abstract: A compelling summary (3-4 sentences) explaining why this topic is critical and risky if ignored.
-      - quote: A powerful sentence regarding the importance of planning ahead (in Hebrew).
-      - tabs: An array of exactly 3 objects with specific keys:
-        - Tab 1 Title: "הגדרה וחוק" (Definitions & Law). Content: Detailed legal explanation, criteria, and reference to Israeli laws (Law of Inheritance, etc).
-        - Tab 2 Title: "סכסוכים נפוצים" (Common Conflicts). Content: Explain the risks. Stories of cases where things went wrong because there was no will/agreement.
-        - Tab 3 Title: "מה חשוב לרשום?" (What to Include). Content: A practical guide/checklist. Use bullet points (•) for the list.
+      - title: A sharp, professional title in Hebrew.
+      - abstract: A punchy summary (3-4 sentences) that makes the reader realize they need to act.
+      - quote: A powerful, sophisticated sentence/motto related to the topic (in Hebrew).
+      - tabs: An array of exactly 3 objects with these specific titles:
+        - Tab 1 Title: "הסבר משפטי" (Legal Explanation). Content: The core legal argument. Why is this important? What is the logic? (No dry statute numbers).
+        - Tab 2 Title: "דוגמאות מהחיים" (Real Life Examples). Content: "Imagine a case where..." or "A common mistake is...". Concrete stories illustrating definitions (like Yeduim BeTzibur) or conflicts.
+        - Tab 3 Title: "מה חשוב לרשום" (What to Include). Content: A bulleted list (•) of essential clauses or actions.
     `;
 
     const response = await ai.models.generateContent({
