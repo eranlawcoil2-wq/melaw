@@ -697,6 +697,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                      <pre className="bg-slate-900 p-4 rounded border border-slate-800 text-xs font-mono text-green-400 overflow-x-auto select-all" dir="ltr">
                                          {GOOGLE_SCRIPT_TEMPLATE}
                                      </pre>
+
+                                     {/* NEW: Step-by-Step Instructions */}
+                                     <div className="mt-4 bg-slate-950 p-4 rounded border border-slate-700 text-slate-300 text-sm">
+                                         <h5 className="font-bold text-[#2EB0D9] mb-2">הוראות התקנה (צעד-אחר-צעד):</h5>
+                                         <ol className="list-decimal list-inside space-y-1">
+                                             <li>פתח את Google Sheets, לחץ על <b>Extensions</b> ואז <b>Apps Script</b>.</li>
+                                             <li>מחק את הקוד הקיים והדבק את הקוד שלמעלה.</li>
+                                             <li>לחץ על <b>Deploy</b> (כפתור כחול למעלה) ואז <b>New deployment</b>.</li>
+                                             <li>בצד שמאל, לחץ על גלגל השיניים ובחר <b>Web app</b>.</li>
+                                             <li>בשדה <b>Description</b> כתוב "MeLaw Form".</li>
+                                             <li>בשדה <b>Execute as</b> בחר <b>Me</b>.</li>
+                                             <li><span className="text-red-400 font-bold">חשוב מאוד:</span> בשדה <b>Who has access</b> בחר <b>Anyone</b>.</li>
+                                             <li>לחץ <b>Deploy</b>, אשר את ההרשאות (Authorise access), והעתק את ה-<b>Web App URL</b>.</li>
+                                             <li>הדבק את הכתובת שהעתקת בשדה "Google Apps Script Web App URL" כאן למעלה.</li>
+                                         </ol>
+                                     </div>
                                  </div>
                              )}
                         </div>

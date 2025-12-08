@@ -280,7 +280,7 @@ const App: React.FC = () => {
                 />
                 <input 
                     type="password" 
-                    placeholder="סיסמא (admin)" 
+                    placeholder="רמז: ת.ז." 
                     className="w-full p-3 border border-slate-700 rounded mb-6 bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9] outline-none" 
                     value={loginPass}
                     onChange={e => setLoginPass(e.target.value)}
