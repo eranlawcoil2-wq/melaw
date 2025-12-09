@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { MessageCircle, Accessibility, X, Type, Eye, PauseCircle } from 'lucide-react';
 import { ShareMenu } from './ShareMenu.tsx';
 
-export const FloatingWidgets: React.FC = () => {
+interface FloatingWidgetsProps {
+  version?: string;
+}
+
+export const FloatingWidgets: React.FC<FloatingWidgetsProps> = ({ version }) => {
   const [showAccess, setShowAccess] = useState(false);
   const [largeText, setLargeText] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
@@ -36,6 +40,13 @@ export const FloatingWidgets: React.FC = () => {
 
   return (
     <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3 items-start">
+      {/* Version Badge - Temporary */}
+      {version && (
+        <div className="bg-slate-800 text-[10px] text-white py-1 px-2 rounded-md shadow-lg border border-slate-700 mb-1 opacity-80 hover:opacity-100 cursor-default">
+            {version}
+        </div>
+      )}
+
       {/* WhatsApp */}
       <a 
         href="https://wa.me/" 

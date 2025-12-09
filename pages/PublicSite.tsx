@@ -47,9 +47,10 @@ interface PublicSiteProps {
   onCategoryChange: (cat: Category) => void;
   onWillsFormSubmit: (data: WillsFormData) => void;
   onAdminClick?: () => void;
+  version?: string;
 }
 
-export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange, onWillsFormSubmit, onAdminClick }) => {
+export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange, onWillsFormSubmit, onAdminClick, version }) => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
@@ -727,10 +728,12 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                     <div className="col-span-1"><div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800"><iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.6, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe></div></div>
                 </div>
                 <div className="container mx-auto px-4 pt-8 border-t border-slate-900 text-center text-sm text-slate-600">&copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO.</div>
+                {/* Public Version Badge (Hidden normally, but visible on footer for now) */}
+                <div className="text-center text-[10px] text-slate-800 mt-2">{version}</div>
             </footer>
         )}
       </main>
-      <FloatingWidgets />
+      <FloatingWidgets version={version} />
     </div>
   );
 };

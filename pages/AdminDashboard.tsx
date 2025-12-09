@@ -11,6 +11,7 @@ interface AdminDashboardProps {
   state: AppState;
   updateState: (newState: Partial<AppState>) => void;
   onLogout: () => void;
+  version?: string;
 }
 
 // --- UPDATED GOOGLE SCRIPT TEMPLATE FOR FULL CLOUD SYNC & IMAGES ---
@@ -144,7 +145,7 @@ function getOrCreateSheet(name) {
 }
 `;
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout, version }) => {
   const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'timelines' | 'forms' | 'team'>('articles');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Mobile sidebar state
   const [isSavingToCloud, setIsSavingToCloud] = useState(false); // Cloud save loading state
@@ -328,7 +329,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       {/* Sidebar - Responsive */}
       <aside className={`fixed h-full right-0 z-50 w-64 bg-slate-900 border-l border-slate-800 flex flex-col transition-transform duration-300 transform ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-white"><span className="text-[#2EB0D9]">Me</span>Law Admin</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-white"><span className="text-[#2EB0D9]">Me</span>Law Admin</h2>
+            {version && <span className="text-[10px] text-slate-500 font-mono bg-black/30 px-1 rounded">{version}</span>}
+          </div>
           <button className="md:hidden text-slate-400" onClick={() => setMobileMenuOpen(false)}><X/></button>
         </div>
         

@@ -5,6 +5,9 @@ import { AppState, Category, WillsFormData, FormDefinition, TeamMember, Article,
 import { cloudService } from './services/api.ts';
 import { Loader2 } from 'lucide-react';
 
+// --- VERSION CONTROL ---
+const APP_VERSION = 'v1.0';
+
 // --- INITIAL DEFAULT DATA (Fallback) ---
 const initialArticles: Article[] = [
   {
@@ -175,8 +178,8 @@ const defaultState: AppState = {
     teamMembers: initialTeamMembers,
 };
 
-// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v6
-const STORAGE_KEY = 'melaw_site_data_v6';
+// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v1.0
+const STORAGE_KEY = `melaw_site_data_${APP_VERSION}`;
 
 const App: React.FC = () => {
   const [loadingCloud, setLoadingCloud] = useState(false);
@@ -347,6 +350,7 @@ const App: React.FC = () => {
             state={appState} 
             updateState={handleUpdateState} 
             onLogout={() => { handleUpdateState({ isAdminLoggedIn: false }); setIsAdminView(false); }}
+            version={APP_VERSION}
          />
       ) : (
          <PublicSite 
@@ -354,6 +358,7 @@ const App: React.FC = () => {
             onCategoryChange={(cat) => handleUpdateState({ currentCategory: cat })}
             onWillsFormSubmit={handleWillsSubmit}
             onAdminClick={() => setIsAdminView(true)}
+            version={APP_VERSION}
          />
       )}
     </div>
