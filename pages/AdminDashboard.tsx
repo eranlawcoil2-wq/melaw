@@ -5,7 +5,8 @@ import { generateArticleContent } from '../services/geminiService.ts';
 import { ImagePickerModal } from '../components/ImagePickerModal.tsx'; 
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search } from 'lucide-react';
+import { dbService } from '../services/supabase.ts';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -13,137 +14,6 @@ interface AdminDashboardProps {
   onLogout: () => void;
   version?: string;
 }
-
-// --- UPDATED GOOGLE SCRIPT TEMPLATE FOR FULL CLOUD SYNC & IMAGES ---
-const GOOGLE_SCRIPT_TEMPLATE = `
-// העתק את כל הקוד הזה והדבק אותו ב-Google Apps Script
-// (Extensions > Apps Script)
-
-const NOTIFICATION_EMAIL = "your-email@example.com"; 
-
-function doGet(e) {
-  var action = e && e.parameter ? e.parameter.action : '';
-  
-  // אם הבקשה היא לקבלת סטייט (טעינת האתר)
-  if (action == 'getState') {
-    var sheet = getOrCreateSheet("SiteData");
-    var lastRow = sheet.getLastRow();
-    
-    if (lastRow > 0) {
-      // אנחנו שומרים את ה-JSON בתא האחרון בעמודה A
-      var data = sheet.getRange(lastRow, 1).getValue();
-      return ContentService.createTextOutput(data).setMimeType(ContentService.MimeType.JSON);
-    } else {
-      return ContentService.createTextOutput(JSON.stringify({status: 'empty'})).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-
-  return ContentService.createTextOutput("MeLaw Server Active");
-}
-
-function doPost(e) {
-  var lock = LockService.getScriptLock();
-  lock.tryLock(30000); // 30 sec lock for images
-
-  try {
-    var rawData = e.postData.contents;
-    var data = JSON.parse(rawData);
-    var action = data.action;
-
-    // --- CASE 1: UPLOAD IMAGE TO DRIVE ---
-    if (action == 'uploadImage') {
-       try {
-         // Create folder if not exists
-         var folderName = "MeLaw_Images";
-         var folders = DriveApp.getFoldersByName(folderName);
-         var folder;
-         if (folders.hasNext()) {
-           folder = folders.next();
-         } else {
-           folder = DriveApp.createFolder(folderName);
-           folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-         }
-
-         var decoded = Utilities.base64Decode(data.data.imageData);
-         var blob = Utilities.newBlob(decoded, data.data.mimeType, data.data.fileName);
-         var file = folder.createFile(blob);
-         file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-         
-         // Generate a direct link
-         var fileId = file.getId();
-         var directUrl = "https://lh3.googleusercontent.com/d/" + fileId;
-
-         return ContentService.createTextOutput(JSON.stringify({ 
-             "status": "success", 
-             "url": directUrl 
-         })).setMimeType(ContentService.MimeType.JSON);
-       
-       } catch (err) {
-         return ContentService.createTextOutput(JSON.stringify({ "status": "error", "message": err.toString() })).setMimeType(ContentService.MimeType.JSON);
-       }
-    }
-
-    // --- CASE 2: SAVE SITE STATE (CLOUD SYNC) ---
-    if (action == 'saveState') {
-       var sheet = getOrCreateSheet("SiteData");
-       // Keep history
-       var jsonString = JSON.stringify({
-          status: 'success',
-          timestamp: new Date(),
-          data: data.data
-       });
-       sheet.appendRow([jsonString]);
-       return ContentService.createTextOutput(JSON.stringify({ "result": "success", "type": "state_saved" })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // --- CASE 3: FORM SUBMISSION ---
-    var sheet = getOrCreateSheet("Forms");
-    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn() || 1).getValues()[0];
-    if (sheet.getLastColumn() === 0 || (headers.length === 1 && headers[0] === "")) {
-      headers = ["Timestamp", "FormName"];
-      for (var key in data) {
-        if (key !== "Timestamp" && key !== "FormName" && key !== "action") headers.push(key);
-      }
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    }
-
-    var newRow = [];
-    var timestamp = new Date();
-    for (var i = 0; i < headers.length; i++) {
-      var header = headers[i];
-      if (header === "Timestamp") newRow.push(timestamp);
-      else if (header === "FormName") newRow.push(data.formName || "Unknown");
-      else {
-        var val = data[header];
-        newRow.push(typeof val === 'object' ? JSON.stringify(val) : (val || ""));
-      }
-    }
-    sheet.appendRow(newRow);
-
-    if (NOTIFICATION_EMAIL && NOTIFICATION_EMAIL !== "your-email@example.com") {
-        MailApp.sendEmail({
-            to: NOTIFICATION_EMAIL,
-            subject: "MeLaw - טופס חדש",
-            body: JSON.stringify(data, null, 2)
-        });
-    }
-    
-    return ContentService.createTextOutput(JSON.stringify({ "result": "success" })).setMimeType(ContentService.MimeType.JSON);
-
-  } catch (e) {
-    return ContentService.createTextOutput(JSON.stringify({ "result": "error", "error": e.toString() })).setMimeType(ContentService.MimeType.JSON);
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function getOrCreateSheet(name) {
-  var doc = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = doc.getSheetByName(name);
-  if (!sheet) sheet = doc.insertSheet(name);
-  return sheet;
-}
-`;
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout, version }) => {
   const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'timelines' | 'forms' | 'team'>('articles');
@@ -177,26 +47,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   // Timeline Item State
   const [editingTimelineItem, setEditingTimelineItem] = useState<TimelineItem | null>(null);
 
-  const isCloudConnected = state.config.integrations.googleSheetsUrl && state.config.integrations.googleSheetsUrl.includes("script.google.com");
+  const isSupabaseConfigured = state.config.integrations.supabaseUrl && state.config.integrations.supabaseKey;
+  const isGoogleSheetsConfigured = state.config.integrations.googleSheetsUrl && state.config.integrations.googleSheetsUrl.includes("script.google.com");
+  
+  const isCloudConnected = isSupabaseConfigured || isGoogleSheetsConfigured;
 
-  // --- CLOUD SAVE HANDLER ---
+  // --- CLOUD SAVE HANDLER (Unified) ---
   const handleSaveToCloud = async () => {
-      const url = state.config.integrations.googleSheetsUrl;
-      if (!url || !url.includes("script.google.com")) {
-          alert("שגיאה: לא הוגדר קישור תקין ל-Google Script בלשונית אינטגרציות. \nנא להגדיר זאת כדי שאנשים אחרים יוכלו לראות את השינויים.");
+      if (!isCloudConnected) {
+          alert("שגיאה: לא הוגדר חיבור למסד נתונים (Supabase) או ענן (Google).\nאנא עבור ללשונית 'חיבורים' והגדר את החיבור.");
           setActiveTab('integrations');
           return;
       }
       
-      if (!confirm("האם אתה בטוח שברצונך לפרסם את כל השינויים? זה יעדכן את האתר בכל המכשירים.")) return;
-
       setIsSavingToCloud(true);
       try {
-          const success = await cloudService.saveStateToCloud(url, state);
-          if (success) {
-              alert("האתר עודכן בהצלחה בענן! השינויים יופיעו בכל המכשירים בטעינה הבאה.");
-          } else {
-              alert("אירעה שגיאה בשמירה לענן. וודא שהסקריפט מותקן כראוי.");
+          // Priority 1: Supabase
+          if (isSupabaseConfigured) {
+              const success = await dbService.saveState(
+                  state.config.integrations.supabaseUrl, 
+                  state.config.integrations.supabaseKey, 
+                  state
+              );
+              if (success) {
+                  alert("האתר נשמר בהצלחה במסד הנתונים! השינויים יופיעו מיד בכל המכשירים.");
+              } else {
+                  alert("שגיאה בשמירה ל-Supabase. בדוק את המפתחות.");
+              }
+          } 
+          // Priority 2: Google Sheets (Legacy)
+          else if (isGoogleSheetsConfigured) {
+              const success = await cloudService.saveStateToCloud(state.config.integrations.googleSheetsUrl, state);
+              if (success) {
+                   alert("האתר עודכן בהצלחה בענן (Google)! השינויים יופיעו בטעינה הבאה.");
+              } else {
+                   alert("שגיאה בשמירה לענן.");
+              }
           }
       } catch (e) {
           alert("שגיאת תקשורת.");
@@ -351,11 +237,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 variant={isCloudConnected ? "secondary" : "outline"}
                 disabled={isSavingToCloud}
              >
-                 {isSavingToCloud ? <Loader2 className="animate-spin" size={18}/> : <CloudUpload size={18} />}
-                 {isSavingToCloud ? 'שומר לענן...' : 'פרסם שינויים'}
+                 {isSavingToCloud ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />}
+                 {isSavingToCloud ? 'שומר במסד...' : 'שמור למסד הנתונים'}
              </Button>
              <p className="text-[10px] text-slate-500 text-center mt-2">
-                 {isCloudConnected ? 'מעדכן את האתר בכל המכשירים' : 'השינויים נשמרים רק במחשב זה'}
+                 {isCloudConnected ? 'מעדכן את האתר בכל המכשירים בזמן אמת' : 'השינויים נשמרים רק במחשב זה'}
              </p>
         </div>
 
@@ -406,7 +292,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                          כל השינויים שאתה מבצע נשמרים כרגע <b>רק במחשב זה</b>. אנשים אחרים (ובמכשירים אחרים) לא יראו את העדכונים.
                      </p>
                      <button onClick={() => setActiveTab('integrations')} className="text-sm text-[#2EB0D9] underline mt-2 font-bold hover:text-white">
-                         לחץ כאן כדי לחבר את האתר לענן
+                         לחץ כאן כדי לחבר את האתר למסד נתונים
                      </button>
                  </div>
              </div>
@@ -415,56 +301,67 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {/* INTEGRATIONS TAB - UPDATED SCRIPT */}
         {activeTab === 'integrations' && (
             <div className="space-y-6 max-w-4xl">
-                <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
-                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Database/> שרת ונתונים (Google Sheets + Drive)</h3>
-                    <p className="text-slate-400 mb-4 text-sm leading-relaxed">
-                        כדי שהאתר יעבוד כ"ענן" ויתעדכן בכל המכשירים, עליך להגדיר סקריפט Google.
-                        <br/><br/>
-                        <strong className="text-white">הוראות התקנה:</strong><br/>
-                        1. פתח גיליון Google Sheets חדש (ריק).<br/>
-                        2. בתפריט העליון לחץ על <b>Extensions</b> (תוספים) &gt; <b>Apps Script</b>.<br/>
-                        3. מחק את הקוד הקיים שם, והדבק את הקוד שמופיע בתיבה למטה.<br/>
-                        4. לחץ על כפתור השמירה (דיסקט), ואז על הכפתור הכחול <b>Deploy</b> (פריסה) &gt; <b>New Deployment</b>.<br/>
-                        5. בחלון שנפתח:<br/>
-                           - ליד "Select type" בחר בגלגל השיניים &gt; <b>Web App</b>.<br/>
-                           - בשדה "Description" כתוב "MeLaw API".<br/>
-                           - בשדה "Execute as" בחר <b>Me</b>.<br/>
-                           - בשדה "Who has access" בחר <b>Anyone</b> (חשוב!).<br/>
-                        6. לחץ על <b>Deploy</b>, אשר את ההרשאות, והעתק את ה-<b>Web App URL</b>.<br/>
-                        7. הדבק את ה-URL בשדה למטה.
+                
+                {/* SUPABASE CONFIG */}
+                <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-[#2EB0D9]"></div>
+                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
+                        <Database className="text-[#2EB0D9]"/> מסד נתונים בזמן אמת (Supabase) - מומלץ!
+                    </h3>
+                    <p className="text-slate-400 mb-4 text-sm">
+                        חיבור זה מאפשר לאתר לעבוד בזמן אמת. כל שינוי שומר מיד לענן ומתעדכן אצל כל הלקוחות.
+                        <br/>
+                        1. פתח חשבון ב- <a href="https://supabase.com" target="_blank" className="text-[#2EB0D9] underline">Supabase.com</a>.
+                        <br/>
+                        2. צור פרויקט חדש.
+                        <br/>
+                        3. ב-SQL Editor, הרץ את הפקודה ליצירת טבלה (בקש מהמתכנת את הקוד).
+                        <br/>
+                        4. העתק את ה-URL וה-KEY מהגדרות הפרויקט.
                     </p>
                     
-                    <div className="relative mb-6">
-                        <pre className="bg-slate-950 p-4 rounded-lg text-xs text-green-400 overflow-x-auto border border-slate-800 h-64 font-mono select-all">
-                            {GOOGLE_SCRIPT_TEMPLATE}
-                        </pre>
-                        <button 
-                            onClick={() => {
-                                navigator.clipboard.writeText(GOOGLE_SCRIPT_TEMPLATE);
-                                alert("הקוד הועתק! עכשיו הדבק אותו ב-Apps Script.");
-                            }}
-                            className="absolute top-2 left-2 bg-slate-800 text-white p-2 rounded hover:bg-slate-700 text-xs flex items-center gap-1"
-                        >
-                            <Copy size={14}/> העתק קוד
-                        </button>
-                    </div>
-
                     <div className="space-y-4 bg-slate-950 p-4 rounded border border-slate-800">
-                        <label className="block text-sm font-bold text-slate-300">Google Script Web App URL</label>
-                        <div className="flex gap-2">
-                             <input 
+                        <div>
+                            <label className="block text-xs font-bold text-slate-300 mb-1">Project URL</label>
+                            <input 
                                 type="text" 
-                                className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-900 text-white placeholder-slate-600 focus:border-[#2EB0D9] outline-none" 
-                                placeholder="https://script.google.com/macros/s/..." 
-                                value={state.config.integrations.googleSheetsUrl} 
-                                onChange={e => updateIntegration('googleSheetsUrl', e.target.value)} 
+                                className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white placeholder-slate-600 focus:border-[#2EB0D9] outline-none" 
+                                placeholder="https://xyz.supabase.co" 
+                                value={state.config.integrations.supabaseUrl} 
+                                onChange={e => updateIntegration('supabaseUrl', e.target.value)} 
                             />
-                            {isCloudConnected && <Check className="text-green-500 mt-3" size={24} />}
                         </div>
-                        <p className="text-xs text-slate-500">כתובת זו משמשת לשמירת נתונים והעלאת תמונות ל-Google Drive.</p>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-300 mb-1">API Key (anon/public)</label>
+                            <input 
+                                type="password" 
+                                className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white placeholder-slate-600 focus:border-[#2EB0D9] outline-none" 
+                                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..." 
+                                value={state.config.integrations.supabaseKey} 
+                                onChange={e => updateIntegration('supabaseKey', e.target.value)} 
+                            />
+                        </div>
+                        {isSupabaseConfigured && <div className="text-green-500 text-sm font-bold flex items-center gap-1"><Check size={16}/> מוגדר</div>}
                     </div>
                 </div>
 
+                {/* GOOGLE CONFIG (LEGACY) */}
+                <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 opacity-80">
+                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Cloud/> שרת תמונות (Google Script)</h3>
+                    <div className="space-y-4 bg-slate-950 p-4 rounded border border-slate-800">
+                        <label className="block text-sm font-bold text-slate-300">Google Script Web App URL</label>
+                        <input 
+                            type="text" 
+                            className="w-full p-3 border border-slate-700 rounded-lg bg-slate-900 text-white placeholder-slate-600 focus:border-[#2EB0D9] outline-none" 
+                            placeholder="https://script.google.com/macros/s/..." 
+                            value={state.config.integrations.googleSheetsUrl} 
+                            onChange={e => updateIntegration('googleSheetsUrl', e.target.value)} 
+                        />
+                        <p className="text-xs text-slate-500">משמש בעיקר להעלאת תמונות ל-Google Drive.</p>
+                    </div>
+                </div>
+
+                {/* AI CONFIG */}
                 <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
                     <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Sparkles/> בינה מלאכותית (Gemini)</h3>
                     <input 

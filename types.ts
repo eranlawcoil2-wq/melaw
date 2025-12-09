@@ -77,13 +77,17 @@ export interface WillsFormData {
 
 // New Interface for Third-Party Integrations
 export interface IntegrationsConfig {
+    // Database (Supabase) - The new professional solution
+    supabaseUrl: string;
+    supabaseKey: string;
+
     // AI
     geminiApiKey: string;
     
     // Images
     unsplashAccessKey: string;
 
-    // Database (Google Sheets)
+    // Database (Legacy Google Sheets)
     googleSheetsUrl: string; // The Web App URL from Google Apps Script
     
     // Email (EmailJS)

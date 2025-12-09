@@ -3,10 +3,11 @@ import { PublicSite } from './pages/PublicSite.tsx';
 import { AdminDashboard } from './pages/AdminDashboard.tsx';
 import { AppState, Category, WillsFormData, FormDefinition, TeamMember, Article, SliderSlide, TimelineItem, MenuItem } from './types.ts';
 import { cloudService } from './services/api.ts';
+import { dbService } from './services/supabase.ts';
 import { Loader2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v1.3';
+const APP_VERSION = 'v1.4';
 
 // --- INITIAL DEFAULT DATA (Fallback) ---
 const initialArticles: Article[] = [
@@ -159,6 +160,8 @@ const defaultState: AppState = {
         theme: 'dark', 
         adminPassword: 'admin',
         integrations: {
+            supabaseUrl: '', // To be filled by user
+            supabaseKey: '', // To be filled by user
             geminiApiKey: 'AIzaSyBQkmjb1vw20e90bCMBK0eWC9pA6e05Le0',
             unsplashAccessKey: '',
             googleSheetsUrl: '',
@@ -178,7 +181,7 @@ const defaultState: AppState = {
     teamMembers: initialTeamMembers,
 };
 
-// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v1.3
+// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v1.4
 const STORAGE_KEY = `melaw_site_data_${APP_VERSION}`;
 
 const App: React.FC = () => {
@@ -227,30 +230,49 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
   }, [appState]);
 
-  // --- CLOUD SYNC ON STARTUP ---
+  // --- SUPABASE SYNC ON STARTUP ---
   useEffect(() => {
-      const fetchCloudData = async () => {
-          const url = appState.config.integrations.googleSheetsUrl;
-          // Only fetch if URL is configured and valid
-          if (url && url.includes('script.google.com')) {
-              setLoadingCloud(true);
-              const cloudData = await cloudService.loadStateFromCloud(url);
-              if (cloudData) {
-                  console.log("Cloud data synced successfully");
-                  setAppState(prev => ({
-                      ...prev,
-                      ...cloudData,
-                      // Preserve local login state and session info
-                      isAdminLoggedIn: prev.isAdminLoggedIn,
-                      currentCategory: prev.currentCategory
-                  }));
-              }
-              setLoadingCloud(false);
-          }
-      };
+    const initSupabase = async () => {
+        // Priority 1: Check if Supabase keys exist in the current state
+        const { supabaseUrl, supabaseKey } = appState.config.integrations;
+        
+        if (supabaseUrl && supabaseKey) {
+            setLoadingCloud(true);
+            const dbData = await dbService.loadState(supabaseUrl, supabaseKey);
+            if (dbData) {
+                console.log("Synced from Supabase successfully!");
+                setAppState(prev => ({
+                    ...prev,
+                    ...dbData,
+                    // Preserve session
+                    isAdminLoggedIn: prev.isAdminLoggedIn,
+                    currentCategory: prev.currentCategory
+                }));
+            }
+            setLoadingCloud(false);
+            return;
+        }
 
-      fetchCloudData();
-  }, [appState.config.integrations.googleSheetsUrl]); // Trigger if URL changes (or on mount if present)
+        // Priority 2: Legacy Cloud Sync (Google Sheets)
+        const url = appState.config.integrations.googleSheetsUrl;
+        if (url && url.includes('script.google.com')) {
+            setLoadingCloud(true);
+            const cloudData = await cloudService.loadStateFromCloud(url);
+            if (cloudData) {
+                console.log("Synced from Google Sheets successfully");
+                setAppState(prev => ({
+                    ...prev,
+                    ...cloudData,
+                    isAdminLoggedIn: prev.isAdminLoggedIn,
+                    currentCategory: prev.currentCategory
+                }));
+            }
+            setLoadingCloud(false);
+        }
+    };
+
+    initSupabase();
+  }, []); // Run once on mount
 
   // --- Dynamic Font Injection (Client Side) ---
   useEffect(() => {
@@ -332,7 +354,7 @@ const App: React.FC = () => {
       {loadingCloud && (
           <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-[#2EB0D9]/20 overflow-hidden flex items-center justify-center">
              <div className="h-full bg-[#2EB0D9] animate-shine w-full absolute"></div>
-             <span className="relative z-10 text-[10px] text-black font-bold px-2">טוען עדכונים מהענן...</span>
+             <span className="relative z-10 text-[10px] text-black font-bold px-2">טוען עדכונים מהשרת...</span>
           </div>
       )}
 
