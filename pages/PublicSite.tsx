@@ -370,7 +370,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           </div>
           <nav className="hidden md:flex items-center gap-6">
             {state.menuItems.map(item => (
-              <button key={item.id} onClick={() => onCategoryChange(item.cat)} className={`text-sm font-medium transition-colors hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : theme.textMuted}`}>
+              <button 
+                key={item.id} 
+                onClick={() => onCategoryChange(item.cat)} 
+                className={`text-sm font-medium transition-colors border-b-2 hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-[#2EB0D9]' : `${theme.textMuted} border-transparent`}`}
+              >
                 {item.label}
               </button>
             ))}
@@ -596,9 +600,6 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              </div>
 
                              <div className="mt-8">
-                                <div className="h-40 w-full rounded-xl overflow-hidden mb-4 relative grayscale hover:grayscale-0 transition-all border border-slate-800">
-                                     <iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.8, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe>
-                                </div>
                                 <div className="flex gap-3">
                                      <Button className="flex-1 gap-2 text-xs" variant="outline" onClick={() => window.open(`https://waze.com/ul?q=${state.config.address}`)}>
                                         <Navigation size={14}/> נווט עם Waze
