@@ -6,7 +6,7 @@ import { cloudService } from './services/api.ts';
 import { Loader2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v1.2';
+const APP_VERSION = 'v1.3';
 
 // --- INITIAL DEFAULT DATA (Fallback) ---
 const initialArticles: Article[] = [
@@ -178,7 +178,7 @@ const defaultState: AppState = {
     teamMembers: initialTeamMembers,
 };
 
-// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v1.2
+// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v1.3
 const STORAGE_KEY = `melaw_site_data_${APP_VERSION}`;
 
 const App: React.FC = () => {

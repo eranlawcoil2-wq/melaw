@@ -5,7 +5,7 @@ import { generateArticleContent } from '../services/geminiService.ts';
 import { ImagePickerModal } from '../components/ImagePickerModal.tsx'; 
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
-import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code, ArrowRight, RefreshCw, Search, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -377,7 +377,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             <LinkIcon size={20} /> חיבורים ואינטגרציות
           </button>
           <button onClick={() => { setActiveTab('config'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'config' ? 'bg-[#2EB0D9] text-white font-bold shadow-lg shadow-[#2EB0D9]/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-            <Settings size={20} /> הגדרות אתר
+            <Monitor size={20} /> הגדרות אתר
           </button>
         </nav>
         <div className="p-4 border-t border-slate-800">
