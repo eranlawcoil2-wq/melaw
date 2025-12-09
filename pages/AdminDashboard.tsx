@@ -5,7 +5,7 @@ import { generateArticleContent } from '../services/geminiService.ts';
 import { ImagePickerModal } from '../components/ImagePickerModal.tsx'; 
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
-import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code, ArrowRight, RefreshCw, Search, Type, Menu, Download, Upload, AlertTriangle, CloudUpload } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Save, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, CheckSquare, List, Link as LinkIcon, Copy, Users, Image as ImageIcon, Check, HelpCircle, Monitor, Sun, Moon, Database, Key, CreditCard, Mail, Code, ArrowRight, RefreshCw, Search, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -21,7 +21,7 @@ const GOOGLE_SCRIPT_TEMPLATE = `
 const NOTIFICATION_EMAIL = "your-email@example.com"; 
 
 function doGet(e) {
-  var action = e.parameter.action;
+  var action = e && e.parameter ? e.parameter.action : '';
   
   // אם הבקשה היא לקבלת סטייט (טעינת האתר)
   if (action == 'getState') {
@@ -60,18 +60,15 @@ function doPost(e) {
            folder = folders.next();
          } else {
            folder = DriveApp.createFolder(folderName);
-           // Make folder public so images inside are viewable
            folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
          }
 
          var decoded = Utilities.base64Decode(data.data.imageData);
          var blob = Utilities.newBlob(decoded, data.data.mimeType, data.data.fileName);
          var file = folder.createFile(blob);
-         
-         // Set file permission to public
          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
          
-         // Generate a direct link (using the ID to bypass viewer)
+         // Generate a direct link
          var fileId = file.getId();
          var directUrl = "https://lh3.googleusercontent.com/d/" + fileId;
 
@@ -179,11 +176,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   // Timeline Item State
   const [editingTimelineItem, setEditingTimelineItem] = useState<TimelineItem | null>(null);
 
+  const isCloudConnected = state.config.integrations.googleSheetsUrl && state.config.integrations.googleSheetsUrl.includes("script.google.com");
+
   // --- CLOUD SAVE HANDLER ---
   const handleSaveToCloud = async () => {
       const url = state.config.integrations.googleSheetsUrl;
       if (!url || !url.includes("script.google.com")) {
-          alert("שגיאה: לא הוגדר קישור תקין ל-Google Script בלשונית אינטגרציות.");
+          alert("שגיאה: לא הוגדר קישור תקין ל-Google Script בלשונית אינטגרציות. \nנא להגדיר זאת כדי שאנשים אחרים יוכלו לראות את השינויים.");
+          setActiveTab('integrations');
           return;
       }
       
@@ -334,16 +334,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         
         {/* Cloud Save Button in Sidebar */}
         <div className="p-4 border-b border-slate-800">
+             <div className="text-center mb-2">
+                 {isCloudConnected ? (
+                     <span className="text-xs text-green-500 flex items-center justify-center gap-1 font-bold"><CloudUpload size={12}/> מחובר לענן</span>
+                 ) : (
+                     <span className="text-xs text-red-500 flex items-center justify-center gap-1 font-bold animate-pulse"><CloudOff size={12}/> ענן לא מחובר</span>
+                 )}
+             </div>
              <Button 
                 onClick={handleSaveToCloud} 
                 className={`w-full flex items-center justify-center gap-2 font-bold shine-effect ${isSavingToCloud ? 'opacity-70 cursor-wait' : ''}`}
-                variant="secondary"
+                variant={isCloudConnected ? "secondary" : "outline"}
                 disabled={isSavingToCloud}
              >
                  {isSavingToCloud ? <Loader2 className="animate-spin" size={18}/> : <CloudUpload size={18} />}
                  {isSavingToCloud ? 'שומר לענן...' : 'פרסם שינויים'}
              </Button>
-             <p className="text-[10px] text-slate-500 text-center mt-2">מעדכן את האתר בכל המכשירים</p>
+             <p className="text-[10px] text-slate-500 text-center mt-2">
+                 {isCloudConnected ? 'מעדכן את האתר בכל המכשירים' : 'השינויים נשמרים רק במחשב זה'}
+             </p>
         </div>
 
         <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
@@ -382,20 +391,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                  <Menu size={24} />
              </button>
         </div>
+
+        {/* CONNECTION ALERT BANNER */}
+        {!isCloudConnected && activeTab !== 'integrations' && (
+             <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl mb-6 flex items-start gap-3 animate-fade-in-up">
+                 <AlertTriangle className="text-red-500 flex-shrink-0 mt-1" />
+                 <div className="flex-1">
+                     <h4 className="font-bold text-red-500">הענן לא מחובר!</h4>
+                     <p className="text-sm text-slate-300 mt-1">
+                         כל השינויים שאתה מבצע נשמרים כרגע <b>רק במחשב זה</b>. אנשים אחרים (ובמכשירים אחרים) לא יראו את העדכונים.
+                     </p>
+                     <button onClick={() => setActiveTab('integrations')} className="text-sm text-[#2EB0D9] underline mt-2 font-bold hover:text-white">
+                         לחץ כאן כדי לחבר את האתר לענן
+                     </button>
+                 </div>
+             </div>
+        )}
         
         {/* INTEGRATIONS TAB - UPDATED SCRIPT */}
         {activeTab === 'integrations' && (
             <div className="space-y-6 max-w-4xl">
                 <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
                     <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Database/> שרת ונתונים (Google Sheets + Drive)</h3>
-                    <p className="text-slate-400 mb-4 text-sm">
+                    <p className="text-slate-400 mb-4 text-sm leading-relaxed">
                         כדי שהאתר יעבוד כ"ענן" ויתעדכן בכל המכשירים, עליך להגדיר סקריפט Google.
-                        <br/>
-                        1. פתח Google Sheet חדש.<br/>
-                        2. לחץ על Extensions -> Apps Script.<br/>
-                        3. הדבק את הקוד הבא (הכולל תמיכה בתמונות), שמור, ולחץ על <b>Deploy > New Deployment</b>.<br/>
-                        4. בחר ב-Web App, וב-Who has access בחר <b>Anyone</b>.<br/>
-                        5. העתק את ה-Web App URL והדבק אותו למטה.
+                        <br/><br/>
+                        <strong className="text-white">הוראות התקנה:</strong><br/>
+                        1. פתח גיליון Google Sheets חדש (ריק).<br/>
+                        2. בתפריט העליון לחץ על <b>Extensions</b> (תוספים) &gt; <b>Apps Script</b>.<br/>
+                        3. מחק את הקוד הקיים שם, והדבק את הקוד שמופיע בתיבה למטה.<br/>
+                        4. לחץ על כפתור השמירה (דיסקט), ואז על הכפתור הכחול <b>Deploy</b> (פריסה) &gt; <b>New Deployment</b>.<br/>
+                        5. בחלון שנפתח:<br/>
+                           - ליד "Select type" בחר בגלגל השיניים &gt; <b>Web App</b>.<br/>
+                           - בשדה "Description" כתוב "MeLaw API".<br/>
+                           - בשדה "Execute as" בחר <b>Me</b>.<br/>
+                           - בשדה "Who has access" בחר <b>Anyone</b> (חשוב!).<br/>
+                        6. לחץ על <b>Deploy</b>, אשר את ההרשאות, והעתק את ה-<b>Web App URL</b>.<br/>
+                        7. הדבק את ה-URL בשדה למטה.
                     </p>
                     
                     <div className="relative mb-6">
@@ -403,22 +435,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             {GOOGLE_SCRIPT_TEMPLATE}
                         </pre>
                         <button 
-                            onClick={() => navigator.clipboard.writeText(GOOGLE_SCRIPT_TEMPLATE)}
+                            onClick={() => {
+                                navigator.clipboard.writeText(GOOGLE_SCRIPT_TEMPLATE);
+                                alert("הקוד הועתק! עכשיו הדבק אותו ב-Apps Script.");
+                            }}
                             className="absolute top-2 left-2 bg-slate-800 text-white p-2 rounded hover:bg-slate-700 text-xs flex items-center gap-1"
                         >
                             <Copy size={14}/> העתק קוד
                         </button>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 bg-slate-950 p-4 rounded border border-slate-800">
                         <label className="block text-sm font-bold text-slate-300">Google Script Web App URL</label>
-                        <input 
-                            type="text" 
-                            className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white placeholder-slate-600 focus:border-[#2EB0D9] outline-none" 
-                            placeholder="https://script.google.com/macros/s/..." 
-                            value={state.config.integrations.googleSheetsUrl} 
-                            onChange={e => updateIntegration('googleSheetsUrl', e.target.value)} 
-                        />
+                        <div className="flex gap-2">
+                             <input 
+                                type="text" 
+                                className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-900 text-white placeholder-slate-600 focus:border-[#2EB0D9] outline-none" 
+                                placeholder="https://script.google.com/macros/s/..." 
+                                value={state.config.integrations.googleSheetsUrl} 
+                                onChange={e => updateIntegration('googleSheetsUrl', e.target.value)} 
+                            />
+                            {isCloudConnected && <Check className="text-green-500 mt-3" size={24} />}
+                        </div>
                         <p className="text-xs text-slate-500">כתובת זו משמשת לשמירת נתונים והעלאת תמונות ל-Google Drive.</p>
                     </div>
                 </div>
@@ -530,11 +568,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl flex items-start gap-3">
                     <CloudUpload className="text-[#2EB0D9] flex-shrink-0 mt-1" />
                     <div>
-                        <h4 className="font-bold text-[#2EB0D9]">סנכרון ענן פעיל</h4>
+                        <h4 className="font-bold text-[#2EB0D9]">סנכרון ענן</h4>
                         <p className="text-sm text-slate-400 mt-1">
-                            כעת ניתן ללחוץ על הכפתור <b>"פרסם שינויים"</b> בסרגל הצד כדי לעדכן את האתר בכל המכשירים באופן מיידי.
-                            <br/>
-                            עדיין מומלץ לבצע גיבוי ידני מדי פעם.
+                            מומלץ לבצע גיבוי ידני מדי פעם גם אם הענן מחובר.
                         </p>
                     </div>
                 </div>

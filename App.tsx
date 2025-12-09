@@ -175,8 +175,8 @@ const defaultState: AppState = {
     teamMembers: initialTeamMembers,
 };
 
-// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v5
-const STORAGE_KEY = 'melaw_site_data_v5';
+// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v6
+const STORAGE_KEY = 'melaw_site_data_v6';
 
 const App: React.FC = () => {
   const [loadingCloud, setLoadingCloud] = useState(false);
@@ -327,8 +327,9 @@ const App: React.FC = () => {
     <div className="relative">
       {/* Cloud Loading Indicator */}
       {loadingCloud && (
-          <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-[#2EB0D9]/20 overflow-hidden">
-              <div className="h-full bg-[#2EB0D9] animate-shine"></div>
+          <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-[#2EB0D9]/20 overflow-hidden flex items-center justify-center">
+             <div className="h-full bg-[#2EB0D9] animate-shine w-full absolute"></div>
+             <span className="relative z-10 text-[10px] text-black font-bold px-2">טוען עדכונים מהענן...</span>
           </div>
       )}
 
