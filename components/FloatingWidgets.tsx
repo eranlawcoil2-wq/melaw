@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageCircle, Accessibility, X, Type, Eye, PauseCircle } from 'lucide-react';
+import { MessageCircle, Accessibility, X, Type, Eye, PauseCircle, RefreshCw } from 'lucide-react';
 import { ShareMenu } from './ShareMenu.tsx';
 
 interface FloatingWidgetsProps {
@@ -38,12 +38,24 @@ export const FloatingWidgets: React.FC<FloatingWidgetsProps> = ({ version }) => 
       toggleClass('a11y-stop-animations', newState);
   };
 
+  // Hard Refresh Function to clear cache
+  const handleHardReset = () => {
+      if (confirm("פעולה זו תרענן את האתר ותנקה זיכרון מקומי כדי לקבל את הגרסה האחרונה. להמשיך?")) {
+          // Clear all local storage keys starting with 'melaw' except maybe current version (actually clear all is safer)
+          localStorage.clear();
+          window.location.reload();
+      }
+  };
+
   return (
     <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3 items-start">
       {/* Version Badge - Temporary */}
       {version && (
-        <div className="bg-slate-800 text-[10px] text-white py-1 px-2 rounded-md shadow-lg border border-slate-700 mb-1 opacity-80 hover:opacity-100 cursor-default">
-            {version}
+        <div className="flex items-center gap-1 bg-slate-800 text-[10px] text-white py-1 px-2 rounded-md shadow-lg border border-slate-700 mb-1 opacity-80 hover:opacity-100 cursor-default">
+            <span>{version}</span>
+            <button onClick={handleHardReset} className="ml-1 p-0.5 hover:bg-slate-700 rounded text-yellow-400" title="רענון מלא (ניקוי מטמון)">
+                <RefreshCw size={10} />
+            </button>
         </div>
       )}
 
