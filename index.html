@@ -27,6 +27,7 @@
 
       body {
         font-family: 'Heebo', sans-serif;
+        overflow-y: scroll; /* Forces scrollbar to appear to prevent layout jumping */
       }
       h1, h2, h3, h4, h5, h6 {
         font-family: 'Rubik', sans-serif;
@@ -188,7 +189,7 @@
 </head>
   <body class="bg-slate-950 text-slate-100 overflow-x-hidden">
     <div id="root"></div>
-    <!-- Updated version to v=4.0 to force refresh for sidebar fix -->
-    <script type="module" src="./index.tsx?v=4.0"></script>
+    <!-- Updated version to v=5.0 to force refresh for sidebar fix and logic updates -->
+    <script type="module" src="./index.tsx?v=5.0"></script>
   </body>
 </html>

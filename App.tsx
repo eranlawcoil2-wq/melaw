@@ -175,8 +175,8 @@ const defaultState: AppState = {
     teamMembers: initialTeamMembers,
 };
 
-// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING)
-const STORAGE_KEY = 'melaw_site_data_v4';
+// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v5
+const STORAGE_KEY = 'melaw_site_data_v5';
 
 const App: React.FC = () => {
   const [loadingCloud, setLoadingCloud] = useState(false);
@@ -203,8 +203,7 @@ const App: React.FC = () => {
            ...parsed,
            config: { ...defaultState.config, ...parsed.config, integrations: { ...defaultState.config.integrations, ...parsed.config?.integrations } },
            isAdminLoggedIn: false, 
-           // If it's a new session, ensure we default to store unless user explicitly navigated? 
-           // Better to respect the saved state for returning admins, but for general public the V4 key will reset them to defaultState.
+           // Ensure Store is default if not set
            currentCategory: parsed.currentCategory || Category.STORE 
         };
       } catch (e) {
@@ -212,6 +211,7 @@ const App: React.FC = () => {
         return defaultState;
       }
     }
+    // If no saved state, use default (which defaults to STORE)
     return defaultState;
   });
 
