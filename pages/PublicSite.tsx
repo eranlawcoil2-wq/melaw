@@ -3,7 +3,7 @@ import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember,
 import { Button } from '../components/Button.tsx';
 import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
-import { ShareMenu } from '../components/ShareMenu.tsx'; // Import ShareMenu
+import { ShareMenu } from '../components/ShareMenu.tsx'; 
 import { emailService, storeService } from '../services/api.ts'; 
 import { Search, Phone, MapPin, Mail, Menu, X, Check, ArrowLeft, Navigation, FileText, Quote, Lock, Settings, Briefcase, User, ArrowRight, ChevronLeft, ChevronRight, FileCheck, HelpCircle, Loader2, ShoppingBag, Scale, BookOpen } from 'lucide-react';
 
@@ -33,7 +33,7 @@ const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: 
     );
 };
 
-// --- Reusable Section Title Component (Enhanced) ---
+// --- Reusable Section Title Component ---
 const SectionTitle: React.FC<{ title: string; isDark: boolean }> = ({ title, isDark }) => (
     <div className="mb-6 md:mb-10 relative z-10">
         <h3 className={`text-3xl md:text-4xl font-black inline-block tracking-tight leading-relaxed ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -56,7 +56,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   // Modal State
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showWillsModal, setShowWillsModal] = useState(false); 
-  const [isSubmittingWill, setIsSubmittingWill] = useState(false); // Loading state
+  const [isSubmittingWill, setIsSubmittingWill] = useState(false); 
   const [activeArticleTab, setActiveArticleTab] = useState(0); 
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
 
@@ -64,16 +64,19 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const [activeDynamicFormId, setActiveDynamicFormId] = useState<string | null>(null);
   const [dynamicFormValues, setDynamicFormValues] = useState<Record<string, any>>({});
   const [isSubmittingDynamic, setIsSubmittingDynamic] = useState(false);
+
+  // Contact Form State
+  const [contactForm, setContactForm] = useState({ name: '', phone: '', message: '' });
+  const [contactSending, setContactSending] = useState(false);
   
   // Theme Helper Logic
-  const isDark = state.config.theme === 'dark'; // Check theme preference
+  const isDark = state.config.theme === 'dark'; 
   
-  // Theme Classes Mapping (Enhanced)
+  // Theme Classes Mapping
   const theme = {
       bgMain: isDark ? 'bg-slate-950' : 'bg-slate-50',
       textMain: isDark ? 'text-slate-200' : 'text-slate-800',
       headerBg: isDark ? 'bg-slate-950/80 shadow-black/20 border-slate-800' : 'bg-white/80 shadow-slate-200/50 border-slate-200',
-      // Cards now have a more premium border/shadow
       cardBg: isDark ? 'bg-slate-900/90 border-slate-700/50 backdrop-blur-md' : 'bg-white/90 border-slate-200 backdrop-blur-md shadow-sm',
       cardHover: isDark ? 'hover:border-[#2EB0D9]/50 hover:shadow-[0_0_30px_rgba(46,176,217,0.15)]' : 'hover:border-[#2EB0D9]/50 hover:shadow-2xl',
       inputBg: isDark ? 'bg-slate-800/50 border-slate-700 text-white placeholder-slate-500' : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400',
@@ -90,17 +93,24 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const articlesScrollRef = useRef<HTMLDivElement>(null);
   const articleContentTopRef = useRef<HTMLDivElement>(null);
 
-  // Filter content - UPDATED WITH SORTING LOGIC
+  // Filter content
   const currentSlides = state.slides
     .filter(s => s.category === state.currentCategory || s.category === Category.HOME)
-    .sort((a, b) => (a.order || 99) - (b.order || 99)); // Sort by order, fallback to 99 if undefined
+    .sort((a, b) => (a.order || 99) - (b.order || 99));
   
-  // Updated filtering logic for array-based categories
+  // Article Filtering:
+  // For Store and Home, we show 'HOME' articles or general ones. 
+  // For specific cats, we filter.
   const currentArticles = state.articles.filter(a => 
-      state.currentCategory === Category.HOME || a.categories.includes(state.currentCategory)
+      state.currentCategory === Category.HOME || state.currentCategory === Category.STORE ? true : a.categories.includes(state.currentCategory)
   );
   
-  const currentTimelines = state.timelines.filter(t => t.category.includes(state.currentCategory) || state.currentCategory === Category.HOME);
+  // Timeline Filtering:
+  // Store page needs timeline just like Home page.
+  const currentTimelines = state.timelines.filter(t => 
+      state.currentCategory === Category.HOME || state.currentCategory === Category.STORE || t.category.includes(state.currentCategory)
+  );
+  
   const teamMembers = state.teamMembers;
 
   // Slider Auto-play
@@ -131,17 +141,27 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         setTimeout(() => {
             dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
-    } else {
-        console.log("Clicked timeline item", item.title);
     }
   };
   
-  // Handle Product Click (Store)
   const handleProductClick = (product: any) => {
       if (product.category === Category.WILLS) {
           setShowWillsModal(true);
       } else {
           alert(`כדי לערוך את "${product.title}" אנא צור קשר או המתן להוספת הטופס המתאים.`);
+      }
+  };
+  
+  const handleContactSubmit = async () => {
+      setContactSending(true);
+      try {
+          await emailService.sendForm('General Contact Form', contactForm, state.config.integrations);
+          alert('הודעתך נשלחה בהצלחה! ניצור קשר בהקדם.');
+          setContactForm({ name: '', phone: '', message: '' });
+      } catch (e) {
+          alert('שגיאה בשליחה.');
+      } finally {
+          setContactSending(false);
       }
   };
 
@@ -155,7 +175,6 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       }
   };
 
-  // Wills Form State
   const [willsData, setWillsData] = useState<WillsFormData>({
     fullName: '', spouseName: '', childrenCount: 0, childrenNames: [], equalDistribution: true, assets: [], contactEmail: '', contactPhone: ''
   });
@@ -169,7 +188,6 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
     }));
   };
   
-  // Handle Wills Submission
   const handleRealWillsSubmit = async () => {
       setIsSubmittingWill(true);
       try {
@@ -187,13 +205,24 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
   const currentDynamicForm = state.forms.find(f => f.id === activeDynamicFormId);
   const activeTabContent = selectedArticle?.tabs?.[activeArticleTab]?.content || "";
-  
-  const relatedArticles = selectedArticle 
-    ? state.articles.filter(a => a.categories.some(c => selectedArticle.categories.includes(c)) && a.id !== selectedArticle.id).slice(0, 3)
-    : [];
-    
-  // Get Store Products
   const storeProducts = storeService.getProducts();
+
+  // --- Layout Logic Flags ---
+  const isContactPage = state.currentCategory === Category.CONTACT;
+  const isStorePage = state.currentCategory === Category.STORE;
+  const isHomePage = state.currentCategory === Category.HOME;
+
+  // Show timeline on Home and Store, but NOT Contact
+  const showTimelineSection = (isHomePage || isStorePage) && !isContactPage;
+  
+  // Show guides slider on specific legal pages, but NOT Home, Store, or Contact
+  const showGuidesSlider = !isHomePage && !isStorePage && !isContactPage;
+  
+  // Show articles grid on Home and Store, but NOT Contact
+  const showBottomArticlesGrid = !isContactPage;
+
+  // Show Global Footer on all pages EXCEPT Contact (Contact page has its own footer-like card)
+  const showGlobalFooter = !isContactPage;
 
   // --- RENDER ---
   return (
@@ -205,10 +234,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           {/* Floating Orbs */}
           <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#2EB0D9]/20 rounded-full blur-[100px] animate-float-slow"></div>
           <div className="absolute bottom-[20%] left-[-5%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] animate-float-slow" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute top-[40%] right-[20%] w-[200px] h-[200px] bg-cyan-400/10 rounded-full blur-[80px] animate-float" style={{ animationDelay: '4s' }}></div>
       </div>
 
-      {/* --- Article Modal Overlay --- */}
+      {/* --- Modals (Article, Wills, Team) --- */}
       {selectedArticle && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setSelectedArticle(null)}></div>
@@ -220,30 +248,18 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 <div className={`flex-1 flex flex-col h-full relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                     <div className={`p-4 border-b flex justify-between items-start flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div>
-                            <div className="flex gap-2 flex-wrap mb-1">
-                                {selectedArticle.categories.map(cat => (
-                                    <span key={cat} className="text-[10px] font-bold text-[#2EB0D9] uppercase tracking-wider bg-[#2EB0D9]/10 px-2 py-0.5 rounded">
-                                        {CATEGORY_LABELS[cat]}
-                                    </span>
-                                ))}
-                            </div>
-                            <h2 className={`text-xl md:text-2xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
+                             <h2 className={`text-xl md:text-2xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
                         </div>
-                        <div className="flex gap-2">
-                            <ShareMenu variant="inline" title={selectedArticle.title} text="קרא את המאמר המעניין הזה:" colorClass={theme.textMuted} />
-                            <button onClick={() => setSelectedArticle(null)} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={20} /></button>
-                        </div>
+                        <button onClick={() => setSelectedArticle(null)} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={20} /></button>
                     </div>
-                    
                     <div className={`px-4 pt-4 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-                        <div className={`flex gap-2 border-b overflow-x-auto scrollbar-hide ${isDark ? 'border-slate-800' : 'border-slate-200'}`} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <div className={`flex gap-2 border-b overflow-x-auto scrollbar-hide ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                             {selectedArticle.tabs.map((tab, idx) => (
-                                <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white shadow-lg shadow-[#2EB0D9]/20 translate-y-[1px]' : `${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'} hover:opacity-80`}`}>{tab.title}</button>
+                                <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white shadow-lg' : `${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'}`}`}>{tab.title}</button>
                             ))}
                         </div>
                     </div>
-
-                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto scrollbar-hide" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto scrollbar-hide">
                         <div className="p-6 md:p-8 min-h-full flex flex-col">
                             <div className={`prose max-w-none leading-relaxed text-lg mb-8 ${theme.textMain}`}>
                                 {activeTabContent.split('\n').map((paragraph, i) => (
@@ -257,24 +273,20 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         </div>
       )}
 
-      {/* --- Wills Generator Modal --- */}
       {showWillsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setShowWillsModal(false)}></div>
              <div className={`md:rounded-2xl shadow-2xl w-full max-w-5xl h-full md:h-[85vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
-                 {/* Left Side (Visuals) */}
+                 {/* Wills Form UI ... */}
                  <div className="hidden md:flex w-1/3 bg-black text-white flex-col justify-between p-8 relative overflow-hidden">
                      <img src="https://picsum.photos/id/452/800/1200" alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 animate-ken-burns" />
                      <div className="relative z-10">
-                         <div className="w-12 h-12 bg-[#2EB0D9] rounded-lg flex items-center justify-center mb-6 shadow-lg shadow-[#2EB0D9]/30">
+                         <div className="w-12 h-12 bg-[#2EB0D9] rounded-lg flex items-center justify-center mb-6">
                              <FileText size={28} className="text-white"/>
                          </div>
                          <h2 className="text-3xl font-black mb-4">מחולל הצוואות הדיגיטלי</h2>
-                         <p className="text-slate-400 leading-relaxed">ערוך צוואה חוקית ומקצועית ב-5 דקות באמצעות האלגוריתם המשפטי החכם שלנו.</p>
                      </div>
                  </div>
-
-                 {/* Right Side - Form Wizard */}
                  <div className={`flex-1 flex flex-col h-full ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                      <div className={`p-4 border-b flex justify-between items-center ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                          <span className={`text-sm font-bold ${theme.textMuted}`}>שלב {formStep + 1} מתוך 3</span>
@@ -282,38 +294,29 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                      </div>
                      <div className={`flex-1 overflow-y-auto p-8 md:p-12 ${theme.textMain}`}>
                          {formStep === 0 && (
-                            <div className="space-y-6 animate-fade-in">
-                               <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>נתחיל בפרטים אישיים</h3>
+                            <div className="space-y-6">
+                               <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>פרטים אישיים</h3>
                                <div className="space-y-4">
-                                   <div>
-                                       <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>שם מלא</label>
-                                       <input type="text" className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} value={willsData.fullName} onChange={e => setWillsData({...willsData, fullName: e.target.value})} placeholder="ישראל ישראלי" />
-                                   </div>
-                                   <div>
-                                       <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>שם בן/בת הזוג (אם יש)</label>
-                                       <input type="text" className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} value={willsData.spouseName} onChange={e => setWillsData({...willsData, spouseName: e.target.value})} placeholder="פלונית אלמונית" />
-                                   </div>
+                                   <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={willsData.fullName} onChange={e => setWillsData({...willsData, fullName: e.target.value})} placeholder="שם מלא" />
+                                   <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={willsData.spouseName} onChange={e => setWillsData({...willsData, spouseName: e.target.value})} placeholder="שם בן/בת הזוג" />
                                </div>
-                               <Button size="lg" onClick={() => setFormStep(1)} className="w-full mt-8">המשך לשלב הבא</Button>
+                               <Button size="lg" onClick={() => setFormStep(1)} className="w-full mt-8">המשך</Button>
                             </div>
                          )}
-
                          {formStep === 1 && (
-                            <div className="space-y-6 animate-fade-in">
-                               <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>היורשים והילדים</h3>
+                            <div className="space-y-6">
+                               <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>ילדים</h3>
                                <div className={`flex items-center gap-4 p-4 rounded-lg border ${theme.cardBg}`}>
                                   <label className={`font-bold ${theme.textTitle}`}>מספר ילדים:</label>
                                   <div className="flex items-center gap-2">
-                                      <button onClick={() => handleChildrenCountChange(Math.max(0, willsData.childrenCount - 1))} className={`w-8 h-8 rounded-full border hover:opacity-80 flex items-center justify-center ${theme.textTitle} ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-200 border-slate-300'}`}>-</button>
+                                      <button onClick={() => handleChildrenCountChange(Math.max(0, willsData.childrenCount - 1))} className={`w-8 h-8 rounded-full border flex items-center justify-center ${theme.textTitle}`}>-</button>
                                       <span className={`w-8 text-center font-bold ${theme.textTitle}`}>{willsData.childrenCount}</span>
-                                      <button onClick={() => handleChildrenCountChange(Math.min(10, willsData.childrenCount + 1))} className={`w-8 h-8 rounded-full border hover:opacity-80 flex items-center justify-center ${theme.textTitle} ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-200 border-slate-300'}`}>+</button>
+                                      <button onClick={() => handleChildrenCountChange(Math.min(10, willsData.childrenCount + 1))} className={`w-8 h-8 rounded-full border flex items-center justify-center ${theme.textTitle}`}>+</button>
                                   </div>
                                </div>
-                               <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                               <div className="space-y-3 max-h-60 overflow-y-auto">
                                   {willsData.childrenNames.map((name, idx) => (
-                                      <div key={idx}>
-                                          <input placeholder={`שם הילד/ה ${idx+1}`} className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={name} onChange={e => { const newNames = [...willsData.childrenNames]; newNames[idx] = e.target.value; setWillsData({...willsData, childrenNames: newNames}); }}/>
-                                      </div>
+                                      <input key={idx} placeholder={`שם הילד/ה ${idx+1}`} className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={name} onChange={e => { const newNames = [...willsData.childrenNames]; newNames[idx] = e.target.value; setWillsData({...willsData, childrenNames: newNames}); }}/>
                                   ))}
                                </div>
                                <div className="flex gap-3 pt-4">
@@ -322,29 +325,15 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                </div>
                             </div>
                          )}
-
                          {formStep === 2 && (
-                            <div className="space-y-6 animate-fade-in flex flex-col h-full justify-center">
-                               <div className="text-center mb-6">
-                                   <div className="w-20 h-20 bg-[#2EB0D9]/20 text-[#2EB0D9] rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce-slow border border-[#2EB0D9]/30">
-                                      {isSubmittingWill ? <Loader2 size={40} className="animate-spin"/> : <FileCheck size={40} />}
-                                   </div>
-                                   <h3 className={`text-2xl font-bold ${theme.textTitle}`}>הצוואה מוכנה להפקה!</h3>
-                               </div>
-                               <div className={`p-6 rounded-xl border space-y-4 ${theme.cardBg}`}>
-                                   <div>
-                                       <label className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>טלפון נייד</label>
-                                       <input type="tel" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactPhone} onChange={e => setWillsData({...willsData, contactPhone: e.target.value})} placeholder="050-0000000"/>
-                                   </div>
-                                   <div>
-                                       <label className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>דואר אלקטרוני</label>
-                                       <input type="email" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactEmail} onChange={e => setWillsData({...willsData, contactEmail: e.target.value})} placeholder="name@example.com"/>
-                                   </div>
-                               </div>
-                               <div className="flex gap-3 mt-auto">
-                                   <Button variant="outline" onClick={() => setFormStep(1)} className="flex-1" disabled={isSubmittingWill}>חזור</Button>
-                                   <Button variant="secondary" onClick={handleRealWillsSubmit} className="flex-[2] font-bold text-lg shine-effect" disabled={isSubmittingWill}>
-                                       {isSubmittingWill ? 'הורד צוואה למחשב' : 'הורד צוואה למחשב'}
+                            <div className="space-y-6">
+                               <h3 className={`text-2xl font-bold ${theme.textTitle}`}>סיום</h3>
+                               <input type="tel" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactPhone} onChange={e => setWillsData({...willsData, contactPhone: e.target.value})} placeholder="טלפון"/>
+                               <input type="email" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactEmail} onChange={e => setWillsData({...willsData, contactEmail: e.target.value})} placeholder="אימייל"/>
+                               <div className="flex gap-3 mt-4">
+                                   <Button variant="outline" onClick={() => setFormStep(1)} className="flex-1">חזור</Button>
+                                   <Button variant="secondary" onClick={handleRealWillsSubmit} className="flex-[2]" disabled={isSubmittingWill}>
+                                       {isSubmittingWill ? 'מעבד...' : 'צור צוואה'}
                                    </Button>
                                </div>
                             </div>
@@ -355,23 +344,16 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         </div>
       )}
 
-      {/* --- Team Member Modal --- */}
       {selectedTeamMember && (
          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setSelectedTeamMember(null)}></div>
              <div className={`rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
                  <button onClick={() => setSelectedTeamMember(null)} className="absolute top-4 left-4 z-20 p-2 bg-black/50 rounded-full hover:bg-black/70 text-white"><X size={20} /></button>
-                 
-                 <div className="md:w-2/5 h-64 md:h-auto relative">
-                     <img src={selectedTeamMember.imageUrl} alt={selectedTeamMember.fullName} className="w-full h-full object-cover animate-ken-burns opacity-90" />
-                 </div>
+                 <div className="md:w-2/5 h-64 md:h-auto relative"><img src={selectedTeamMember.imageUrl} className="w-full h-full object-cover opacity-90" /></div>
                  <div className={`md:w-3/5 p-8 flex flex-col justify-center ${theme.textMain}`}>
                      <span className="text-[#2EB0D9] font-bold text-sm mb-1">{selectedTeamMember.role}</span>
                      <h2 className={`text-3xl font-black mb-2 ${theme.textTitle}`}>{selectedTeamMember.fullName}</h2>
-                     <div className="w-16 h-1 bg-[#2EB0D9] mb-6"></div>
-                     <p className={`leading-relaxed text-sm p-4 rounded-lg border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
-                         {selectedTeamMember.bio}
-                     </p>
+                     <p className={`leading-relaxed text-sm p-4 rounded-lg border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>{selectedTeamMember.bio}</p>
                  </div>
              </div>
          </div>
@@ -381,43 +363,28 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       <header className={`fixed top-0 left-0 right-0 backdrop-blur-md shadow-lg z-40 h-20 transition-all border-b ${theme.headerBg}`}>
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 
-                className="text-lg md:text-xl font-black tracking-wide cursor-pointer leading-none" 
-                onClick={() => onCategoryChange(Category.HOME)}
-                style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}
-            >
+            <h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer leading-none" onClick={() => onCategoryChange(Category.HOME)} style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}>
                <span className="block text-[#2EB0D9] drop-shadow-md">MOR ERAN KAGAN</span>
                <span className={`${theme.textMuted} text-sm tracking-widest font-sans font-normal`}>& CO</span>
             </h1>
           </div>
-
           <nav className="hidden md:flex items-center gap-6">
             {state.menuItems.map(item => (
-              <button 
-                key={item.id} 
-                onClick={() => onCategoryChange(item.cat)}
-                className={`text-sm font-medium transition-colors hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : theme.textMuted}`}
-              >
+              <button key={item.id} onClick={() => onCategoryChange(item.cat)} className={`text-sm font-medium transition-colors hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : theme.textMuted}`}>
                 {item.label}
               </button>
             ))}
             <div className={`w-px h-6 mx-2 ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
             <button className={`${theme.textMuted} hover:text-[#2EB0D9]`}><Search size={20}/></button>
           </nav>
-
           <button className={`md:hidden ${theme.textTitle}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
-
         {mobileMenuOpen && (
            <div className={`md:hidden absolute top-20 left-0 w-full shadow-xl border-t p-4 flex flex-col gap-4 animate-fade-in-up ${theme.modalBg}`}>
               {state.menuItems.map(item => (
-                <button 
-                    key={item.id}
-                    onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }}
-                    className={`text-right p-2 rounded-lg font-medium hover:bg-black/5 ${theme.textMain}`}
-                >
+                <button key={item.id} onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }} className={`text-right p-2 rounded-lg font-medium hover:bg-black/5 ${theme.textMain}`}>
                     {item.label}
                 </button>
               ))}
@@ -428,29 +395,16 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       {/* --- Main Content Area --- */}
       <main className="flex-1 pt-20 relative z-10">
         
-        {/* HERO SECTION - COMPACT FOR 'ABOVE THE FOLD' */}
-        {/* HEIGHT CHANGED: h-[45vh] md:h-[55vh] */}
+        {/* HERO SECTION */}
         <section className="relative h-[45vh] md:h-[55vh] overflow-hidden bg-black group">
-          
           <div className="absolute left-8 top-[15%] z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity animate-float">
-              <img 
-                src={state.config.logoUrl} 
-                alt="Logo" 
-                className="h-28 w-auto object-contain drop-shadow-2xl" 
-                style={{ filter: "drop-shadow(0 10px 8px rgb(0 0 0 / 0.8))" }}
-              />
+              <img src={state.config.logoUrl} alt="Logo" className="h-28 w-auto object-contain drop-shadow-2xl" style={{ filter: "drop-shadow(0 10px 8px rgb(0 0 0 / 0.8))" }}/>
           </div>
-
           {currentSlides.map((slide, index) => (
-             <div 
-               key={slide.id}
-               className={`absolute inset-0 transition-opacity duration-1000 ${index === activeSlide ? 'opacity-100' : 'opacity-0'}`}
-             >
+             <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === activeSlide ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="w-full h-full overflow-hidden">
                     <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover opacity-50 animate-ken-burns" />
                 </div>
-                
-                {/* Content Container - Padded bottom to push text UP */}
                 <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent flex items-center pb-20">
                     <div className="container mx-auto px-6 md:px-12">
                         <div className="max-w-4xl text-white space-y-4 animate-fade-in-up">
@@ -472,8 +426,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                 </div>
                             )}
                             
-                            {/* Special Button for Store Slide on Home Page */}
-                            {state.currentCategory === Category.HOME && slide.category === Category.HOME && slide.title.includes('החנות') && (
+                            {isHomePage && slide.category === Category.HOME && slide.title.includes('החנות') && (
                                 <div className="pt-4">
                                     <Button onClick={() => onCategoryChange(Category.STORE)} variant="secondary" size="md" className="shine-effect">
                                         למעבר לחנות המשפטית
@@ -493,8 +446,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           </div>
         </section>
 
-        {/* TEAM SECTION (HOME ONLY) - OVERLAPPING & COMPACT */}
-        {state.currentCategory === Category.HOME && (
+        {/* TEAM SECTION (HOME ONLY) */}
+        {isHomePage && (
             <Reveal className="relative z-20 -mt-20 container mx-auto px-4">
                  <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
                      <div className="flex justify-between items-center mb-6">
@@ -504,25 +457,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
                         </div>
                      </div>
-                     
-                     <div 
-                        ref={teamScrollRef}
-                        className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full"
-                     >
+                     <div ref={teamScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">
                          {teamMembers.map(member => (
-                             <div 
-                                key={member.id} 
-                                onClick={() => setSelectedTeamMember(member)}
-                                // COMPACT WIDTH & HEIGHT
-                                className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}
-                             >
-                                 {/* Reduced Height Image: h-32 (mobile) md:h-48 (desktop) */}
+                             <div key={member.id} onClick={() => setSelectedTeamMember(member)} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}>
                                  <div className="h-32 md:h-48 w-full overflow-hidden relative">
-                                     <img 
-                                        src={member.imageUrl} 
-                                        alt={member.fullName} 
-                                        className="w-full h-full object-cover animate-ken-burns grayscale group-hover:grayscale-0 transition-all duration-500 opacity-80 group-hover:opacity-100" 
-                                     />
+                                     <img src={member.imageUrl} alt={member.fullName} className="w-full h-full object-cover animate-ken-burns grayscale group-hover:grayscale-0 transition-all duration-500 opacity-80 group-hover:opacity-100" />
                                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-2">
                                          <span className="text-white font-bold text-xs bg-[#2EB0D9] px-2 py-0.5 rounded-full">פרטים</span>
                                      </div>
@@ -538,34 +477,18 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
 
-        {/* PRODUCTS SECTION (STORE ONLY) - OVERLAPPING & COMPACT */}
-        {state.currentCategory === Category.STORE && (
-            <Reveal className="relative z-20 -mt-20 container mx-auto px-4">
+        {/* PRODUCTS SECTION (STORE ONLY) */}
+        {isStorePage && (
+            <Reveal className="relative z-20 -mt-20 container mx-auto px-4 mb-20">
                  <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
                      <div className="flex justify-between items-center mb-6">
                         <SectionTitle title="החבילות שלנו" isDark={isDark} />
-                        <div className="hidden md:flex gap-2">
-                            <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
-                            <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
-                        </div>
                      </div>
-                     
-                     <div 
-                        ref={teamScrollRef}
-                        className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full"
-                     >
-                         {storeProducts.map((product, index) => (
-                             <div 
-                                key={product.id} 
-                                // Matches Team Card Size
-                                className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col`}
-                             >
+                     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">
+                         {storeProducts.map((product) => (
+                             <div key={product.id} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col`}>
                                  <div className={`h-32 md:h-48 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                                     <img 
-                                        src={`https://picsum.photos/seed/${product.id}/400/600`} 
-                                        alt={product.title}
-                                        className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity grayscale group-hover:grayscale-0"
-                                     />
+                                     <img src={`https://picsum.photos/seed/${product.id}/400/600`} alt={product.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity grayscale group-hover:grayscale-0"/>
                                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                                      <div className="absolute inset-0 flex items-center justify-center">
                                          <div className="bg-white/10 backdrop-blur-sm p-3 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500">
@@ -573,18 +496,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                          </div>
                                      </div>
                                  </div>
-
                                  <div className="p-3 text-center flex-1 flex flex-col">
                                      <div className="mb-1">
-                                         <span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">
-                                            {CATEGORY_LABELS[product.category] || 'כללי'}
-                                         </span>
+                                         <span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">{CATEGORY_LABELS[product.category] || 'כללי'}</span>
                                      </div>
                                      <h4 className={`font-bold text-base md:text-lg mb-1 line-clamp-1 ${theme.textTitle}`}>{product.title}</h4>
                                      <div className={`text-lg font-black mb-3 ${theme.textMuted} flex-1 flex items-center justify-center`}>₪{product.price}</div>
-                                     <Button onClick={() => handleProductClick(product)} className="w-full shine-effect text-xs py-1.5 h-8" variant="secondary">
-                                        ערוך כעת
-                                     </Button>
+                                     <Button onClick={() => handleProductClick(product)} className="w-full shine-effect text-xs py-1.5 h-8" variant="secondary">ערוך כעת</Button>
                                  </div>
                              </div>
                          ))}
@@ -593,8 +511,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
         
-        {/* NEW: LEGAL GUIDES SLIDER (WILLS, RE, POA) - TEXT CARDS THAT OPEN LIKE ARTICLES */}
-        {![Category.HOME, Category.STORE].includes(state.currentCategory) && (
+        {/* MIDDLE SECTION - GUIDES SLIDER OR CONTACT PAGE CONTENT */}
+        {/* We only show the Guides Slider if NOT on Home, Store, or Contact pages */}
+        {showGuidesSlider && (
             <Reveal className="relative z-20 -mt-20 container mx-auto px-4">
                  <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
                      <div className="flex justify-between items-center mb-6">
@@ -604,60 +523,100 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
                         </div>
                      </div>
-                     
-                     <div 
-                        ref={teamScrollRef}
-                        className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full"
-                     >
-                         {/* Map current category Articles to these text cards */}
+                     <div ref={teamScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">
                          {currentArticles.map((article, index) => (
-                             <div 
-                                key={article.id} 
-                                onClick={() => setSelectedArticle(article)}
-                                className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col h-[280px] md:h-[350px]`}
-                             >
-                                 {/* Icon / Abstract Graphic Area instead of Image */}
+                             <div key={article.id} onClick={() => setSelectedArticle(article)} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col h-[280px] md:h-[350px]`}>
                                  <div className={`h-1/3 w-full flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#2EB0D9]/10 to-transparent border-b ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                                      <div className="p-4 bg-white/10 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500">
-                                        {/* Dynamic Icon based on index or category to add variety */}
                                         {index % 2 === 0 ? <Scale size={32} className="text-[#2EB0D9]"/> : <BookOpen size={32} className="text-[#2EB0D9]"/>}
                                      </div>
                                  </div>
-
                                  <div className="p-5 text-center flex-1 flex flex-col relative">
                                      <div className="mb-2">
-                                         <span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">
-                                            {CATEGORY_LABELS[article.categories[0]] || 'מידע'}
-                                         </span>
+                                         <span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">{CATEGORY_LABELS[article.categories[0]] || 'מידע'}</span>
                                      </div>
                                      <h4 className={`font-bold text-lg md:text-xl mb-3 leading-tight ${theme.textTitle}`}>{article.title}</h4>
-                                     
-                                     {/* Truncated Description */}
-                                     <p className={`text-xs md:text-sm leading-relaxed mb-4 line-clamp-4 ${theme.textMuted}`}>
-                                         {article.abstract}
-                                     </p>
-                                     
-                                     <div className="mt-auto pt-2 w-full">
-                                         <Button onClick={() => setSelectedArticle(article)} className="w-full text-xs h-9" variant="outline">
-                                            קרא את המדריך
-                                         </Button>
-                                     </div>
+                                     <p className={`text-xs md:text-sm leading-relaxed mb-4 line-clamp-4 ${theme.textMuted}`}>{article.abstract}</p>
+                                     <div className="mt-auto pt-2 w-full"><Button onClick={() => setSelectedArticle(article)} className="w-full text-xs h-9" variant="outline">קרא את המדריך</Button></div>
                                  </div>
                              </div>
                          ))}
-                         
-                         {currentArticles.length === 0 && (
-                            <div className={`w-full text-center py-10 ${theme.textMuted}`}>
-                                בקרוב יעלו מאמרים ומדריכים לקטגוריה זו.
-                            </div>
-                         )}
                      </div>
                  </div>
             </Reveal>
         )}
 
-        {/* TIMELINE (SCROLLABLE) */}
-        {state.currentCategory === Category.HOME && (
+        {/* SPECIAL CONTACT PAGE LAYOUT */}
+        {isContactPage && (
+            <Reveal className="relative z-20 -mt-20 container mx-auto px-4 mb-20">
+                <SectionTitle title="צור קשר" isDark={isDark} />
+                
+                {/* Contact Card - Mimicking Footer Style */}
+                <div className={`rounded-3xl overflow-hidden shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className="grid grid-cols-1 md:grid-cols-2">
+                        
+                        {/* Right Side: Form */}
+                        <div className="p-8 md:p-12">
+                           <h3 className={`text-2xl font-bold mb-6 ${theme.textTitle}`}>שלחו לנו הודעה</h3>
+                           <div className="space-y-4">
+                                <div>
+                                    <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>שם מלא</label>
+                                    <input type="text" className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})} placeholder="שם מלא"/>
+                                </div>
+                                <div>
+                                    <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>טלפון</label>
+                                    <input type="tel" className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} value={contactForm.phone} onChange={e => setContactForm({...contactForm, phone: e.target.value})} placeholder="050-0000000"/>
+                                </div>
+                                <div>
+                                    <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>הודעה</label>
+                                    <textarea className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition h-32 ${theme.inputBg}`} value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})} placeholder="כיצד נוכל לעזור?"></textarea>
+                                </div>
+                                <Button className="w-full py-4 text-lg font-bold shine-effect" variant="secondary" onClick={handleContactSubmit} disabled={contactSending}>
+                                    {contactSending ? <Loader2 className="animate-spin inline ml-2"/> : null}
+                                    {contactSending ? 'שולח...' : 'שלח הודעה'}
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Left Side: Info (Footer Style) */}
+                        <div className="bg-slate-950 p-8 md:p-12 text-slate-300 flex flex-col justify-between border-t md:border-t-0 md:border-r border-slate-800" dir="rtl">
+                             <div className="space-y-8">
+                                <div>
+                                    <h2 className="text-3xl font-black text-white mb-2 leading-tight" style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}>
+                                       <span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO
+                                    </h2>
+                                    <p className="text-slate-500 text-sm">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p>
+                                </div>
+                                
+                                <ul className="space-y-6">
+                                     <li className="flex items-start gap-4"><MapPin size={24} className="text-[#2EB0D9] shrink-0"/> <div><span className="block text-white font-bold">כתובת</span><span className="text-slate-400">{state.config.address}</span></div></li>
+                                     <li className="flex items-center gap-4"><Phone size={24} className="text-[#2EB0D9] shrink-0"/> <div><span className="block text-white font-bold">טלפון</span><span className="text-slate-400" dir="ltr">{state.config.phone}</span></div></li>
+                                     <li className="flex items-center gap-4"><Mail size={24} className="text-[#2EB0D9] shrink-0"/> <div><span className="block text-white font-bold">דוא"ל</span><span className="text-slate-400">{state.config.contactEmail}</span></div></li>
+                                </ul>
+                             </div>
+
+                             <div className="mt-8">
+                                <div className="h-40 w-full rounded-xl overflow-hidden mb-4 relative grayscale hover:grayscale-0 transition-all border border-slate-800">
+                                     <iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.8, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe>
+                                </div>
+                                <div className="flex gap-3">
+                                     <Button className="flex-1 gap-2 text-xs" variant="outline" onClick={() => window.open(`https://waze.com/ul?q=${state.config.address}`)}>
+                                        <Navigation size={14}/> נווט עם Waze
+                                     </Button>
+                                     <Button className="flex-1 gap-2 text-xs" variant="outline" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${state.config.address}`)}>
+                                        <MapPin size={14}/> Google Maps
+                                     </Button>
+                                </div>
+                             </div>
+                        </div>
+
+                    </div>
+                </div>
+            </Reveal>
+        )}
+
+        {/* TIMELINE (SCROLLABLE) - ENABLED FOR HOME OR STORE */}
+        {showTimelineSection && (
             <Reveal className={`py-20 relative border-b ${isDark ? 'border-slate-800/50' : 'border-slate-100'}`} delay={200}>
                <div className="container mx-auto px-4 mb-8 flex justify-between items-end">
                   <SectionTitle title="חדשות ועדכונים" isDark={isDark} />
@@ -668,10 +627,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                </div>
                
                <div className="container mx-auto px-4">
-                  <div 
-                     ref={timelineScrollRef}
-                     className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x"
-                  >
+                  <div ref={timelineScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x">
                       {currentTimelines.map((item, index) => {
                           const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-'));
                           const brandGradients = ['from-[#2EB0D9] to-[#1F8CAD]', 'from-[#2EB0D9] to-[#0EA5E9]', 'from-[#06B6D4] to-[#2EB0D9]', 'from-[#22D3EE] to-[#0090B0]'];
@@ -679,16 +635,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                           const bgClass = isGenerator 
                             ? `bg-gradient-to-br ${selectedGradient} text-white shadow-xl shadow-cyan-500/20 transform hover:-translate-y-2` 
                             : `${theme.cardBg} ${theme.cardHover} transition-all duration-300 transform hover:-translate-y-2`;
-                          
                           const textClass = isGenerator ? 'text-white' : theme.textTitle;
                           const descClass = isGenerator ? 'text-white/90' : theme.textMuted;
 
                           return (
-                              <div 
-                                key={item.id} 
-                                onClick={() => handleTimelineClick(item)}
-                                className={`flex-shrink-0 w-[140px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[200px] md:h-[240px] border border-transparent ${bgClass}`}
-                              >
+                              <div key={item.id} onClick={() => handleTimelineClick(item)} className={`flex-shrink-0 w-[140px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[200px] md:h-[240px] border border-transparent ${bgClass}`}>
                                   <div className="p-4 md:p-6 flex flex-col h-full relative">
                                        <div className={`absolute top-4 left-4 p-2 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>
                                           {isGenerator ? <FileText size={16} className="text-white"/> : <ArrowLeft size={16} className=""/>}
@@ -740,42 +691,43 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         )}
 
         {/* ARTICLES GRID (BOTTOM - ALL ARTICLES) */}
-        {/* Only show if NOT in Home/Store to avoid duplication, OR if you want to show remaining articles */}
-        {![Category.STORE].includes(state.currentCategory) && (
+        {showBottomArticlesGrid && (
             <Reveal delay={300} className="py-20 container mx-auto px-4">
-                 <SectionTitle title={state.currentCategory === Category.HOME ? "מאמרים נבחרים" : "מאמרים נוספים"} isDark={isDark} />
-                 <div ref={articlesScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x">
-                    {currentArticles.map(article => (
-                        <div key={article.id} className="flex-shrink-0 w-[220px] md:w-[calc(25%-18px)] h-[300px] md:h-[380px] snap-start">
-                            <ArticleCard article={article} onClick={() => setSelectedArticle(article)} />
-                        </div>
-                    ))}
-                 </div>
+                     <SectionTitle title={state.currentCategory === Category.HOME ? "מאמרים נבחרים" : "מאמרים נוספים"} isDark={isDark} />
+                     <div ref={articlesScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x">
+                        {currentArticles.map(article => (
+                            <div key={article.id} className="flex-shrink-0 w-[220px] md:w-[calc(25%-18px)] h-[300px] md:h-[380px] snap-start">
+                                <ArticleCard article={article} onClick={() => setSelectedArticle(article)} />
+                            </div>
+                        ))}
+                     </div>
             </Reveal>
         )}
 
-        {/* FOOTER */}
-        <footer className="bg-black text-slate-400 pt-20 pb-10 relative z-10 border-t border-slate-900">
-            <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 items-start text-right" dir="rtl">
-                <div className="col-span-1 flex flex-col items-start">
-                    <h2 className="text-2xl font-black text-white mb-6 leading-tight" style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}>
-                       <span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO
-                    </h2>
-                    <p className="mb-6 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p>
-                    {onAdminClick && <button onClick={onAdminClick} className="p-2 border border-slate-800 rounded-full"><Settings size={16}/></button>}
+        {/* GLOBAL FOOTER (HIDDEN ON CONTACT PAGE) */}
+        {showGlobalFooter && (
+            <footer className="bg-black text-slate-400 pt-20 pb-10 relative z-10 border-t border-slate-900">
+                <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 items-start text-right" dir="rtl">
+                    <div className="col-span-1 flex flex-col items-start">
+                        <h2 className="text-2xl font-black text-white mb-6 leading-tight" style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}>
+                           <span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO
+                        </h2>
+                        <p className="mb-6 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p>
+                        {onAdminClick && <button onClick={onAdminClick} className="p-2 border border-slate-800 rounded-full"><Settings size={16}/></button>}
+                    </div>
+                    <div className="col-span-1 flex flex-col items-start">
+                        <h4 className="text-white font-bold mb-6 text-lg border-r-4 border-[#2EB0D9] pr-4">פרטי התקשרות</h4>
+                        <ul className="space-y-4 w-full">
+                            <li className="flex items-start gap-4"><MapPin size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.address}</span></li>
+                            <li className="flex items-center gap-4"><Phone size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400" dir="ltr">{state.config.phone}</span></li>
+                            <li className="flex items-center gap-4"><Mail size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.contactEmail}</span></li>
+                        </ul>
+                    </div>
+                    <div className="col-span-1"><div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800"><iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.6, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe></div></div>
                 </div>
-                <div className="col-span-1 flex flex-col items-start">
-                    <h4 className="text-white font-bold mb-6 text-lg border-r-4 border-[#2EB0D9] pr-4">פרטי התקשרות</h4>
-                    <ul className="space-y-4 w-full">
-                        <li className="flex items-start gap-4"><MapPin size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.address}</span></li>
-                        <li className="flex items-center gap-4"><Phone size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400" dir="ltr">{state.config.phone}</span></li>
-                        <li className="flex items-center gap-4"><Mail size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.contactEmail}</span></li>
-                    </ul>
-                </div>
-                <div className="col-span-1"><div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800"><iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.6, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe></div></div>
-            </div>
-            <div className="container mx-auto px-4 pt-8 border-t border-slate-900 text-center text-sm text-slate-600">&copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO.</div>
-        </footer>
+                <div className="container mx-auto px-4 pt-8 border-t border-slate-900 text-center text-sm text-slate-600">&copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO.</div>
+            </footer>
+        )}
       </main>
       <FloatingWidgets />
     </div>
