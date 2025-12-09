@@ -12,11 +12,10 @@ export const dbService = {
     if (!supabase) return null;
 
     try {
-      // Assuming we keep the site config in a table called 'site_config', row ID 1
       const { data, error } = await supabase
         .from('site_config')
         .select('data')
-        .order('id', { ascending: true }) // Get the first record (or specific ID)
+        .order('id', { ascending: true })
         .limit(1)
         .single();
 
@@ -39,7 +38,6 @@ export const dbService = {
     const supabase = this.getClient(url, key);
     if (!supabase) return false;
 
-    // We strip out the UI state (isAdminLoggedIn, currentCategory) before saving
     const dataToSave = {
        articles: state.articles,
        timelines: state.timelines,
@@ -51,34 +49,55 @@ export const dbService = {
     };
 
     try {
-      // We assume row ID 1 exists. If not, we might need to insert.
-      // Upsert is safer.
-      // Note: 'site_config' table must exist with 'id' and 'data' columns.
-      // We check if row 1 exists
       const { data: existing } = await supabase.from('site_config').select('id').limit(1);
 
       if (existing && existing.length > 0) {
-          // Update
           const id = existing[0].id;
           const { error } = await supabase
             .from('site_config')
             .update({ data: dataToSave, updated_at: new Date().toISOString() })
             .eq('id', id);
-          
           if (error) throw error;
       } else {
-          // Insert
           const { error } = await supabase
             .from('site_config')
             .insert([{ data: dataToSave }]);
-          
           if (error) throw error;
       }
-
       return true;
     } catch (e) {
       console.error("Supabase save error:", e);
       return false;
     }
+  },
+
+  async uploadImage(url: string, key: string, file: File): Promise<string | null> {
+      const supabase = this.getClient(url, key);
+      if (!supabase) return null;
+
+      try {
+          // Generate a unique file name
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          // Upload to 'images' bucket
+          const { error: uploadError } = await supabase.storage
+              .from('images')
+              .upload(filePath, file);
+
+          if (uploadError) {
+              console.error("Supabase Upload Error:", uploadError);
+              throw uploadError;
+          }
+
+          // Get Public URL
+          const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+          
+          return data.publicUrl;
+      } catch (e) {
+          console.error("Supabase image upload failed:", e);
+          return null;
+      }
   }
 };

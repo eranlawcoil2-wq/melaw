@@ -1,15 +1,17 @@
 import React, { useRef, useState } from 'react';
-import { Upload, Loader2, AlertTriangle, Cloud } from 'lucide-react';
+import { Upload, Loader2, Cloud, Database } from 'lucide-react';
 import { Button } from './Button.tsx';
 import { cloudService } from '../services/api.ts';
+import { dbService } from '../services/supabase.ts';
 
 interface ImageUploadButtonProps {
     onImageSelected: (url: string) => void;
-    googleSheetsUrl?: string; // Need this for uploading
+    googleSheetsUrl?: string; // Legacy
+    supabaseConfig?: { url: string; key: string }; // New
     className?: string;
 }
 
-export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({ onImageSelected, googleSheetsUrl, className = '' }) => {
+export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({ onImageSelected, googleSheetsUrl, supabaseConfig, className = '' }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -23,49 +25,58 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({ onImageSel
             return;
         }
 
-        // 5MB Limit for Drive Uploads via Script to prevent timeouts
+        // 5MB Limit
         if (file.size > 5 * 1024 * 1024) {
             alert('הקובץ גדול מדי. נא לבחור תמונה עד 5MB.');
             return;
         }
 
-        if (!googleSheetsUrl || !googleSheetsUrl.includes('script.google.com')) {
-            alert('שגיאה: לא הוגדר חיבור לשרת (Google Script). לא ניתן להעלות תמונות לענן.\nנא להגדיר זאת ב"חיבורים ואינטגרציות".');
-            return;
-        }
-
         setIsLoading(true);
 
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const base64Data = e.target?.result as string;
-            
-            try {
-                // Upload to Google Drive via Script
-                const publicUrl = await cloudService.uploadImage(googleSheetsUrl, base64Data, file.name);
-                
+        try {
+            // STRATEGY 1: SUPABASE STORAGE (Preferred)
+            if (supabaseConfig && supabaseConfig.url && supabaseConfig.key) {
+                const publicUrl = await dbService.uploadImage(supabaseConfig.url, supabaseConfig.key, file);
                 if (publicUrl) {
                     onImageSelected(publicUrl);
-                    alert("התמונה הועלתה בהצלחה ל-Google Drive!");
+                    alert("התמונה הועלתה בהצלחה (Supabase)!");
+                    return; // Exit on success
                 } else {
-                    alert("העלאת התמונה נכשלה. וודא שהסקריפט מעודכן.");
+                    console.error("Supabase upload failed, falling back...");
                 }
-            } catch (error) {
-                alert("שגיאה בהעלאה.");
-                console.error(error);
-            } finally {
-                setIsLoading(false);
-                if (fileInputRef.current) fileInputRef.current.value = '';
             }
-        };
 
-        reader.onerror = () => {
-            alert('שגיאה בקריאת הקובץ');
-            setIsLoading(false);
-        };
+            // STRATEGY 2: GOOGLE SCRIPT (Legacy Fallback)
+            if (googleSheetsUrl && googleSheetsUrl.includes('script.google.com')) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const base64Data = e.target?.result as string;
+                    const publicUrl = await cloudService.uploadImage(googleSheetsUrl, base64Data, file.name);
+                    
+                    if (publicUrl) {
+                        onImageSelected(publicUrl);
+                        alert("התמונה הועלתה בהצלחה ל-Google Drive!");
+                    } else {
+                        alert("העלאת התמונה נכשלה.");
+                    }
+                    setIsLoading(false);
+                };
+                reader.readAsDataURL(file);
+                return; // Reader handles the rest
+            }
 
-        reader.readAsDataURL(file);
+            alert('שגיאה: לא הוגדר חיבור לאחסון (Supabase או Google). נא להגדיר בלשונית חיבורים.');
+
+        } catch (error) {
+            alert("שגיאה בהעלאה.");
+            console.error(error);
+        } finally {
+            if (!googleSheetsUrl) setIsLoading(false); // If using reader, loading stops in onload
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
     };
+
+    const hasSupabase = supabaseConfig && supabaseConfig.url && supabaseConfig.key;
 
     return (
         <>
@@ -81,9 +92,9 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({ onImageSel
                 variant="outline" 
                 className={`bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 ${className}`}
                 disabled={isLoading}
-                title="העלה תמונה ל-Google Drive"
+                title={hasSupabase ? "העלה ל-Supabase Storage" : "העלה ל-Google Drive"}
             >
-                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : (hasSupabase ? <Database size={18} className="text-[#2EB0D9]"/> : <Upload size={18} />)}
                 {isLoading && <span className="ml-2 text-xs">מעלה...</span>}
             </Button>
         </>
