@@ -79,9 +79,21 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   // Sorting Logic: Sort all content by order field
   const currentSlides = state.slides.filter(s => s.category === state.currentCategory || s.category === Category.HOME).sort((a, b) => (a.order || 99) - (b.order || 99));
   const currentArticles = state.articles.filter(a => state.currentCategory === Category.HOME || state.currentCategory === Category.STORE ? true : a.categories.includes(state.currentCategory)).sort((a, b) => (a.order || 99) - (b.order || 99));
-  const currentTimelines = state.timelines.filter(t => state.currentCategory === Category.HOME || state.currentCategory === Category.STORE || t.category.includes(state.currentCategory)).sort((a, b) => (a.order || 99) - (b.order || 99));
   const currentCategoryForms = state.forms.filter(f => f.categories && f.categories.includes(state.currentCategory)).sort((a, b) => (a.order || 99) - (b.order || 99));
   const teamMembers = state.teamMembers.sort((a, b) => (a.order || 99) - (b.order || 99));
+  
+  // FIX: Broaden the filter logic for Timelines so they appear on more pages
+  const currentTimelines = state.timelines.filter(t => {
+      // If categories are empty, assume Home only
+      if (!t.category || t.category.length === 0) return state.currentCategory === Category.HOME;
+      
+      // If current view is Home or Store, show general items + home items
+      if (state.currentCategory === Category.HOME || state.currentCategory === Category.STORE) return true;
+      
+      // Otherwise, strict check
+      return t.category.includes(state.currentCategory);
+  }).sort((a, b) => (a.order || 99) - (b.order || 99));
+
   
   // Updated Product Logic
   const storeProducts = (state.products || []).filter(p => {
@@ -459,6 +471,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                  </div>
                                  
                                  {field.type === 'text' && <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
+                                 {field.type === 'email' && <input type="email" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
                                  {field.type === 'number' && <input type="number" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
                                  {field.type === 'boolean' && (
                                      <div className="flex gap-4">
@@ -492,11 +505,28 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
                              // 2. Map numeric IDs to human-readable labels
                              const mappedData: any = { submissionId };
+                             let explicitClientEmail = '';
+
                              Object.keys(dynamicFormValues).forEach(key => {
                                  const fieldDef = currentDynamicForm.fields.find(f => f.id === key);
                                  const label = fieldDef ? fieldDef.label : key;
                                  mappedData[label] = dynamicFormValues[key];
+                                 
+                                 // Check if this field is the client email field
+                                 if (fieldDef && fieldDef.isClientEmail && dynamicFormValues[key]) {
+                                     explicitClientEmail = dynamicFormValues[key];
+                                 }
                              });
+                             
+                             // If no explicit email found, fallback to legacy check
+                             if (!explicitClientEmail) {
+                                 explicitClientEmail = dynamicFormValues['email'] || dynamicFormValues['אימייל'];
+                             }
+                             
+                             // Inject explicit email into data for sendForm to find if needed
+                             if (explicitClientEmail) {
+                                 mappedData['email'] = explicitClientEmail;
+                             }
 
                              // 3. Define Office Email
                              const officeEmail = currentDynamicForm.submitEmail || state.config.contactEmail; 
@@ -506,7 +536,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                  await emailService.sendForm(currentDynamicForm.title, mappedData, state.config.integrations, currentDynamicForm.pdfTemplate, currentDynamicForm.sendClientEmail, officeEmail); 
                                  
                                  if (state.config.integrations.googleSheetsUrl) {
-                                     alert(`נשלח בהצלחה למערכת!\nמספר אסמכתא: ${submissionId}\n${currentDynamicForm.sendClientEmail ? "העתק נשלח גם ללקוח." : ""}`);
+                                     alert(`נשלח בהצלחה למערכת!\nמספר אסמכתא: ${submissionId}\n${currentDynamicForm.sendClientEmail && explicitClientEmail ? `העתק נשלח למייל: ${explicitClientEmail}` : ""}`);
                                  } else {
                                      alert("נשלח בהצלחה! (מצב ללא חיבור לשרת).");
                                  }

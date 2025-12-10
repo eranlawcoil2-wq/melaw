@@ -24,7 +24,7 @@ export interface SliderSlide {
   subtitle: string;
   category: Category;
   buttonText?: string;
-  linkTo?: string; // Updated: Generic link field (e.g., "form:123", "cat:WILLS", "url:https://...")
+  linkTo?: string; 
   order?: number; 
 }
 
@@ -33,10 +33,10 @@ export interface TimelineItem {
   title: string;
   description: string;
   imageUrl: string;
-  category: Category[];
+  category: Category[]; // Ensure this is Array
   linkTo?: string;
   order?: number; 
-  tabs?: ArticleTab[]; // Added tabs support like articles
+  tabs?: ArticleTab[]; 
 }
 
 export interface ArticleTab {
@@ -53,7 +53,7 @@ export interface Article {
   videoUrl?: string;
   quote?: string;
   tabs: ArticleTab[];
-  order?: number; // Added order
+  order?: number; 
 }
 
 export interface TeamMember {
@@ -65,7 +65,7 @@ export interface TeamMember {
   phone: string;
   imageUrl: string;
   bio: string;
-  order?: number; // Added order
+  order?: number; 
 }
 
 export interface Product {
@@ -73,12 +73,12 @@ export interface Product {
     title: string;
     description?: string;
     price: number;
-    installments?: string; // New: e.g. "עד 12 תשלומים"
+    installments?: string; 
     paymentLink: string; 
     categories: Category[]; 
     imageUrl?: string;
     isPopular?: boolean;
-    order?: number; // Added order
+    order?: number; 
 }
 
 export interface WillsFormData {
@@ -92,27 +92,15 @@ export interface WillsFormData {
   contactPhone: string;
 }
 
-// New Interface for Third-Party Integrations
 export interface IntegrationsConfig {
-    // Database (Supabase)
     supabaseUrl: string;
     supabaseKey: string;
-
-    // AI
     geminiApiKey: string;
-    
-    // Images
     unsplashAccessKey: string;
-
-    // Database (Legacy Google Sheets)
     googleSheetsUrl: string; 
-    
-    // Email (EmailJS)
     emailJsServiceId: string;
     emailJsTemplateId: string;
     emailJsPublicKey: string;
-
-    // Payment Links (Stripe)
     stripeWillsLink?: string;
     stripeRealEstateLink?: string;
     stripeConsultationLink?: string;
@@ -126,14 +114,12 @@ export interface SiteConfig {
   willsEmail: string;
   poaEmail: string;
   phone: string;
-  fax?: string; // New
-  whatsapp?: string; // New
+  fax?: string; 
+  whatsapp?: string; 
   address: string;
   theme: 'dark' | 'light';
   adminPassword?: string; 
   integrations: IntegrationsConfig; 
-  
-  // New V2.0 Fields
   defaultCategory?: Category;
   passwordHint?: string;
 }
@@ -153,7 +139,8 @@ export interface FormField {
     label: string;
     options?: string[];
     required: boolean;
-    helpArticleId?: string; // LINK TO ARTICLE FOR HELP
+    helpArticleId?: string; 
+    isClientEmail?: boolean; // NEW: Marks this field as the destination email
 }
 
 export interface FormDefinition {
@@ -161,17 +148,17 @@ export interface FormDefinition {
     title: string;
     categories: Category[]; 
     fields: FormField[];
-    submitEmail: string; // Office Email
-    sendClientEmail?: boolean; // New: Toggle to send copy to client
+    submitEmail: string; 
+    sendClientEmail?: boolean; 
     pdfTemplate?: 'NONE' | 'WILL' | 'POA'; 
-    order?: number; // Added order
+    order?: number; 
 }
 
 export interface AppState {
   currentCategory: Category;
   config: SiteConfig;
   slides: SliderSlide[];
-  timelines: TimelineItem[]; // Used for "News & Updates"
+  timelines: TimelineItem[]; 
   articles: Article[];
   menuItems: MenuItem[];
   forms: FormDefinition[];
