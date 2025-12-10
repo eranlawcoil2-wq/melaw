@@ -94,18 +94,24 @@ export const emailService = {
     /**
      * פונקציה ראשית לשליחת טפסים
      */
-    async sendForm(formTitle: string, data: any, config?: IntegrationsConfig, pdfTemplate?: 'NONE' | 'WILL' | 'POA'): Promise<boolean> {
+    async sendForm(formTitle: string, data: any, config?: IntegrationsConfig, pdfTemplate?: 'NONE' | 'WILL' | 'POA', sendClientCopy: boolean = false, officeEmail?: string): Promise<boolean> {
         console.log(`Processing Form: ${formTitle} [Template: ${pdfTemplate}]`);
         
         // --- 1. PRIORITY: GOOGLE SHEETS (Server Side Processing) ---
         if (config?.googleSheetsUrl && config.googleSheetsUrl.includes('script.google.com')) {
             try {
+                // Determine Client Email (usually in field 'email', 'אימייל', 'contactEmail')
+                const clientEmail = data['email'] || data['אימייל'] || data['contactEmail'] || data['דוא"ל'];
+
                 const payload = {
                     action: 'submitForm',       
                     targetSheet: 'DATA',        
                     templateSheet: pdfTemplate === 'WILL' ? 'WILL' : (pdfTemplate === 'POA' ? 'POA' : undefined), 
                     formName: formTitle,
                     submittedAt: new Date().toLocaleString('he-IL'),
+                    officeEmail: officeEmail, // Explicitly pass office email
+                    clientEmail: clientEmail, // Explicitly pass client email if found
+                    sendClientCopy: sendClientCopy, // Tell script whether to CC client
                     ...data 
                 };
 
@@ -152,11 +158,14 @@ export const emailService = {
             'טלפון': data.contactPhone,
             'אימייל': data.contactEmail,
             'נכסים': data.assets ? data.assets.map(a => `${a.type}: ${a.description}`).join(' | ') : 'ללא',
-            submitEmail: config.willsEmail || config.contactEmail || 'office@melaw.co.il' // Ensure email is passed for PDF sending
         };
 
-        // Pass integrations config to sendForm
-        return this.sendForm('Wills Generator', flatData, config.integrations, 'WILL');
+        // Always send to office email defined in config (willsEmail) or fallback
+        const officeEmail = config.willsEmail || config.contactEmail || 'office@melaw.co.il';
+        
+        // For wills, we generally want to send a copy to client if they provided email, or make it configurable. 
+        // For now, let's assume wills generator always sends copy to client as it's a "Generator"
+        return this.sendForm('Wills Generator', flatData, config.integrations, 'WILL', true, officeEmail);
     }
 };
 

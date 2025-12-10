@@ -8,7 +8,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v2.11';
+const APP_VERSION = 'v2.12';
 
 // ============================================================================
 // הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש

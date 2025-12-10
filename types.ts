@@ -73,6 +73,7 @@ export interface Product {
     title: string;
     description?: string;
     price: number;
+    installments?: string; // New: e.g. "עד 12 תשלומים"
     paymentLink: string; 
     categories: Category[]; 
     imageUrl?: string;
@@ -160,7 +161,8 @@ export interface FormDefinition {
     title: string;
     categories: Category[]; 
     fields: FormField[];
-    submitEmail: string;
+    submitEmail: string; // Office Email
+    sendClientEmail?: boolean; // New: Toggle to send copy to client
     pdfTemplate?: 'NONE' | 'WILL' | 'POA'; 
     order?: number; // Added order
 }

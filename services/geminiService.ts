@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Article, Category } from "../types.ts";
 
@@ -39,20 +40,32 @@ export const generateArticleContent = async (topic: string, category: Category |
   }
 
   const prompt = `
-      You are an elite, Senior Partner Israeli Attorney (עורך דין בכיר, כריזמטי וחד).
-      Your task: Write a premium, high-level legal article in Hebrew about: "${topic}".
+      אתה שותף בכיר במשרד עורכי דין מוביל בישראל (Senior Partner).
+      המשימה שלך: לכתוב מאמר משפטי מעמיק, חד, ומקצועי בנושא: "${topic}".
       
-      Category Context: ${category === 'ALL' ? 'General Israeli Law' : category}
+      המאמר מיועד ללקוחות פוטנציאליים אך חייב לשדר מקצועיות עליונה, שליטה בחוק ובפסיקה.
+      
+      הנחיות קריטיות לתוכן (חובה):
+      1. **עומק משפטי אמיתי:** אל תכתוב סיסמאות. תנתח את המצב המשפטי.
+      2. **חובה לצטט מקורות:** הזכר במפורש שמות של חוקים רלוונטיים (למשל: "חוק הירושה, תשכ"ה-1965", "חוק המקרקעין", "חוק הכשרות המשפטית").
+      3. **אזכור פסיקה:** במידת האפשר, ציין עקרונות שנקבעו בפסיקת בית המשפט העליון (בג"ץ או פס"ד אזרחי) הרלוונטיים לנושא.
+      4. **טון:** סמכותי, אינטליגנטי, אך מוסבר בגובה העיניים. לא שיווקי זול, אלא מעניק ערך.
 
-      **INSTRUCTIONS FOR "GEMINI-QUALITY" OUTPUT:**
-      1.  **Tone:** Sophisticated, persuasive, and fluent. Avoid robotic or repetitive phrasing. Use rich Hebrew (שפה עשירה ומקצועית) but make it accessible to clients.
-      2.  **Depth:** Do not just list facts. Explain the *strategy*, the *risks*, and the *implications* of the law.
-      3.  **Realism:** In the "Case Study" tab, write a detailed, plausible narrative with names and specific conflicts. Make the reader feel the drama and the resolution.
-      4.  **Structure**:
-          - **Abstract**: A powerful hook (3-5 sentences) that explains why this topic is critical *right now*.
-          - **Tab 1 Title MUST be "ניתוח משפטי"**: Deep dive into the legal principles. Explain the logic behind the law.
-          - **Tab 2 Title MUST be "סיפור מקרה"**: A real-world story illustrating what happens when you don't act correctly.
-          - **Tab 3 Title MUST be "המלצות"**: Concrete, actionable steps (Checklist).
+      מבנה התשובה הנדרש (JSON):
+      
+      1. **Abstract (תקציר):** פתיח חזק של 4-5 משפטים שמסביר למה הסוגיה הזו קריטית דווקא היום.
+      2. **Quote (ציטוט):** משפט מחץ קצר או פתגם משפטי שקשור לנושא.
+      3. **Tab 1 - "ניתוח משפטי מעמיק":**
+         - זהו הלב של המאמר. כתוב כאן לפחות 3 פסקאות מלאות.
+         - הסבר את לשון החוק.
+         - הסבר את הבעייתיות המשפטית.
+         - תן דוגמאות למורכבות.
+      4. **Tab 2 - "סיפור מקרה (Case Study)":**
+         - כתוב סיפור ריאליסטי ומפורט על לקוח שהגיע למשרד עם בעיה בנושא זה.
+         - תאר את הקונפליקט, את הטעות שעשה (או כמעט עשה), ואת הפתרון המשפטי שניתן.
+      5. **Tab 3 - "המלצות וסיכום":**
+         - רשימה של 4-5 המלצות פרקטיות ("עשה ואל תעשה").
+         - סיכום קצר.
 
       Output MUST be a valid JSON object matching the schema.
   `;
