@@ -6,7 +6,7 @@ import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
 import { ShareMenu } from '../components/ShareMenu.tsx'; 
 import { emailService, storeService } from '../services/api.ts'; 
-import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen } from 'lucide-react';
+import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList } from 'lucide-react';
 
 // --- Scroll Reveal Helper Component ---
 const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = "", delay = 0 }) => {
@@ -67,6 +67,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const [activeDynamicFormId, setActiveDynamicFormId] = useState<string | null>(null);
   const [dynamicFormValues, setDynamicFormValues] = useState<Record<string, any>>({});
   const [isSubmittingDynamic, setIsSubmittingDynamic] = useState(false);
+  const [showFormsListModal, setShowFormsListModal] = useState(false);
 
   // Contact Form State
   const [contactForm, setContactForm] = useState({ name: '', phone: '', message: '' });
@@ -102,18 +103,18 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
     .sort((a, b) => (a.order || 99) - (b.order || 99));
   
   // Article Filtering:
-  // For Store and Home, we show 'HOME' articles or general ones. 
-  // For specific cats, we filter.
   const currentArticles = state.articles.filter(a => 
       state.currentCategory === Category.HOME || state.currentCategory === Category.STORE ? true : a.categories.includes(state.currentCategory)
   );
   
   // Timeline Filtering:
-  // Store page needs timeline just like Home page.
   const currentTimelines = state.timelines.filter(t => 
       state.currentCategory === Category.HOME || state.currentCategory === Category.STORE || t.category.includes(state.currentCategory)
   );
   
+  // Forms Filtering for current category (excluding HOME/STORE for specific lists, or include if needed)
+  const currentCategoryForms = state.forms.filter(f => f.categories && f.categories.includes(state.currentCategory));
+
   const teamMembers = state.teamMembers;
 
   // Slider Auto-play
@@ -239,7 +240,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           <div className="absolute bottom-[20%] left-[-5%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] animate-float-slow" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      {/* --- Modals (Article, Wills, Team) --- */}
+      {/* --- Modals --- */}
       {selectedArticle && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setSelectedArticle(null)}></div>
@@ -356,7 +357,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                  <div className={`md:w-3/5 p-8 flex flex-col justify-center ${theme.textMain}`}>
                      <span className="text-[#2EB0D9] font-bold text-sm mb-1">{selectedTeamMember.role}</span>
                      <h2 className={`text-3xl font-black mb-2 ${theme.textTitle}`}>{selectedTeamMember.fullName}</h2>
-                     <p className={`leading-relaxed text-sm p-4 rounded-lg border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>{selectedTeamMember.bio}</p>
+                     <p className={`leading-relaxed text-sm p-4 rounded-lg border mb-4 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>{selectedTeamMember.bio || 'אין מידע נוסף.'}</p>
+                     
+                     {/* Added Contact Info */}
+                     <div className="space-y-2 text-sm">
+                         <div className="flex items-center gap-2"><Mail size={16} className="text-[#2EB0D9]"/> <span>{selectedTeamMember.email}</span></div>
+                         <div className="flex items-center gap-2"><Phone size={16} className="text-[#2EB0D9]"/> <span dir="ltr">{selectedTeamMember.phone}</span></div>
+                     </div>
                  </div>
              </div>
          </div>
@@ -426,10 +433,17 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             </p>
                             
                             {state.currentCategory !== Category.HOME && state.currentCategory !== Category.STORE && (
-                                <div className="pt-4">
+                                <div className="pt-4 flex gap-3">
                                     <Button onClick={() => onCategoryChange(slide.category)} variant="secondary" size="md" className="shine-effect">
                                         {slide.buttonText || 'קבע פגישת ייעוץ'}
                                     </Button>
+                                    
+                                    {/* Show Forms Button if available for this category */}
+                                    {currentCategoryForms.length > 0 && (
+                                        <Button onClick={() => setShowFormsListModal(true)} variant="outline" className="text-white border-white/30 hover:bg-white/10 hover:border-white">
+                                            <ClipboardList size={18} className="ml-2"/> טפסים ושאלונים
+                                        </Button>
+                                    )}
                                 </div>
                             )}
                             
@@ -666,7 +680,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
 
-        {/* DYNAMIC FORM RENDERER */}
+        {/* DYNAMIC FORM RENDERER (ACTIVE FORM) */}
         {currentDynamicForm && (
             <div ref={dynamicFormRef} className={`mb-20 container mx-auto px-4 rounded-2xl p-8 md:p-12 shadow-2xl border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
                  <div className="max-w-2xl mx-auto">
@@ -701,6 +715,36 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                          }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button>
                      </div>
                  </div>
+            </div>
+        )}
+
+        {/* AVAILABLE FORMS LIST MODAL (FOR CATEGORY) */}
+        {showFormsListModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setShowFormsListModal(false)}></div>
+                <div className={`rounded-xl shadow-2xl w-full max-w-lg relative z-10 animate-fade-in-up border p-6 ${theme.modalBg}`}>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className={`text-xl font-bold ${theme.textTitle}`}>טפסים זמינים</h3>
+                        <button onClick={() => setShowFormsListModal(false)}><X className={theme.textMuted}/></button>
+                    </div>
+                    <div className="space-y-3">
+                        {currentCategoryForms.length > 0 ? currentCategoryForms.map(form => (
+                            <button 
+                                key={form.id}
+                                onClick={() => {
+                                    setActiveDynamicFormId(form.id);
+                                    setDynamicFormValues({});
+                                    setShowFormsListModal(false);
+                                    setTimeout(() => dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+                                }}
+                                className={`w-full p-4 rounded-lg border flex items-center justify-between group transition-colors ${isDark ? 'bg-slate-800 border-slate-700 hover:border-[#2EB0D9]' : 'bg-slate-50 border-slate-200 hover:bg-white'}`}
+                            >
+                                <span className={`font-bold ${theme.textTitle}`}>{form.title}</span>
+                                <ChevronLeft className={`text-[#2EB0D9] opacity-0 group-hover:opacity-100 transition-opacity`}/>
+                            </button>
+                        )) : <p className={theme.textMuted}>אין טפסים זמינים בקטגוריה זו כרגע.</p>}
+                    </div>
+                </div>
             </div>
         )}
 

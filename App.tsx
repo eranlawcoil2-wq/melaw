@@ -8,7 +8,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v2.0';
+const APP_VERSION = 'v2.1';
 
 // ============================================================================
 // הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש
@@ -99,7 +99,7 @@ const initialForms: FormDefinition[] = [
     {
         id: 'poa-standard',
         title: 'שאלון ייפוי כוח מתמשך',
-        category: Category.POA,
+        categories: [Category.POA], // Use Array
         submitEmail: 'poa@melaw.co.il',
         fields: [
             { id: 'f1', type: 'text', label: 'שם מלא', required: true },
@@ -220,6 +220,16 @@ const App: React.FC = () => {
                     return { ...art, categories: [art.category] };
                 }
                 return art;
+            });
+        }
+        
+        // Migrate Forms Category -> Categories[]
+        if (parsed.forms && parsed.forms.length > 0) {
+            parsed.forms = parsed.forms.map((f: any) => {
+                if (!f.categories && f.category) {
+                    return { ...f, categories: [f.category] };
+                }
+                return f;
             });
         }
 

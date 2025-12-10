@@ -7,7 +7,7 @@ import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -16,7 +16,7 @@ interface AdminDashboardProps {
   version?: string;
 }
 
-// --- UPDATED GOOGLE SCRIPT FOR FORMS & PDF WORKFLOW ---
+// ... (Existing Google Script and SQL strings remain the same) ...
 const GOOGLE_SCRIPT_TEMPLATE = `
 // --- MeLaw Backend Script ---
 // הדבק את כל הקוד הזה ב-Google Apps Script
@@ -113,7 +113,6 @@ function getOrCreateSheet(name) {
 }
 `;
 
-// --- SUPABASE SETUP INSTRUCTIONS ---
 const SUPABASE_SQL_INSTRUCTIONS = `
 -- צעד 1: צור טבלה להגדרות
 create table site_config (
@@ -248,6 +247,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const handleFontUpload = (e: any) => { const f = e.target.files?.[0]; if(f) { const r = new FileReader(); r.onload = (ev) => updateState({ config: { ...state.config, customFontData: ev.target?.result as string }}); r.readAsDataURL(f); }};
   const handleResetFont = () => updateState({ config: { ...state.config, customFontData: undefined }});
 
+  // Helper for multi-select categories in Forms
+  const toggleFormCategory = (cat: Category) => {
+      if (!editingForm) return;
+      const current = editingForm.categories || [];
+      if (current.includes(cat)) {
+          setEditingForm({ ...editingForm, categories: current.filter(c => c !== cat) });
+      } else {
+          setEditingForm({ ...editingForm, categories: [...current, cat] });
+      }
+  };
+
   const filteredArticles = state.articles.filter(a => selectedCategory === 'ALL' || a.categories.includes(selectedCategory));
   const filteredTimelines = state.timelines.filter(t => selectedCategory === 'ALL' || t.category.includes(selectedCategory));
 
@@ -289,7 +299,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       <main className="flex-1 md:mr-64 p-4 md:p-8 overflow-y-auto min-h-screen">
         <div className="md:hidden flex justify-between items-center mb-6 bg-slate-900 p-4 rounded-xl border border-slate-800 sticky top-0 z-30 shadow-lg"><h3 className="font-bold text-white">תפריט ניהול</h3><button onClick={() => setMobileMenuOpen(true)} className="p-2 bg-slate-800 rounded text-[#2EB0D9] border border-slate-700"><Menu size={24} /></button></div>
 
-        {/* --- INTEGRATIONS TAB --- */}
+        {/* ... (Integrations Tab skipped for brevity, no changes needed there) ... */}
         {activeTab === 'integrations' && (
             <div className="space-y-6 max-w-4xl animate-fade-in">
                 {/* SUPABASE */}
@@ -381,8 +391,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* Global Category Selector */}
-        {(activeTab === 'articles' || activeTab === 'forms') && (
+        {/* Global Category Selector (Only for Articles, not Forms anymore) */}
+        {(activeTab === 'articles') && (
             <div className="bg-slate-900 p-4 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row md:items-center justify-between sticky top-20 md:top-0 z-20 border border-slate-800 gap-4">
                 <div className="flex items-center gap-4"><span className="font-bold text-slate-300 text-sm md:text-lg">עריכה:</span><select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as Category | 'ALL')} className="p-2 border border-slate-700 rounded-lg text-[#2EB0D9] font-bold bg-slate-800 font-sans flex-1"><option value="ALL">הכל</option>{Object.values(Category).map(cat => (<option key={cat} value={cat}>{cat}</option>))}</select></div>
             </div>
@@ -471,16 +481,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             <p className="text-xs text-slate-500 mt-1">איזה עמוד יוצג למשתמש כשהוא נכנס לאתר לראשונה.</p>
                         </div>
 
-                        {/* PASSWORD HINT */}
-                        <div>
-                            <label className="block text-sm font-bold mb-2 text-slate-400">רמז לסיסמת ניהול</label>
-                            <input 
-                                type="text" 
-                                className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white" 
-                                value={state.config.passwordHint || ''} 
-                                onChange={e => updateState({ config: { ...state.config, passwordHint: e.target.value }})} 
-                                placeholder="לדוגמה: ת.ז שלי" 
-                            />
+                        {/* PASSWORD & HINT MANAGEMENT */}
+                        <div className="border border-slate-800 bg-slate-950 p-4 rounded-lg space-y-4">
+                            <h4 className="font-bold text-[#2EB0D9] flex items-center gap-2"><Shield size={16}/> אבטחת ניהול</h4>
+                            
+                            <div>
+                                <label className="block text-xs font-bold mb-1 text-slate-400">סיסמת ניהול (Admin Password)</label>
+                                <div className="relative">
+                                    <Key size={16} className="absolute top-3 left-3 text-slate-500"/>
+                                    <input 
+                                        type="text" 
+                                        className="w-full p-2 pl-10 border border-slate-700 rounded bg-slate-900 text-white" 
+                                        value={state.config.adminPassword || 'admin'} 
+                                        onChange={e => updateState({ config: { ...state.config, adminPassword: e.target.value }})} 
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-bold mb-1 text-slate-400">רמז לסיסמה (יוצג למשתמש)</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white" 
+                                    value={state.config.passwordHint || ''} 
+                                    onChange={e => updateState({ config: { ...state.config, passwordHint: e.target.value }})} 
+                                    placeholder="לדוגמה: ת.ז שלי" 
+                                />
+                            </div>
                         </div>
                         
                         {/* Theme */}
@@ -507,6 +534,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                     if(confirm("איפוס מלא?")) {
                                         localStorage.removeItem('melaw_site_data_v1');
                                         localStorage.removeItem('melaw_site_data_v2');
+                                        localStorage.removeItem('melaw_site_data_stable');
                                         window.location.reload();
                                     }
                                 }}
@@ -523,13 +551,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {/* --- FORMS TAB --- */}
         {activeTab === 'forms' && (
              <div className="space-y-6 animate-fade-in">
-                 <div className="flex justify-end"><Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', category: Category.POA, fields: [], submitEmail: '', pdfTemplate: 'NONE' })}><Plus size={16}/> טופס חדש</Button></div>
+                 <div className="flex justify-end"><Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', categories: [Category.POA], fields: [], submitEmail: '', pdfTemplate: 'NONE' })}><Plus size={16}/> טופס חדש</Button></div>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                      {state.forms.map(f => (<div key={f.id} className="bg-slate-900 p-4 rounded border border-slate-800 relative">
                          <h4 className="font-bold text-white">{f.title}</h4>
                          <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400 mt-2 inline-block">PDF: {f.pdfTemplate || 'NONE'}</span>
+                         {/* Form Category Labels */}
+                         <div className="flex flex-wrap gap-1 mt-2">
+                             {f.categories && f.categories.map(cat => (
+                                 <span key={cat} className="text-[10px] bg-[#2EB0D9]/20 text-[#2EB0D9] px-1 rounded border border-[#2EB0D9]/30">{CATEGORY_LABELS[cat]}</span>
+                             ))}
+                         </div>
+
                          {/* Copy ID Button for Forms */}
-                         <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                         <div className="text-xs text-slate-500 mt-2 flex items-center gap-2">
                              <span>ID: form-{f.id}</span>
                              <button 
                                 onClick={() => {
@@ -548,11 +583,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                  </div>
                  {editingForm && (
                      <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
-                         <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl h-[80vh] flex flex-col">
+                         <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl h-[85vh] flex flex-col">
                              <h3 className="font-bold text-white mb-4">עריכת טופס</h3>
                              <div className="flex-1 overflow-y-auto space-y-4">
-                                 <input className="w-full p-2 bg-slate-800 text-white rounded" value={editingForm.title} onChange={e=>setEditingForm({...editingForm, title: e.target.value})} placeholder="שם הטופס"/>
+                                 <div>
+                                     <label className="block text-xs font-bold text-slate-400 mb-1">שם הטופס</label>
+                                     <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingForm.title} onChange={e=>setEditingForm({...editingForm, title: e.target.value})} placeholder="שם הטופס"/>
+                                 </div>
                                  
+                                 {/* Multi-Select Categories */}
+                                 <div className="bg-slate-950 p-3 rounded border border-slate-800">
+                                     <label className="block text-xs font-bold text-slate-400 mb-2">היכן יופיע הטופס?</label>
+                                     <div className="flex flex-wrap gap-2">
+                                         {Object.values(Category).map(cat => (
+                                             <button 
+                                                key={cat}
+                                                onClick={() => toggleFormCategory(cat)}
+                                                className={`text-xs px-2 py-1 rounded border transition-colors ${editingForm.categories?.includes(cat) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9]' : 'bg-slate-900 text-slate-500 border-slate-700'}`}
+                                             >
+                                                 {CATEGORY_LABELS[cat]} {editingForm.categories?.includes(cat) && <Check size={10} className="inline ml-1"/>}
+                                             </button>
+                                         ))}
+                                     </div>
+                                 </div>
+
                                  {/* PDF Selection */}
                                  <div>
                                      <label className="block text-xs font-bold text-slate-400 mb-1">סוג הדפסה (PDF Template)</label>
@@ -567,18 +621,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                      </select>
                                  </div>
 
-                                 <div className="flex gap-2">
-                                     <button onClick={()=>addFieldToForm('text')} className="p-2 bg-slate-800 border rounded text-xs text-white">טקסט</button>
-                                     <button onClick={()=>addFieldToForm('select')} className="p-2 bg-slate-800 border rounded text-xs text-white">בחירה</button>
-                                 </div>
-                                 {editingForm.fields.map((field,i)=>(
-                                     <div key={i} className="flex gap-2 items-center">
-                                         <input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="bg-slate-800 text-white p-1 rounded flex-1"/>
-                                         <button onClick={()=>removeFormField(i)} className="text-red-400"><Trash size={14}/></button>
+                                 <div className="border-t border-slate-800 pt-4">
+                                     <div className="flex justify-between items-center mb-2">
+                                         <label className="block text-xs font-bold text-slate-400">שדות הטופס</label>
+                                         <div className="flex gap-2">
+                                             <button onClick={()=>addFieldToForm('text')} className="p-1 px-2 bg-slate-800 border rounded text-xs text-white hover:bg-slate-700">+ טקסט</button>
+                                             <button onClick={()=>addFieldToForm('select')} className="p-1 px-2 bg-slate-800 border rounded text-xs text-white hover:bg-slate-700">+ בחירה</button>
+                                         </div>
                                      </div>
-                                 ))}
+                                     
+                                     <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                         {editingForm.fields.map((field,i)=>(
+                                             <div key={i} className="flex gap-2 items-center bg-slate-800 p-2 rounded border border-slate-700">
+                                                 <span className="text-xs text-slate-500 w-8">{field.type}</span>
+                                                 <input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="bg-slate-900 border border-slate-700 text-white p-1 rounded flex-1 text-xs"/>
+                                                 <button onClick={()=>removeFormField(i)} className="text-red-400 hover:bg-slate-900 p-1 rounded"><Trash size={14}/></button>
+                                             </div>
+                                         ))}
+                                     </div>
+                                 </div>
                              </div>
-                             <div className="flex gap-2 mt-4"><Button onClick={handleSaveForm}>שמור</Button><Button variant="outline" onClick={()=>setEditingForm(null)}>ביטול</Button></div>
+                             <div className="flex gap-2 mt-4 pt-4 border-t border-slate-800">
+                                 <Button onClick={handleSaveForm}>שמור</Button>
+                                 <Button variant="outline" onClick={()=>setEditingForm(null)}>ביטול</Button>
+                             </div>
                          </div>
                      </div>
                  )}
@@ -590,12 +656,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-end"><Button onClick={() => setEditingMember({ id: Date.now().toString(), fullName: '', role: '', specialization: '', email: '', phone: '', bio: '', imageUrl: 'https://picsum.photos/400/400' })}><Plus size={16}/> איש צוות</Button></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{state.teamMembers.map(m => (<div key={m.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex gap-4"><img src={m.imageUrl} className="w-16 h-16 rounded-full"/><div className="flex-1"><div className="font-bold text-white">{m.fullName}</div><div className="text-xs text-slate-400">{m.role}</div></div><button onClick={()=>setEditingMember(m)}><Edit size={16}/></button><button onClick={()=>updateState({teamMembers: state.teamMembers.filter(x=>x.id!==m.id)})} className="text-red-400"><Trash size={16}/></button></div>))}</div>
-                {editingMember && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-lg space-y-4"><h3 className="font-bold text-white">עריכת צוות</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingMember.fullName} onChange={e=>setEditingMember({...editingMember, fullName: e.target.value})}/><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingMember.role} onChange={e=>setEditingMember({...editingMember, role: e.target.value})}/><div className="flex gap-2">
-                    <input className="flex-1 p-2 bg-slate-800 text-white rounded" value={editingMember.imageUrl} onChange={e=>setEditingMember({...editingMember, imageUrl: e.target.value})} placeholder="URL תמונה"/>
-                    {/* Fix: Pass the derived supabaseConfig */}
-                    <ImageUploadButton onImageSelected={(url) => setEditingMember({...editingMember, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
-                    <Button onClick={()=>openImagePicker('team', editingMember.fullName)}><Search size={16}/></Button>
-                </div><div className="flex gap-2"><Button onClick={handleSaveMember}>שמור</Button><Button variant="outline" onClick={()=>setEditingMember(null)}>ביטול</Button></div></div></div>}
+                {editingMember && (
+                    <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+                        <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto">
+                            <h3 className="font-bold text-white mb-4">עריכת איש צוות</h3>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs text-slate-500">שם מלא</label>
+                                    <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.fullName} onChange={e=>setEditingMember({...editingMember, fullName: e.target.value})}/>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-500">תפקיד</label>
+                                    <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.role} onChange={e=>setEditingMember({...editingMember, role: e.target.value})}/>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-500">התמחות</label>
+                                    <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.specialization} onChange={e=>setEditingMember({...editingMember, specialization: e.target.value})}/>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="text-xs text-slate-500">אימייל</label>
+                                        <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.email} onChange={e=>setEditingMember({...editingMember, email: e.target.value})}/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-slate-500">טלפון</label>
+                                        <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.phone} onChange={e=>setEditingMember({...editingMember, phone: e.target.value})}/>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-500">אודות (Bio)</label>
+                                    <textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 h-24" value={editingMember.bio} onChange={e=>setEditingMember({...editingMember, bio: e.target.value})}/>
+                                </div>
+                                
+                                <div className="flex gap-2 items-center mt-2">
+                                    <div className="flex-1">
+                                        <label className="text-xs text-slate-500">תמונה</label>
+                                        <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 text-xs" value={editingMember.imageUrl} onChange={e=>setEditingMember({...editingMember, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                                    </div>
+                                    <div className="mt-5 flex gap-1">
+                                         {/* Fix: Pass the derived supabaseConfig */}
+                                        <ImageUploadButton onImageSelected={(url) => setEditingMember({...editingMember, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                                        <Button onClick={()=>openImagePicker('team', editingMember.fullName)}><Search size={16}/></Button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 pt-4 border-t border-slate-800 mt-2">
+                                <Button onClick={handleSaveMember}>שמור</Button>
+                                <Button variant="outline" onClick={()=>setEditingMember(null)}>ביטול</Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         )}
 

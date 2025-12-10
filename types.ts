@@ -139,10 +139,10 @@ export interface FormField {
 export interface FormDefinition {
     id: string;
     title: string;
-    category: Category;
+    categories: Category[]; // UPDATED: Multi-select support
     fields: FormField[];
     submitEmail: string;
-    pdfTemplate?: 'NONE' | 'WILL' | 'POA'; // V2.0: Which PDF template to generate
+    pdfTemplate?: 'NONE' | 'WILL' | 'POA'; 
 }
 
 export interface AppState {
