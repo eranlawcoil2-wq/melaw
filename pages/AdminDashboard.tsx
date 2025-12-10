@@ -376,7 +376,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                 <strong className="text-white block mb-1">איך מגדירים פקדי תשלום?</strong>
                                 <ol className="list-decimal list-inside space-y-1">
                                     <li>הירשם בחינם ב- <a href="https://stripe.com" target="_blank" className="text-[#2EB0D9] underline">Stripe.com</a></li>
-                                    <li>צור מוצר חדש (Products) -> לחץ על "Create payment link".</li>
+                                    <li>צור מוצר חדש (Products) &rarr; לחץ על "Create payment link".</li>
                                     <li>במסך יצירת הלינק, תחת <strong>Advanced options</strong>, ניתן להגדיר תשלומים (Installments) אם רלוונטי.</li>
                                     <li>העתק את הקישור שנוצר (למשל: buy.stripe.com/xyz).</li>
                                     <li>הדבק את הקישור הזה בעמוד "חנות ותשלומים" בתוך עריכת המוצר הרלוונטי באתר.</li>
