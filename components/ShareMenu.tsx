@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Share2, Copy, Mail, MessageCircle, X, Check } from 'lucide-react';
 
@@ -60,11 +61,11 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
             {variant === 'floating' ? (
                 <button 
                     onClick={() => setIsOpen(!isOpen)}
-                    className="bg-slate-700 hover:bg-[#2EB0D9] text-white p-3 rounded-full shadow-xl transition-transform hover:scale-110 flex items-center justify-center"
+                    className="bg-slate-700 hover:bg-[#2EB0D9] text-white p-2 md:p-3 rounded-full shadow-xl transition-transform hover:scale-110 flex items-center justify-center"
                     aria-label="Share"
                     title="שתף"
                 >
-                    <Share2 size={28} />
+                    <Share2 size={20} className="md:w-7 md:h-7" />
                 </button>
             ) : (
                 <button 
@@ -78,7 +79,7 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className={`absolute ${variant === 'floating' ? 'bottom-16 left-0' : 'top-10 left-0'} w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 animate-fade-in-up flex flex-col gap-1`}>
+                <div className={`absolute ${variant === 'floating' ? 'bottom-12 md:bottom-16 left-0' : 'top-10 left-0'} w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 animate-fade-in-up flex flex-col gap-1`}>
                     <div className="flex justify-between items-center px-2 py-1 mb-1 border-b border-slate-800">
                         <span className="text-xs font-bold text-slate-400">שתף באמצעות</span>
                         <button onClick={() => setIsOpen(false)}><X size={14} className="text-slate-500 hover:text-white"/></button>

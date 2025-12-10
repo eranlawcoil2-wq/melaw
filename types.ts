@@ -149,7 +149,7 @@ export interface FormField {
     label: string;
     options?: string[];
     required: boolean;
-    helpArticleId?: string;
+    helpArticleId?: string; // LINK TO ARTICLE FOR HELP
 }
 
 export interface FormDefinition {

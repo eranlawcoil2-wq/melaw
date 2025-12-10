@@ -6,7 +6,7 @@ import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
 import { ShareMenu } from '../components/ShareMenu.tsx'; 
 import { emailService, storeService } from '../services/api.ts'; 
-import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon } from 'lucide-react';
+import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle } from 'lucide-react';
 
 const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = "", delay = 0 }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -162,6 +162,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const hasWillsGenerator = state.currentCategory === Category.WILLS;
   const hasDynamicForms = currentCategoryForms.length > 0;
   const showFormsButton = (hasDynamicForms || hasWillsGenerator) && !isContactPage && !isStorePage && !isHomePage;
+
+  const openHelpArticle = (articleId: string) => {
+      const article = state.articles.find(a => a.id === articleId);
+      if (article) {
+          setSelectedArticle(article);
+      }
+  };
 
   return (
     <div className={`min-h-screen flex flex-col font-sans relative overflow-x-hidden selection:bg-[#2EB0D9] selection:text-white ${theme.bgMain} ${theme.textMain}`}>
@@ -362,7 +369,37 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             <div ref={dynamicFormRef} className={`mb-20 container mx-auto px-4 rounded-2xl p-8 md:p-12 shadow-2xl border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
                  <div className="max-w-2xl mx-auto">
                      <div className="flex justify-between items-start mb-6"><div><h3 className={`text-3xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3><p className={theme.textMuted}>נא למלא את כל השדות הנדרשים</p></div><button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X size={32}/></button></div>
-                     <div className={`space-y-6 p-8 rounded-xl border shadow-inner ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>{currentDynamicForm.fields.map(field => (<div key={field.id} className="space-y-2"><label className={`block text-sm font-bold ${theme.textMuted}`}>{field.label}</label>{field.type === 'text' && <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}{field.type === 'select' && <select className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}><option value="">בחר...</option>{field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>}</div>))}<Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => { setIsSubmittingDynamic(true); try { await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations, currentDynamicForm.pdfTemplate); alert("נשלח בהצלחה! מסמך ה-PDF (אם רלוונטי) יורד למחשבך."); setActiveDynamicFormId(null); setDynamicFormValues({}); } catch { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); } }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button></div>
+                     <div className={`space-y-6 p-8 rounded-xl border shadow-inner ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                         {currentDynamicForm.fields.map(field => (
+                             <div key={field.id} className="space-y-2">
+                                 <div className="flex items-center gap-2">
+                                     <label className={`block text-sm font-bold ${theme.textMuted}`}>{field.label}</label>
+                                     {field.helpArticleId && (
+                                         <button onClick={() => openHelpArticle(field.helpArticleId!)} className="text-[#2EB0D9] hover:text-[#259cc0] transition-colors" title="לחץ לעזרה">
+                                             <HelpCircle size={16} />
+                                         </button>
+                                     )}
+                                 </div>
+                                 
+                                 {field.type === 'text' && <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
+                                 {field.type === 'number' && <input type="number" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
+                                 {field.type === 'boolean' && (
+                                     <div className="flex gap-4">
+                                         <label className="flex items-center gap-2 cursor-pointer text-slate-400">
+                                             <input type="radio" name={field.id} checked={dynamicFormValues[field.id] === 'yes'} onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: 'yes'})} className="accent-[#2EB0D9]"/>
+                                             כן
+                                         </label>
+                                         <label className="flex items-center gap-2 cursor-pointer text-slate-400">
+                                             <input type="radio" name={field.id} checked={dynamicFormValues[field.id] === 'no'} onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: 'no'})} className="accent-[#2EB0D9]"/>
+                                             לא
+                                         </label>
+                                     </div>
+                                 )}
+                                 {field.type === 'select' && <select className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}><option value="">בחר...</option>{field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>}
+                             </div>
+                         ))}
+                         <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => { setIsSubmittingDynamic(true); try { await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations, currentDynamicForm.pdfTemplate); alert("נשלח בהצלחה! מסמך ה-PDF (אם רלוונטי) יורד למחשבך."); setActiveDynamicFormId(null); setDynamicFormValues({}); } catch { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); } }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button>
+                     </div>
                  </div>
             </div>
         )}
