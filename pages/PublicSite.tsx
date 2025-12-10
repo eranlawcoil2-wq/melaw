@@ -163,7 +163,14 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       try {
           await emailService.sendWillsForm(willsData, state.config.integrations);
           onWillsFormSubmit(willsData);
-          alert("הטופס נקלט בהצלחה! קובץ הצוואה יורד כעת למחשב שלך. לאחר הבדיקה, ניצור קשר להסדרת התשלום."); 
+          
+          // Updated success message for server-side generation
+          if (state.config.integrations.googleSheetsUrl) {
+              alert("הפרטים נקלטו בהצלחה במערכת! טיוטת הצוואה תופק ותשלח אליך למייל/לוואטסאפ בהקדם."); 
+          } else {
+              alert("הטופס נקלט בהצלחה! קובץ הצוואה יורד כעת למחשב שלך (מצב מקומי)."); 
+          }
+          
           setShowWillsModal(false); setFormStep(0);
       } catch (error) { alert("אירעה שגיאה, אנא נסה שנית."); } finally { setIsSubmittingWill(false); }
   };
@@ -186,8 +193,6 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
   const hasWillsGenerator = state.currentCategory === Category.WILLS;
   const hasDynamicForms = currentCategoryForms.length > 0;
-  // REMOVED AUTOMATIC FORM BUTTON - User requested removal
-  // const showFormsButton = (hasDynamicForms || hasWillsGenerator) && !isContactPage && !isStorePage && !isHomePage;
 
   const openHelpArticle = (articleId: string) => {
       const article = state.articles.find(a => a.id === articleId);
@@ -507,7 +512,22 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                  {field.type === 'select' && <select className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}><option value="">בחר...</option>{field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>}
                              </div>
                          ))}
-                         <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => { setIsSubmittingDynamic(true); try { await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations, currentDynamicForm.pdfTemplate); alert("נשלח בהצלחה! מסמך ה-PDF (אם רלוונטי) יורד למחשבך."); setActiveDynamicFormId(null); setDynamicFormValues({}); } catch { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); } }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button>
+                         <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => { 
+                             setIsSubmittingDynamic(true); 
+                             try { 
+                                 await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations, currentDynamicForm.pdfTemplate); 
+                                 
+                                 // Updated message for dynamic forms as well
+                                 if (state.config.integrations.googleSheetsUrl) {
+                                     alert("נשלח בהצלחה למערכת! מסמך ה-PDF (אם רלוונטי) יופק וישלח אליך.");
+                                 } else {
+                                     alert("נשלח בהצלחה! מסמך ה-PDF יורד למחשבך (מצב מקומי).");
+                                 }
+
+                                 setActiveDynamicFormId(null); 
+                                 setDynamicFormValues({}); 
+                             } catch { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); } 
+                         }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button>
                      </div>
                  </div>
             </div>

@@ -6,7 +6,6 @@ import { jsPDF } from "jspdf";
 export const cloudService = {
     async saveStateToCloud(url: string, state: AppState): Promise<boolean> {
         try {
-            // We only send the essential data, not the UI state (like isAdminLoggedIn)
             const payload = {
                 action: 'saveState',
                 data: {
@@ -16,11 +15,11 @@ export const cloudService = {
                     forms: state.forms,
                     teamMembers: state.teamMembers,
                     menuItems: state.menuItems,
-                    config: state.config // Includes the office name, phone, etc.
+                    config: state.config
                 }
             };
 
-            const response = await fetch(url, {
+            await fetch(url, {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
@@ -34,7 +33,6 @@ export const cloudService = {
 
     async loadStateFromCloud(url: string): Promise<Partial<AppState> | null> {
         try {
-            // Append query param to avoid caching
             const fetchUrl = `${url}?action=getState&t=${Date.now()}`;
             const response = await fetch(fetchUrl);
             const json = await response.json();
@@ -44,18 +42,13 @@ export const cloudService = {
             }
             return null;
         } catch (e) {
-            console.warn("Could not load state from cloud (using local fallback)", e);
+            console.warn("Could not load state from cloud", e);
             return null;
         }
     },
 
-    /**
-     * Uploads an image (Base64) to Google Drive via the Apps Script
-     * Returns the public URL of the image
-     */
     async uploadImage(url: string, base64Data: string, fileName: string): Promise<string | null> {
         try {
-            // Extract pure base64 if it has the prefix
             const cleanBase64 = base64Data.split(',')[1] || base64Data;
             const mimeType = base64Data.match(/data:([^;]+);/)?.[1] || 'image/jpeg';
 
@@ -87,52 +80,35 @@ export const cloudService = {
 
 // --- Email & Forms Service ---
 export const emailService = {
-    // PDF: Last Will - UPDATED to be Dynamic
+    // PDF: Local Fallback (Only used if no Google Sheet connection)
     generateAndDownloadWill(data: any) {
         try {
             const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
             
-            // Header
             doc.setFontSize(22);
-            doc.text("Legal Document / Will", 105, 20, { align: "center" });
+            doc.text("Legal Document / Will (Local Preview)", 105, 20, { align: "center" });
             
             doc.setFontSize(10);
-            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 28, { align: "center" });
+            doc.text(`Generated locally on: ${new Date().toLocaleDateString()}`, 105, 28, { align: "center" });
+            doc.text("(To get the official format, please connect Google Sheets)", 105, 34, { align: "center" });
             
             doc.setLineWidth(0.5);
-            doc.line(20, 32, 190, 32);
+            doc.line(20, 38, 190, 38);
 
             doc.setFontSize(14);
-            let y = 45;
+            let y = 50;
             
-            // Iterate over ALL dynamic fields passed from the form
-            // This ensures new fields added in the Admin Dashboard are printed
             Object.keys(data).forEach((key) => {
                 const val = data[key];
-                
-                // Skip internal keys if necessary, or just print everything that isn't empty
                 if (val && typeof val !== 'object' && key !== 'formName' && key !== 'submittedAt') {
-                    // Check for page overflow
-                    if (y > 270) {
-                        doc.addPage();
-                        y = 20;
-                    }
-                    
-                    // Simple formatting: Key -> Value
-                    // Note: Hebrew support in client-side jsPDF is limited without custom fonts.
-                    // If keys are in Hebrew, they might appear reversed or garbled in basic jsPDF.
+                    if (y > 270) { doc.addPage(); y = 20; }
                     doc.setFont("helvetica", "bold");
                     doc.text(`${key}:`, 20, y);
-                    
                     doc.setFont("helvetica", "normal");
-                    // Wrap long text
                     const splitText = doc.splitTextToSize(String(val), 120);
                     doc.text(splitText, 60, y);
-                    
-                    y += (splitText.length * 7) + 5; // Adjust spacing based on text lines
+                    y += (splitText.length * 7) + 5;
                 }
-                
-                // Handle Arrays (like children names) specially if they exist
                 if (Array.isArray(val)) {
                      if (y > 270) { doc.addPage(); y = 20; }
                      doc.setFont("helvetica", "bold");
@@ -148,13 +124,7 @@ export const emailService = {
                 }
             });
 
-            // Footer / Signature Area
-            if (y > 240) { doc.addPage(); y = 40; } else { y += 20; }
-            doc.line(20, y, 100, y);
-            doc.setFontSize(12);
-            doc.text("Signature", 20, y + 6);
-
-            doc.save("Will_Document.pdf");
+            doc.save("Will_Local_Backup.pdf");
             return true;
         } catch (e) {
             console.error("PDF Generation Error", e);
@@ -162,17 +132,12 @@ export const emailService = {
         }
     },
 
-    // PDF: Power of Attorney (POA)
     generateAndDownloadPOA(data: any) {
         try {
             const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
             doc.setFontSize(22);
-            doc.text("Enduring Power of Attorney", 105, 20, { align: "center" });
-            
-            doc.setFontSize(14);
+            doc.text("Power of Attorney (Local)", 105, 20, { align: "center" });
             let y = 50;
-            
-            // Iterate over dynamic fields and print them
             Object.keys(data).forEach((key) => {
                 const val = data[key];
                 if (typeof val === 'string' && y < 270) {
@@ -180,9 +145,7 @@ export const emailService = {
                     y += 10;
                 }
             });
-
-            doc.text(`Date Signed: ${new Date().toLocaleDateString()}`, 20, y + 20);
-            doc.save("POA_Document.pdf");
+            doc.save("POA_Local_Backup.pdf");
             return true;
         } catch (e) {
             console.error("POA PDF Generation Error", e);
@@ -191,62 +154,68 @@ export const emailService = {
     },
 
     /**
-     * פונקציה כללית לשליחת טפסים (גם צוואות וגם טפסים דינמיים)
+     * פונקציה ראשית לשליחת טפסים
+     * שינוי לוגיקה: אם יש גוגל שיטס - הוא הבוס. לא מדפיסים מקומית.
      */
     async sendForm(formTitle: string, data: any, config?: IntegrationsConfig, pdfTemplate?: 'NONE' | 'WILL' | 'POA'): Promise<boolean> {
-        console.log(`Processing Form: ${formTitle} [Template: ${pdfTemplate}]`, data);
+        console.log(`Processing Form: ${formTitle} [Template: ${pdfTemplate}]`);
         
-        // Handle Client-Side PDF Generation based on selection
-        // This is a "Fallback" visual copy for the user.
-        if (pdfTemplate === 'WILL' || (formTitle === 'Wills Generator' && !pdfTemplate)) {
-            this.generateAndDownloadWill(data);
-        } else if (pdfTemplate === 'POA') {
-            this.generateAndDownloadPOA(data);
-        }
-
-        // 1. שמירה ל-Google Sheets (אם הוגדר URL)
-        // הנתונים נשלחים רק אם יש URL ב-config
-        if (config?.googleSheetsUrl) {
+        // --- 1. PRIORITY: GOOGLE SHEETS (Server Side Processing) ---
+        // אם מוגדר חיבור לסקריפט של גוגל - שולחים לשם ומדלגים על יצירה מקומית
+        if (config?.googleSheetsUrl && config.googleSheetsUrl.includes('script.google.com')) {
             try {
-                // הכנת הנתונים לשליחה (מוסיפים תאריך ושם טופס)
+                // מכינים את המידע בדיוק כמו שהסקריפט מצפה לקבל
                 const payload = {
-                    action: 'submitForm', // Identifier for the script
-                    targetSheet: 'DATA', // Explicitly ask script to save to DATA sheet
-                    templateSheet: pdfTemplate === 'WILL' ? 'WILL' : undefined, // Hint for script if it generates PDF
+                    action: 'submitForm',       // שם הפעולה בסקריפט
+                    targetSheet: 'DATA',        // שם הגיליון לשמירת הנתונים (כפי שביקשת)
+                    templateSheet: pdfTemplate === 'WILL' ? 'WILL' : (pdfTemplate === 'POA' ? 'POA' : undefined), // שם הגיליון להדפסה
                     formName: formTitle,
                     submittedAt: new Date().toLocaleString('he-IL'),
-                    ...data // Spread all dynamic fields here
+                    ...data // כל השדות הדינמיים נשלחים כפי שהם
                 };
 
-                // Use simple POST
+                console.log("Sending to Google Script (DATA -> WILL):", payload);
+
+                // שימוש ב-no-cors כדי למנוע חסימת דפדפן.
                 await fetch(config.googleSheetsUrl, {
                     method: 'POST',
                     mode: 'no-cors', 
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Ensures Payload is sent correctly
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(payload)
                 });
-                console.log("Sent to Google Sheets successfully (Target: DATA)");
+
+                // כאן אנחנו מסיימים. הסקריפט בגוגל אחראי ליצור את ה-PDF מהגיליון 'WILL'
+                // ולשלוח אותו במייל. לא מפעילים generateAndDownloadWill.
+                return true; 
+
             } catch (e) {
                 console.error("Google Sheets Error:", e);
+                alert("אירעה שגיאה בשליחה למערכת הניהול.");
+                return false;
             }
-        } else {
-            console.warn("Google Sheets URL not configured via Admin Dashboard");
-        }
+        } 
         
-        return true;
+        // --- 2. FALLBACK: LOCAL PDF (Only if NO Google Sheets connected) ---
+        // רק אם אין חיבור לגוגל, נייצר PDF מקומי בסיסי כדי שהלקוח לא יצא בידיים ריקות
+        else {
+            console.warn("No Google Sheets connected. Generating local PDF fallback.");
+            if (pdfTemplate === 'WILL' || (formTitle === 'Wills Generator' && !pdfTemplate)) {
+                this.generateAndDownloadWill(data);
+            } else if (pdfTemplate === 'POA') {
+                this.generateAndDownloadPOA(data);
+            }
+            return true;
+        }
     },
 
-    // תמיכה לאחור בקוד קיים שקורא ל-sendWillsForm
     async sendWillsForm(data: WillsFormData, config?: IntegrationsConfig): Promise<boolean> {
         return this.sendForm('Wills Generator', data, config, 'WILL');
     }
 };
 
-// --- Store & Payments Service ---
 export const storeService = {
     getCheckoutLink(productId: string, config?: IntegrationsConfig): string {
         if (!config) return "#";
-        
         if (productId === 'prod_1') return config.stripeWillsLink || "#";
         if (productId === 'prod_2') return config.stripeRealEstateLink || "#";
         if (productId === 'prod_3') return config.stripeConsultationLink || "#";

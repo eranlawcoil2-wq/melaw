@@ -1,7 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Article, Category } from "../types.ts";
 
-// Updated to accept key as parameter instead of relying on process.env
 const getAiClient = (apiKey: string) => {
   try {
     if (!apiKey) {
@@ -19,7 +18,7 @@ export const generateArticleContent = async (topic: string, category: Category |
   // Internal Mock Generator
   const getMockResponse = () => ({
       title: topic,
-      abstract: `זהו תקציר שנוצר אוטומטית (מצב דמו) עבור הנושא: "${topic}". כדי לקבל תוכן אמיתי, אנא הזן מפתח API של Gemini בממשק הניהול.`,
+      abstract: `זהו תקציר שנוצר אוטומטית (מצב דמו/גיבוי) עבור הנושא: "${topic}". לא ניתן היה ליצור קשר עם מודל ה-AI כרגע. אנא בדוק את מפתח ה-API.`,
       quote: "המשפט הוא מעוז החלש ומגן היתום.",
       tabs: [
         { title: "ניתוח משפטי", content: `בחלק זה נסקור את העקרונות הרלוונטיים לנושא ${topic} בצורה בהירה ומקצועית. (תוכן דמו).` },
@@ -29,16 +28,17 @@ export const generateArticleContent = async (topic: string, category: Category |
   });
 
   // If no key provided, return mock immediately without error
-  if (!apiKey || apiKey === 'demo') {
+  if (!apiKey || apiKey === 'demo' || apiKey.length < 10) {
       return getMockResponse();
   }
 
-  try {
-    const ai = getAiClient(apiKey);
-    
-    if (!ai) throw new Error("Could not initialize Gemini Client");
+  const ai = getAiClient(apiKey);
+  if (!ai) {
+      console.error("Could not initialize Gemini Client");
+      return getMockResponse();
+  }
 
-    const prompt = `
+  const prompt = `
       You are an elite, Senior Partner Israeli Attorney (עורך דין בכיר, כריזמטי וחד).
       Your task: Write a premium, high-level legal article in Hebrew about: "${topic}".
       
@@ -54,52 +54,67 @@ export const generateArticleContent = async (topic: string, category: Category |
           - **Tab 2 Title MUST be "סיפור מקרה"**: A real-world story illustrating what happens when you don't act correctly.
           - **Tab 3 Title MUST be "המלצות"**: Concrete, actionable steps (Checklist).
 
-      Output MUST be a valid JSON object matching the schema below.
-    `;
+      Output MUST be a valid JSON object matching the schema.
+  `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash", // Changed to 2.5-flash for better stability and JSON performance
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            abstract: { type: Type.STRING },
-            quote: { type: Type.STRING },
-            tabs: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  content: { type: Type.STRING }
-                }
-              }
+  const config = {
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        abstract: { type: Type.STRING },
+        quote: { type: Type.STRING },
+        tabs: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              content: { type: Type.STRING }
             }
           }
         }
       }
-    });
-
-    if (response.text) {
-      // Clean up markdown code blocks if present (fixes common JSON parse error)
-      let cleanText = response.text.trim();
-      if (cleanText.startsWith('```json')) {
-          cleanText = cleanText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-      } else if (cleanText.startsWith('```')) {
-          cleanText = cleanText.replace(/^```\s*/, "").replace(/\s*```$/, "");
-      }
-      
-      return JSON.parse(cleanText);
     }
-    throw new Error("No text returned from Gemini");
+  };
+
+  // Helper to parse response
+  const parseResponse = (response: any) => {
+      if (response.text) {
+        let cleanText = response.text.trim();
+        // Remove Markdown Code Blocks
+        if (cleanText.startsWith('```json')) cleanText = cleanText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+        else if (cleanText.startsWith('```')) cleanText = cleanText.replace(/^```\s*/, "").replace(/\s*```$/, "");
+        return JSON.parse(cleanText);
+      }
+      throw new Error("Empty text in response");
+  };
+
+  // TRY PRIMARY MODEL (gemini-2.5-flash)
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: config
+    });
+    return parseResponse(response);
   } catch (error: any) {
-    console.error("Gemini Generation Failed:", error);
-    // We THROW the error here so the UI knows it failed, instead of silently showing mock data.
-    // This answers the user's complaint about "why is it not writing for real".
-    throw new Error(error.message || "Failed to generate content");
+    console.warn("Primary model (gemini-2.5-flash) failed, trying fallback...", error);
+
+    // TRY FALLBACK MODEL (gemini-2.0-flash)
+    try {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.0-flash", // Fallback
+          contents: prompt,
+          config: config
+        });
+        return parseResponse(response);
+    } catch (fallbackError: any) {
+        console.error("Fallback model failed:", fallbackError);
+        // Return mock data instead of crashing completely so the UI stays responsive
+        return getMockResponse();
+    }
   }
 };
 
