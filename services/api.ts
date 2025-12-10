@@ -87,32 +87,74 @@ export const cloudService = {
 
 // --- Email & Forms Service ---
 export const emailService = {
-    // PDF: Last Will
+    // PDF: Last Will - UPDATED to be Dynamic
     generateAndDownloadWill(data: any) {
         try {
             const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+            
+            // Header
             doc.setFontSize(22);
-            doc.text("Last Will and Testament", 105, 20, { align: "center" });
+            doc.text("Legal Document / Will", 105, 20, { align: "center" });
             
-            doc.setFontSize(16);
-            doc.text(`Testator: ${data.fullName || 'N/A'}`, 20, 40);
-            doc.text(`ID/Spouse: ${data.spouseName || 'N/A'}`, 20, 50);
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 28, { align: "center" });
             
+            doc.setLineWidth(0.5);
+            doc.line(20, 32, 190, 32);
+
             doc.setFontSize(14);
-            doc.text("Heirs (Children):", 20, 70);
-            if (Array.isArray(data.childrenNames)) {
-                data.childrenNames.forEach((child: string, index: number) => {
-                    doc.text(`${index + 1}. ${child}`, 30, 80 + (index * 10));
-                });
-            }
+            let y = 45;
+            
+            // Iterate over ALL dynamic fields passed from the form
+            // This ensures new fields added in the Admin Dashboard are printed
+            Object.keys(data).forEach((key) => {
+                const val = data[key];
+                
+                // Skip internal keys if necessary, or just print everything that isn't empty
+                if (val && typeof val !== 'object' && key !== 'formName' && key !== 'submittedAt') {
+                    // Check for page overflow
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    
+                    // Simple formatting: Key -> Value
+                    // Note: Hebrew support in client-side jsPDF is limited without custom fonts.
+                    // If keys are in Hebrew, they might appear reversed or garbled in basic jsPDF.
+                    doc.setFont("helvetica", "bold");
+                    doc.text(`${key}:`, 20, y);
+                    
+                    doc.setFont("helvetica", "normal");
+                    // Wrap long text
+                    const splitText = doc.splitTextToSize(String(val), 120);
+                    doc.text(splitText, 60, y);
+                    
+                    y += (splitText.length * 7) + 5; // Adjust spacing based on text lines
+                }
+                
+                // Handle Arrays (like children names) specially if they exist
+                if (Array.isArray(val)) {
+                     if (y > 270) { doc.addPage(); y = 20; }
+                     doc.setFont("helvetica", "bold");
+                     doc.text(`${key}:`, 20, y);
+                     y += 7;
+                     val.forEach((item, idx) => {
+                         if (y > 270) { doc.addPage(); y = 20; }
+                         doc.setFont("helvetica", "normal");
+                         doc.text(`- ${item}`, 30, y);
+                         y += 7;
+                     });
+                     y += 5;
+                }
+            });
 
-            const yPos = 80 + ((data.childrenNames?.length || 0) * 10) + 20;
-            doc.text("Declarations:", 20, yPos);
+            // Footer / Signature Area
+            if (y > 240) { doc.addPage(); y = 40; } else { y += 20; }
+            doc.line(20, y, 100, y);
             doc.setFontSize(12);
-            doc.text("I hereby declare that this is my last will, made in sound mind.", 20, yPos + 10);
-            doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, yPos + 20);
+            doc.text("Signature", 20, y + 6);
 
-            doc.save("My_Will.pdf");
+            doc.save("Will_Document.pdf");
             return true;
         } catch (e) {
             console.error("PDF Generation Error", e);
@@ -120,7 +162,7 @@ export const emailService = {
         }
     },
 
-    // PDF: Power of Attorney (POA) - New V2.0 Feature
+    // PDF: Power of Attorney (POA)
     generateAndDownloadPOA(data: any) {
         try {
             const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -154,7 +196,8 @@ export const emailService = {
     async sendForm(formTitle: string, data: any, config?: IntegrationsConfig, pdfTemplate?: 'NONE' | 'WILL' | 'POA'): Promise<boolean> {
         console.log(`Processing Form: ${formTitle} [Template: ${pdfTemplate}]`, data);
         
-        // Handle PDF Generation based on selection
+        // Handle Client-Side PDF Generation based on selection
+        // This is a "Fallback" visual copy for the user.
         if (pdfTemplate === 'WILL' || (formTitle === 'Wills Generator' && !pdfTemplate)) {
             this.generateAndDownloadWill(data);
         } else if (pdfTemplate === 'POA') {
@@ -167,10 +210,12 @@ export const emailService = {
             try {
                 // הכנת הנתונים לשליחה (מוסיפים תאריך ושם טופס)
                 const payload = {
-                    action: 'submitForm', // New identifier for the script
+                    action: 'submitForm', // Identifier for the script
+                    targetSheet: 'DATA', // Explicitly ask script to save to DATA sheet
+                    templateSheet: pdfTemplate === 'WILL' ? 'WILL' : undefined, // Hint for script if it generates PDF
                     formName: formTitle,
-                    submittedAt: new Date().toLocaleString(),
-                    ...data
+                    submittedAt: new Date().toLocaleString('he-IL'),
+                    ...data // Spread all dynamic fields here
                 };
 
                 // Use simple POST
@@ -180,7 +225,7 @@ export const emailService = {
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Ensures Payload is sent correctly
                     body: JSON.stringify(payload)
                 });
-                console.log("Sent to Google Sheets successfully");
+                console.log("Sent to Google Sheets successfully (Target: DATA)");
             } catch (e) {
                 console.error("Google Sheets Error:", e);
             }
