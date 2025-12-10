@@ -5,41 +5,23 @@ import { Button } from '../components/Button.tsx';
 import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
 import { ShareMenu } from '../components/ShareMenu.tsx'; 
-import { emailService, storeService } from '../services/api.ts'; 
-import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList } from 'lucide-react';
+import { emailService } from '../services/api.ts'; 
+import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper } from 'lucide-react';
 
-// --- Scroll Reveal Helper Component ---
 const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = "", delay = 0 }) => {
     const [isVisible, setIsVisible] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
-
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setTimeout(() => setIsVisible(true), delay);
-                    observer.disconnect(); // Only animate once
-                }
-            },
-            { threshold: 0.1 }
-        );
+        const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { setTimeout(() => setIsVisible(true), delay); observer.disconnect(); } }, { threshold: 0.1 });
         if (ref.current) observer.observe(ref.current);
         return () => observer.disconnect();
     }, [delay]);
-
-    return (
-        <div ref={ref} className={`reveal ${isVisible ? 'active' : ''} ${className}`}>
-            {children}
-        </div>
-    );
+    return <div ref={ref} className={`reveal ${isVisible ? 'active' : ''} ${className}`}>{children}</div>;
 };
 
-// --- Reusable Section Title Component ---
 const SectionTitle: React.FC<{ title: string; isDark: boolean }> = ({ title, isDark }) => (
     <div className="mb-6 md:mb-10 relative z-10">
-        <h3 className={`text-3xl md:text-4xl font-black inline-block tracking-tight leading-relaxed ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            {title}
-        </h3>
+        <h3 className={`text-3xl md:text-4xl font-black inline-block tracking-tight leading-relaxed ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</h3>
     </div>
 );
 
@@ -55,28 +37,19 @@ interface PublicSiteProps {
 export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange, onWillsFormSubmit, onAdminClick, version, dataVersion }) => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
-  // Modal State
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showWillsModal, setShowWillsModal] = useState(false); 
   const [isSubmittingWill, setIsSubmittingWill] = useState(false); 
   const [activeArticleTab, setActiveArticleTab] = useState(0); 
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
-
-  // Dynamic Form State
   const [activeDynamicFormId, setActiveDynamicFormId] = useState<string | null>(null);
   const [dynamicFormValues, setDynamicFormValues] = useState<Record<string, any>>({});
   const [isSubmittingDynamic, setIsSubmittingDynamic] = useState(false);
   const [showFormsListModal, setShowFormsListModal] = useState(false);
-
-  // Contact Form State
   const [contactForm, setContactForm] = useState({ name: '', phone: '', message: '' });
   const [contactSending, setContactSending] = useState(false);
   
-  // Theme Helper Logic
   const isDark = state.config.theme === 'dark'; 
-  
-  // Theme Classes Mapping
   const theme = {
       bgMain: isDark ? 'bg-slate-950' : 'bg-slate-50',
       textMain: isDark ? 'text-slate-200' : 'text-slate-800',
@@ -90,48 +63,30 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       border: isDark ? 'border-slate-800' : 'border-slate-200',
   };
 
-  // Refs
   const dynamicFormRef = useRef<HTMLDivElement>(null);
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const teamScrollRef = useRef<HTMLDivElement>(null);
   const articlesScrollRef = useRef<HTMLDivElement>(null);
   const articleContentTopRef = useRef<HTMLDivElement>(null);
 
-  // Filter content
-  const currentSlides = state.slides
-    .filter(s => s.category === state.currentCategory || s.category === Category.HOME)
-    .sort((a, b) => (a.order || 99) - (b.order || 99));
-  
-  // Article Filtering:
-  const currentArticles = state.articles.filter(a => 
-      state.currentCategory === Category.HOME || state.currentCategory === Category.STORE ? true : a.categories.includes(state.currentCategory)
-  );
-  
-  // Timeline Filtering:
-  const currentTimelines = state.timelines.filter(t => 
-      state.currentCategory === Category.HOME || state.currentCategory === Category.STORE || t.category.includes(state.currentCategory)
-  );
-  
-  // Forms Filtering for current category (excluding HOME/STORE for specific lists, or include if needed)
+  const currentSlides = state.slides.filter(s => s.category === state.currentCategory || s.category === Category.HOME).sort((a, b) => (a.order || 99) - (b.order || 99));
+  const currentArticles = state.articles.filter(a => state.currentCategory === Category.HOME || state.currentCategory === Category.STORE ? true : a.categories.includes(state.currentCategory));
+  const currentTimelines = state.timelines.filter(t => state.currentCategory === Category.HOME || state.currentCategory === Category.STORE || t.category.includes(state.currentCategory));
   const currentCategoryForms = state.forms.filter(f => f.categories && f.categories.includes(state.currentCategory));
-
   const teamMembers = state.teamMembers;
+  
+  // Use products from state instead of hardcoded
+  const storeProducts = (state.products || []).filter(p => state.currentCategory === Category.STORE || p.category === state.currentCategory);
 
-  // Slider Auto-play
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % currentSlides.length);
-    }, 6000); 
+    const interval = setInterval(() => { setActiveSlide((prev) => (prev + 1) % currentSlides.length); }, 6000); 
     return () => clearInterval(interval);
   }, [currentSlides.length]);
 
-  // Reset active tab and scroll when opening a new article
   useEffect(() => {
       if(selectedArticle) {
           setActiveArticleTab(0);
-          if(articleContentTopRef.current) {
-              articleContentTopRef.current.scrollTop = 0;
-          }
+          if(articleContentTopRef.current) articleContentTopRef.current.scrollTop = 0;
       }
   }, [selectedArticle]);
 
@@ -142,17 +97,16 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         const formId = item.linkTo.replace('form-', '');
         setActiveDynamicFormId(formId);
         setDynamicFormValues({});
-        setTimeout(() => {
-            dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+        setTimeout(() => { dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100);
     }
   };
   
   const handleProductClick = (product: any) => {
-      if (product.category === Category.WILLS) {
-          setShowWillsModal(true);
+      if (product.paymentLink) {
+          window.open(product.paymentLink, '_blank');
       } else {
-          alert(`כדי לערוך את "${product.title}" אנא צור קשר או המתן להוספת הטופס המתאים.`);
+          // Fallback to contact or form if no link
+          alert(`לרכישת "${product.title}" אנא צור קשר.`);
       }
   };
   
@@ -162,35 +116,16 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           await emailService.sendForm('General Contact Form', contactForm, state.config.integrations);
           alert('הודעתך נשלחה בהצלחה! ניצור קשר בהקדם.');
           setContactForm({ name: '', phone: '', message: '' });
-      } catch (e) {
-          alert('שגיאה בשליחה.');
-      } finally {
-          setContactSending(false);
-      }
+      } catch (e) { alert('שגיאה בשליחה.'); } finally { setContactSending(false); }
   };
 
   const scrollContainer = (ref: React.RefObject<HTMLDivElement>, direction: 'left' | 'right') => {
-      if (ref.current) {
-          const scrollAmount = 350;
-          ref.current.scrollBy({
-              left: direction === 'left' ? -scrollAmount : scrollAmount,
-              behavior: 'smooth'
-          });
-      }
+      if (ref.current) { const scrollAmount = 350; ref.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' }); }
   };
 
-  const [willsData, setWillsData] = useState<WillsFormData>({
-    fullName: '', spouseName: '', childrenCount: 0, childrenNames: [], equalDistribution: true, assets: [], contactEmail: '', contactPhone: ''
-  });
+  const [willsData, setWillsData] = useState<WillsFormData>({ fullName: '', spouseName: '', childrenCount: 0, childrenNames: [], equalDistribution: true, assets: [], contactEmail: '', contactPhone: '' });
   const [formStep, setFormStep] = useState(0);
-
-  const handleChildrenCountChange = (count: number) => {
-    setWillsData(prev => ({
-        ...prev,
-        childrenCount: count,
-        childrenNames: Array(count).fill('')
-    }));
-  };
+  const handleChildrenCountChange = (count: number) => { setWillsData(prev => ({ ...prev, childrenCount: count, childrenNames: Array(count).fill('') })); };
   
   const handleRealWillsSubmit = async () => {
       setIsSubmittingWill(true);
@@ -198,62 +133,51 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           await emailService.sendWillsForm(willsData, state.config.integrations);
           onWillsFormSubmit(willsData);
           alert("הטופס נקלט בהצלחה! קובץ הצוואה יורד כעת למחשב שלך. לאחר הבדיקה, ניצור קשר להסדרת התשלום."); 
-          setShowWillsModal(false);
-          setFormStep(0);
-      } catch (error) {
-          alert("אירעה שגיאה, אנא נסה שנית.");
-      } finally {
-          setIsSubmittingWill(false);
-      }
+          setShowWillsModal(false); setFormStep(0);
+      } catch (error) { alert("אירעה שגיאה, אנא נסה שנית."); } finally { setIsSubmittingWill(false); }
   };
 
   const currentDynamicForm = state.forms.find(f => f.id === activeDynamicFormId);
   const activeTabContent = selectedArticle?.tabs?.[activeArticleTab]?.content || "";
-  const storeProducts = storeService.getProducts();
+  
+  // Related articles logic
+  const relatedArticles = selectedArticle ? state.articles.filter(a => a.id !== selectedArticle.id && a.categories.some(c => selectedArticle.categories.includes(c))).slice(0, 4) : [];
 
-  // --- Layout Logic Flags ---
   const isContactPage = state.currentCategory === Category.CONTACT;
   const isStorePage = state.currentCategory === Category.STORE;
   const isHomePage = state.currentCategory === Category.HOME;
-
-  // Show timeline on Home and Store, but NOT Contact
   const showTimelineSection = (isHomePage || isStorePage) && !isContactPage;
-  
-  // Show guides slider on specific legal pages, but NOT Home, Store, or Contact
   const showGuidesSlider = !isHomePage && !isStorePage && !isContactPage;
-  
-  // Show articles grid on Home and Store, but NOT Contact
   const showBottomArticlesGrid = !isContactPage;
-
-  // Show Global Footer on all pages EXCEPT Contact (Contact page has its own footer-like card)
   const showGlobalFooter = !isContactPage;
 
-  // --- RENDER ---
+  // Determine if we should show the "Forms" button (Dynamic Forms OR Wills Generator logic)
+  const hasWillsGenerator = state.currentCategory === Category.WILLS;
+  const hasDynamicForms = currentCategoryForms.length > 0;
+  const showFormsButton = (hasDynamicForms || hasWillsGenerator) && !isContactPage && !isStorePage && !isHomePage;
+
   return (
     <div className={`min-h-screen flex flex-col font-sans relative overflow-x-hidden selection:bg-[#2EB0D9] selection:text-white ${theme.bgMain} ${theme.textMain}`}>
       
-      {/* Background Gradient Mesh Animation */}
+      {/* Background */}
       <div className={`fixed inset-0 pointer-events-none z-0 ${isDark ? 'opacity-30' : 'opacity-60'} overflow-hidden`}>
           <div className="absolute inset-0 bg-gradient-to-br from-[#2EB0D9]/20 via-transparent to-purple-500/20 animate-gradient-xy"></div>
-          {/* Floating Orbs */}
           <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#2EB0D9]/20 rounded-full blur-[100px] animate-float-slow"></div>
           <div className="absolute bottom-[20%] left-[-5%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] animate-float-slow" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      {/* --- Modals --- */}
+      {/* --- Article Modal (Updated with Related Articles) --- */}
       {selectedArticle && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setSelectedArticle(null)}></div>
-            <div className={`md:rounded-2xl shadow-2xl w-full max-w-6xl h-full md:h-[80vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
+            <div className={`md:rounded-2xl shadow-2xl w-full max-w-6xl h-full md:h-[90vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
                 <div className={`hidden md:block w-1/4 h-full relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                     <img src={selectedArticle.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-70" />
                     <div className={`absolute inset-0 bg-gradient-to-t ${isDark ? 'from-slate-900' : 'from-white'} to-transparent`}></div>
                 </div>
                 <div className={`flex-1 flex flex-col h-full relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                     <div className={`p-4 border-b flex justify-between items-start flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
-                        <div>
-                             <h2 className={`text-xl md:text-2xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2>
-                        </div>
+                        <div><h2 className={`text-xl md:text-2xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2></div>
                         <button onClick={() => setSelectedArticle(null)} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={20} /></button>
                     </div>
                     <div className={`px-4 pt-4 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
@@ -264,12 +188,27 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                         </div>
                     </div>
                     <div ref={articleContentTopRef} className="flex-1 overflow-y-auto scrollbar-hide">
-                        <div className="p-6 md:p-8 min-h-full flex flex-col">
+                        <div className="p-6 md:p-8 flex flex-col">
                             <div className={`prose max-w-none leading-relaxed text-lg mb-8 ${theme.textMain}`}>
-                                {activeTabContent.split('\n').map((paragraph, i) => (
-                                    <p key={i} className="mb-4">{paragraph}</p>
-                                ))}
+                                {activeTabContent.split('\n').map((paragraph, i) => (<p key={i} className="mb-4">{paragraph}</p>))}
                             </div>
+                            
+                            {/* V2.2: Related Articles Section */}
+                            {relatedArticles.length > 0 && (
+                                <div className="mt-8 border-t pt-8 border-dashed border-slate-700">
+                                    <h4 className="font-bold text-lg mb-4 text-[#2EB0D9]">מאמרים נוספים בנושא</h4>
+                                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+                                        {relatedArticles.map(rel => (
+                                            <div key={rel.id} onClick={() => setSelectedArticle(rel)} className={`flex-shrink-0 w-64 h-32 rounded-lg overflow-hidden relative cursor-pointer border ${theme.border} group`}>
+                                                <img src={rel.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"/>
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent p-3 flex items-end">
+                                                    <span className="text-white text-sm font-bold leading-tight line-clamp-2">{rel.title}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -281,67 +220,16 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setShowWillsModal(false)}></div>
              <div className={`md:rounded-2xl shadow-2xl w-full max-w-5xl h-full md:h-[85vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
-                 {/* Wills Form UI ... */}
                  <div className="hidden md:flex w-1/3 bg-black text-white flex-col justify-between p-8 relative overflow-hidden">
                      <img src="https://picsum.photos/id/452/800/1200" alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 animate-ken-burns" />
-                     <div className="relative z-10">
-                         <div className="w-12 h-12 bg-[#2EB0D9] rounded-lg flex items-center justify-center mb-6">
-                             <FileText size={28} className="text-white"/>
-                         </div>
-                         <h2 className="text-3xl font-black mb-4">מחולל הצוואות הדיגיטלי</h2>
-                     </div>
+                     <div className="relative z-10"><div className="w-12 h-12 bg-[#2EB0D9] rounded-lg flex items-center justify-center mb-6"><FileText size={28} className="text-white"/></div><h2 className="text-3xl font-black mb-4">מחולל הצוואות הדיגיטלי</h2></div>
                  </div>
                  <div className={`flex-1 flex flex-col h-full ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-                     <div className={`p-4 border-b flex justify-between items-center ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
-                         <span className={`text-sm font-bold ${theme.textMuted}`}>שלב {formStep + 1} מתוך 3</span>
-                         <button onClick={() => setShowWillsModal(false)} className={`p-2 rounded-full hover:bg-black/10 ${theme.textMuted}`}><X size={24}/></button>
-                     </div>
+                     <div className={`p-4 border-b flex justify-between items-center ${isDark ? 'border-slate-800' : 'border-slate-100'}`}><span className={`text-sm font-bold ${theme.textMuted}`}>שלב {formStep + 1} מתוך 3</span><button onClick={() => setShowWillsModal(false)} className={`p-2 rounded-full hover:bg-black/10 ${theme.textMuted}`}><X size={24}/></button></div>
                      <div className={`flex-1 overflow-y-auto p-8 md:p-12 ${theme.textMain}`}>
-                         {formStep === 0 && (
-                            <div className="space-y-6">
-                               <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>פרטים אישיים</h3>
-                               <div className="space-y-4">
-                                   <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={willsData.fullName} onChange={e => setWillsData({...willsData, fullName: e.target.value})} placeholder="שם מלא" />
-                                   <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={willsData.spouseName} onChange={e => setWillsData({...willsData, spouseName: e.target.value})} placeholder="שם בן/בת הזוג" />
-                               </div>
-                               <Button size="lg" onClick={() => setFormStep(1)} className="w-full mt-8">המשך</Button>
-                            </div>
-                         )}
-                         {formStep === 1 && (
-                            <div className="space-y-6">
-                               <h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>ילדים</h3>
-                               <div className={`flex items-center gap-4 p-4 rounded-lg border ${theme.cardBg}`}>
-                                  <label className={`font-bold ${theme.textTitle}`}>מספר ילדים:</label>
-                                  <div className="flex items-center gap-2">
-                                      <button onClick={() => handleChildrenCountChange(Math.max(0, willsData.childrenCount - 1))} className={`w-8 h-8 rounded-full border flex items-center justify-center ${theme.textTitle}`}>-</button>
-                                      <span className={`w-8 text-center font-bold ${theme.textTitle}`}>{willsData.childrenCount}</span>
-                                      <button onClick={() => handleChildrenCountChange(Math.min(10, willsData.childrenCount + 1))} className={`w-8 h-8 rounded-full border flex items-center justify-center ${theme.textTitle}`}>+</button>
-                                  </div>
-                               </div>
-                               <div className="space-y-3 max-h-60 overflow-y-auto">
-                                  {willsData.childrenNames.map((name, idx) => (
-                                      <input key={idx} placeholder={`שם הילד/ה ${idx+1}`} className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={name} onChange={e => { const newNames = [...willsData.childrenNames]; newNames[idx] = e.target.value; setWillsData({...willsData, childrenNames: newNames}); }}/>
-                                  ))}
-                               </div>
-                               <div className="flex gap-3 pt-4">
-                                 <Button variant="outline" onClick={() => setFormStep(0)} className="flex-1">חזור</Button>
-                                 <Button onClick={() => setFormStep(2)} className="flex-1">המשך</Button>
-                               </div>
-                            </div>
-                         )}
-                         {formStep === 2 && (
-                            <div className="space-y-6">
-                               <h3 className={`text-2xl font-bold ${theme.textTitle}`}>סיום</h3>
-                               <input type="tel" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactPhone} onChange={e => setWillsData({...willsData, contactPhone: e.target.value})} placeholder="טלפון"/>
-                               <input type="email" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactEmail} onChange={e => setWillsData({...willsData, contactEmail: e.target.value})} placeholder="אימייל"/>
-                               <div className="flex gap-3 mt-4">
-                                   <Button variant="outline" onClick={() => setFormStep(1)} className="flex-1">חזור</Button>
-                                   <Button variant="secondary" onClick={handleRealWillsSubmit} className="flex-[2]" disabled={isSubmittingWill}>
-                                       {isSubmittingWill ? 'מעבד...' : 'צור צוואה'}
-                                   </Button>
-                               </div>
-                            </div>
-                         )}
+                         {formStep === 0 && <div className="space-y-6"><h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>פרטים אישיים</h3><div className="space-y-4"><input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={willsData.fullName} onChange={e => setWillsData({...willsData, fullName: e.target.value})} placeholder="שם מלא" /><input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={willsData.spouseName} onChange={e => setWillsData({...willsData, spouseName: e.target.value})} placeholder="שם בן/בת הזוג" /></div><Button size="lg" onClick={() => setFormStep(1)} className="w-full mt-8">המשך</Button></div>}
+                         {formStep === 1 && <div className="space-y-6"><h3 className={`text-2xl font-bold mb-2 ${theme.textTitle}`}>ילדים</h3><div className={`flex items-center gap-4 p-4 rounded-lg border ${theme.cardBg}`}><label className={`font-bold ${theme.textTitle}`}>מספר ילדים:</label><div className="flex items-center gap-2"><button onClick={() => handleChildrenCountChange(Math.max(0, willsData.childrenCount - 1))} className={`w-8 h-8 rounded-full border flex items-center justify-center ${theme.textTitle}`}>-</button><span className={`w-8 text-center font-bold ${theme.textTitle}`}>{willsData.childrenCount}</span><button onClick={() => handleChildrenCountChange(Math.min(10, willsData.childrenCount + 1))} className={`w-8 h-8 rounded-full border flex items-center justify-center ${theme.textTitle}`}>+</button></div></div><div className="space-y-3 max-h-60 overflow-y-auto">{willsData.childrenNames.map((name, idx) => (<input key={idx} placeholder={`שם הילד/ה ${idx+1}`} className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={name} onChange={e => { const newNames = [...willsData.childrenNames]; newNames[idx] = e.target.value; setWillsData({...willsData, childrenNames: newNames}); }}/>))}</div><div className="flex gap-3 pt-4"><Button variant="outline" onClick={() => setFormStep(0)} className="flex-1">חזור</Button><Button onClick={() => setFormStep(2)} className="flex-1">המשך</Button></div></div>}
+                         {formStep === 2 && <div className="space-y-6"><h3 className={`text-2xl font-bold ${theme.textTitle}`}>סיום</h3><input type="tel" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactPhone} onChange={e => setWillsData({...willsData, contactPhone: e.target.value})} placeholder="טלפון"/><input type="email" className={`w-full p-3 border rounded-lg ${theme.inputBg}`} value={willsData.contactEmail} onChange={e => setWillsData({...willsData, contactEmail: e.target.value})} placeholder="אימייל"/><div className="flex gap-3 mt-4"><Button variant="outline" onClick={() => setFormStep(1)} className="flex-1">חזור</Button><Button variant="secondary" onClick={handleRealWillsSubmit} className="flex-[2]" disabled={isSubmittingWill}>{isSubmittingWill ? 'מעבד...' : 'צור צוואה'}</Button></div></div>}
                      </div>
                  </div>
              </div>
@@ -354,176 +242,74 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
              <div className={`rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
                  <button onClick={() => setSelectedTeamMember(null)} className="absolute top-4 left-4 z-20 p-2 bg-black/50 rounded-full hover:bg-black/70 text-white"><X size={20} /></button>
                  <div className="md:w-2/5 h-64 md:h-auto relative"><img src={selectedTeamMember.imageUrl} className="w-full h-full object-cover opacity-90" /></div>
-                 <div className={`md:w-3/5 p-8 flex flex-col justify-center ${theme.textMain}`}>
-                     <span className="text-[#2EB0D9] font-bold text-sm mb-1">{selectedTeamMember.role}</span>
-                     <h2 className={`text-3xl font-black mb-2 ${theme.textTitle}`}>{selectedTeamMember.fullName}</h2>
-                     <p className={`leading-relaxed text-sm p-4 rounded-lg border mb-4 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>{selectedTeamMember.bio || 'אין מידע נוסף.'}</p>
-                     
-                     {/* Added Contact Info */}
-                     <div className="space-y-2 text-sm">
-                         <div className="flex items-center gap-2"><Mail size={16} className="text-[#2EB0D9]"/> <span>{selectedTeamMember.email}</span></div>
-                         <div className="flex items-center gap-2"><Phone size={16} className="text-[#2EB0D9]"/> <span dir="ltr">{selectedTeamMember.phone}</span></div>
-                     </div>
-                 </div>
+                 <div className={`md:w-3/5 p-8 flex flex-col justify-center ${theme.textMain}`}><span className="text-[#2EB0D9] font-bold text-sm mb-1">{selectedTeamMember.role}</span><h2 className={`text-3xl font-black mb-2 ${theme.textTitle}`}>{selectedTeamMember.fullName}</h2><p className={`leading-relaxed text-sm p-4 rounded-lg border mb-4 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>{selectedTeamMember.bio || 'אין מידע נוסף.'}</p><div className="space-y-2 text-sm"><div className="flex items-center gap-2"><Mail size={16} className="text-[#2EB0D9]"/> <span>{selectedTeamMember.email}</span></div><div className="flex items-center gap-2"><Phone size={16} className="text-[#2EB0D9]"/> <span dir="ltr">{selectedTeamMember.phone}</span></div></div></div>
              </div>
          </div>
       )}
 
-      {/* --- Header --- */}
       <header className={`fixed top-0 left-0 right-0 backdrop-blur-md shadow-lg z-40 h-20 transition-all border-b ${theme.headerBg}`}>
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer leading-none" onClick={() => onCategoryChange(Category.HOME)} style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}>
-               <span className="block text-[#2EB0D9] drop-shadow-md">MOR ERAN KAGAN</span>
-               <span className={`${theme.textMuted} text-sm tracking-widest font-sans font-normal`}>& CO</span>
-            </h1>
-          </div>
-          <nav className="hidden md:flex items-center gap-6">
-            {state.menuItems.map(item => (
-              <button 
-                key={item.id} 
-                onClick={() => onCategoryChange(item.cat)} 
-                className={`text-sm font-medium transition-colors border-b-2 hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-[#2EB0D9]' : `${theme.textMuted} border-transparent`}`}
-              >
-                {item.label}
-              </button>
-            ))}
-            <div className={`w-px h-6 mx-2 ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
-            <button className={`${theme.textMuted} hover:text-[#2EB0D9]`}><Search size={20}/></button>
-          </nav>
-          <button className={`md:hidden ${theme.textTitle}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
+          <div className="flex items-center gap-4"><h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer leading-none" onClick={() => onCategoryChange(Category.HOME)} style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}><span className="block text-[#2EB0D9] drop-shadow-md">MOR ERAN KAGAN</span><span className={`${theme.textMuted} text-sm tracking-widest font-sans font-normal`}>& CO</span></h1></div>
+          <nav className="hidden md:flex items-center gap-6">{state.menuItems.map(item => (<button key={item.id} onClick={() => onCategoryChange(item.cat)} className={`text-sm font-medium transition-colors border-b-2 hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-[#2EB0D9]' : `${theme.textMuted} border-transparent`}`}>{item.label}</button>))}<div className={`w-px h-6 mx-2 ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}></div><button className={`${theme.textMuted} hover:text-[#2EB0D9]`}><Search size={20}/></button></nav>
+          <button className={`md:hidden ${theme.textTitle}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}</button>
         </div>
-        {mobileMenuOpen && (
-           <div className={`md:hidden absolute top-20 left-0 w-full shadow-xl border-t p-4 flex flex-col gap-4 animate-fade-in-up ${theme.modalBg}`}>
-              {state.menuItems.map(item => (
-                <button key={item.id} onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }} className={`text-right p-2 rounded-lg font-medium hover:bg-black/5 ${theme.textMain}`}>
-                    {item.label}
-                </button>
-              ))}
-           </div>
-        )}
+        {mobileMenuOpen && (<div className={`md:hidden absolute top-20 left-0 w-full shadow-xl border-t p-4 flex flex-col gap-4 animate-fade-in-up ${theme.modalBg}`}>{state.menuItems.map(item => (<button key={item.id} onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }} className={`text-right p-2 rounded-lg font-medium hover:bg-black/5 ${theme.textMain}`}>{item.label}</button>))}</div>)}
       </header>
 
-      {/* --- Main Content Area --- */}
       <main className="flex-1 pt-20 relative z-10">
-        
-        {/* HERO SECTION */}
         <section className="relative h-[45vh] md:h-[55vh] overflow-hidden bg-black group">
-          <div className="absolute left-8 top-[15%] z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity animate-float">
-              <img src={state.config.logoUrl} alt="Logo" className="h-28 w-auto object-contain drop-shadow-2xl" style={{ filter: "drop-shadow(0 10px 8px rgb(0 0 0 / 0.8))" }}/>
-          </div>
+          <div className="absolute left-8 top-[15%] z-30 hidden lg:block opacity-90 hover:opacity-100 transition-opacity animate-float"><img src={state.config.logoUrl} alt="Logo" className="h-28 w-auto object-contain drop-shadow-2xl" style={{ filter: "drop-shadow(0 10px 8px rgb(0 0 0 / 0.8))" }}/></div>
           {currentSlides.map((slide, index) => (
              <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === activeSlide ? 'opacity-100' : 'opacity-0'}`}>
-                <div className="w-full h-full overflow-hidden">
-                    <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover opacity-50 animate-ken-burns" />
-                </div>
+                <div className="w-full h-full overflow-hidden"><img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover opacity-50 animate-ken-burns" /></div>
                 <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent flex items-center pb-20">
                     <div className="container mx-auto px-6 md:px-12">
                         <div className="max-w-4xl text-white space-y-4 animate-fade-in-up">
-                            <span className="inline-block px-4 py-1 bg-[#2EB0D9]/90 text-xs font-bold uppercase tracking-widest rounded-full mb-1 text-white shadow-lg">
-                                {slide.category === Category.HOME ? 'המשרד המוביל בישראל' : CATEGORY_LABELS[slide.category]}
-                            </span>
-                            <h2 className="text-3xl md:text-5xl font-black leading-tight drop-shadow-2xl text-white">
-                                {slide.title}
-                            </h2>
-                            <p className="hidden md:block text-lg text-slate-300 md:w-3/4 border-r-4 border-[#2EB0D9] pr-4 leading-relaxed font-light">
-                                {slide.subtitle}
-                            </p>
-                            
+                            <span className="inline-block px-4 py-1 bg-[#2EB0D9]/90 text-xs font-bold uppercase tracking-widest rounded-full mb-1 text-white shadow-lg">{slide.category === Category.HOME ? 'המשרד המוביל בישראל' : CATEGORY_LABELS[slide.category]}</span>
+                            <h2 className="text-3xl md:text-5xl font-black leading-tight drop-shadow-2xl text-white">{slide.title}</h2>
+                            <p className="hidden md:block text-lg text-slate-300 md:w-3/4 border-r-4 border-[#2EB0D9] pr-4 leading-relaxed font-light">{slide.subtitle}</p>
                             {state.currentCategory !== Category.HOME && state.currentCategory !== Category.STORE && (
                                 <div className="pt-4 flex gap-3">
-                                    <Button onClick={() => onCategoryChange(slide.category)} variant="secondary" size="md" className="shine-effect">
-                                        {slide.buttonText || 'קבע פגישת ייעוץ'}
-                                    </Button>
-                                    
-                                    {/* Show Forms Button if available for this category */}
-                                    {currentCategoryForms.length > 0 && (
-                                        <Button onClick={() => setShowFormsListModal(true)} variant="outline" className="text-white border-white/30 hover:bg-white/10 hover:border-white">
-                                            <ClipboardList size={18} className="ml-2"/> טפסים ושאלונים
-                                        </Button>
-                                    )}
+                                    <Button onClick={() => onCategoryChange(slide.category)} variant="secondary" size="md" className="shine-effect">{slide.buttonText || 'קבע פגישת ייעוץ'}</Button>
+                                    {showFormsButton && (<Button onClick={() => setShowFormsListModal(true)} variant="outline" className="text-white border-white/30 hover:bg-white/10 hover:border-white"><ClipboardList size={18} className="ml-2"/> טפסים ושאלונים</Button>)}
                                 </div>
                             )}
-                            
-                            {isHomePage && slide.category === Category.HOME && slide.title.includes('החנות') && (
-                                <div className="pt-4">
-                                    <Button onClick={() => onCategoryChange(Category.STORE)} variant="secondary" size="md" className="shine-effect">
-                                        למעבר לחנות המשפטית
-                                    </Button>
-                                </div>
-                            )}
+                            {isHomePage && slide.category === Category.HOME && slide.title.includes('החנות') && (<div className="pt-4"><Button onClick={() => onCategoryChange(Category.STORE)} variant="secondary" size="md" className="shine-effect">למעבר לחנות המשפטית</Button></div>)}
                         </div>
                     </div>
                 </div>
              </div>
           ))}
-          
-          <div className="absolute bottom-24 left-0 right-0 flex justify-center gap-3 z-20">
-            {currentSlides.map((_, idx) => (
-                <button key={idx} onClick={() => setActiveSlide(idx)} className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeSlide ? 'bg-[#2EB0D9] w-12' : 'bg-white/30 w-3 hover:bg-white'}`} />
-            ))}
-          </div>
+          <div className="absolute bottom-24 left-0 right-0 flex justify-center gap-3 z-20">{currentSlides.map((_, idx) => (<button key={idx} onClick={() => setActiveSlide(idx)} className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeSlide ? 'bg-[#2EB0D9] w-12' : 'bg-white/30 w-3 hover:bg-white'}`} />))}</div>
         </section>
 
-        {/* TEAM SECTION (HOME ONLY) */}
         {isHomePage && (
             <Reveal className="relative z-20 -mt-20 container mx-auto px-4">
                  <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
-                     <div className="flex justify-between items-center mb-6">
-                        <SectionTitle title="הנבחרת שלנו" isDark={isDark} />
-                        <div className="hidden md:flex gap-2">
-                            <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
-                            <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
-                        </div>
-                     </div>
-                     <div ref={teamScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">
-                         {teamMembers.map(member => (
-                             <div key={member.id} onClick={() => setSelectedTeamMember(member)} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}>
-                                 <div className="h-32 md:h-48 w-full overflow-hidden relative">
-                                     <img src={member.imageUrl} alt={member.fullName} className="w-full h-full object-cover animate-ken-burns grayscale group-hover:grayscale-0 transition-all duration-500 opacity-80 group-hover:opacity-100" />
-                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-2">
-                                         <span className="text-white font-bold text-xs bg-[#2EB0D9] px-2 py-0.5 rounded-full">פרטים</span>
-                                     </div>
-                                 </div>
-                                 <div className="p-3 text-center">
-                                     <h4 className={`font-bold text-base md:text-lg mb-1 group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{member.fullName}</h4>
-                                     <p className={`text-[10px] md:text-xs font-medium uppercase tracking-wide line-clamp-1 ${theme.textMuted}`}>{member.role}</p>
-                                 </div>
-                             </div>
-                         ))}
-                     </div>
+                     <div className="flex justify-between items-center mb-6"><SectionTitle title="הנבחרת שלנו" isDark={isDark} /><div className="hidden md:flex gap-2"><button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button><button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button></div></div>
+                     <div ref={teamScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">{teamMembers.map(member => (<div key={member.id} onClick={() => setSelectedTeamMember(member)} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover}`}><div className="h-32 md:h-48 w-full overflow-hidden relative"><img src={member.imageUrl} alt={member.fullName} className="w-full h-full object-cover animate-ken-burns grayscale group-hover:grayscale-0 transition-all duration-500 opacity-80 group-hover:opacity-100" /><div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-2"><span className="text-white font-bold text-xs bg-[#2EB0D9] px-2 py-0.5 rounded-full">פרטים</span></div></div><div className="p-3 text-center"><h4 className={`font-bold text-base md:text-lg mb-1 group-hover:text-[#2EB0D9] transition-colors ${theme.textTitle}`}>{member.fullName}</h4><p className={`text-[10px] md:text-xs font-medium uppercase tracking-wide line-clamp-1 ${theme.textMuted}`}>{member.role}</p></div></div>))}</div>
                  </div>
             </Reveal>
         )}
 
-        {/* PRODUCTS SECTION (STORE ONLY) */}
-        {isStorePage && (
+        {/* PRODUCTS SECTION (STORE or Category Filtered) */}
+        {(isStorePage || (storeProducts.length > 0 && !isHomePage && !isContactPage)) && (
             <Reveal className="relative z-20 -mt-20 container mx-auto px-4 mb-20">
                  <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
-                     <div className="flex justify-between items-center mb-6">
-                        <SectionTitle title="החבילות שלנו" isDark={isDark} />
-                     </div>
+                     <div className="flex justify-between items-center mb-6"><SectionTitle title={isStorePage ? "החנות המשפטית" : "שירותים לרכישה אונליין"} isDark={isDark} /></div>
                      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">
                          {storeProducts.map((product) => (
                              <div key={product.id} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col`}>
                                  <div className={`h-32 md:h-48 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                                     <img src={`https://picsum.photos/seed/${product.id}/400/600`} alt={product.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity grayscale group-hover:grayscale-0"/>
                                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                                     <div className="absolute inset-0 flex items-center justify-center">
-                                         <div className="bg-white/10 backdrop-blur-sm p-3 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500">
-                                            <FileText size={24} className="text-white"/>
-                                         </div>
-                                     </div>
+                                     <div className="absolute inset-0 flex items-center justify-center"><div className="bg-white/10 backdrop-blur-sm p-3 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500"><FileText size={24} className="text-white"/></div></div>
                                  </div>
                                  <div className="p-3 text-center flex-1 flex flex-col">
-                                     <div className="mb-1">
-                                         <span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">{CATEGORY_LABELS[product.category] || 'כללי'}</span>
-                                     </div>
+                                     <div className="mb-1"><span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">{CATEGORY_LABELS[product.category] || 'כללי'}</span></div>
                                      <h4 className={`font-bold text-base md:text-lg mb-1 line-clamp-1 ${theme.textTitle}`}>{product.title}</h4>
+                                     <p className="text-[10px] text-slate-500 line-clamp-2 mb-2">{product.description}</p>
                                      <div className={`text-lg font-black mb-3 ${theme.textMuted} flex-1 flex items-center justify-center`}>₪{product.price}</div>
-                                     <Button onClick={() => handleProductClick(product)} className="w-full shine-effect text-xs py-1.5 h-8" variant="secondary">ערוך כעת</Button>
+                                     <Button onClick={() => handleProductClick(product)} className="w-full shine-effect text-xs py-1.5 h-8" variant="secondary">רכוש כעת</Button>
                                  </div>
                              </div>
                          ))}
@@ -532,259 +318,84 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
         
-        {/* MIDDLE SECTION - GUIDES SLIDER OR CONTACT PAGE CONTENT */}
-        {/* We only show the Guides Slider if NOT on Home, Store, or Contact pages */}
         {showGuidesSlider && (
             <Reveal className="relative z-20 -mt-20 container mx-auto px-4">
                  <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
-                     <div className="flex justify-between items-center mb-6">
-                        <SectionTitle title="מדריכים ומידע מקצועי" isDark={isDark} />
-                        <div className="hidden md:flex gap-2">
-                            <button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
-                            <button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
-                        </div>
-                     </div>
-                     <div ref={teamScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">
-                         {currentArticles.map((article, index) => (
-                             <div key={article.id} onClick={() => setSelectedArticle(article)} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col h-[280px] md:h-[350px]`}>
-                                 <div className={`h-1/3 w-full flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#2EB0D9]/10 to-transparent border-b ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
-                                     <div className="p-4 bg-white/10 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500">
-                                        {index % 2 === 0 ? <Scale size={32} className="text-[#2EB0D9]"/> : <BookOpen size={32} className="text-[#2EB0D9]"/>}
-                                     </div>
-                                 </div>
-                                 <div className="p-5 text-center flex-1 flex flex-col relative">
-                                     <div className="mb-2">
-                                         <span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">{CATEGORY_LABELS[article.categories[0]] || 'מידע'}</span>
-                                     </div>
-                                     <h4 className={`font-bold text-lg md:text-xl mb-3 leading-tight ${theme.textTitle}`}>{article.title}</h4>
-                                     <p className={`text-xs md:text-sm leading-relaxed mb-4 line-clamp-4 ${theme.textMuted}`}>{article.abstract}</p>
-                                     <div className="mt-auto pt-2 w-full"><Button onClick={() => setSelectedArticle(article)} className="w-full text-xs h-9" variant="outline">קרא את המדריך</Button></div>
-                                 </div>
-                             </div>
-                         ))}
-                     </div>
+                     <div className="flex justify-between items-center mb-6"><SectionTitle title="מדריכים ומידע מקצועי" isDark={isDark} /><div className="hidden md:flex gap-2"><button onClick={() => scrollContainer(teamScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button><button onClick={() => scrollContainer(teamScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button></div></div>
+                     <div ref={teamScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">{currentArticles.map((article, index) => (<div key={article.id} onClick={() => setSelectedArticle(article)} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group cursor-pointer rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col h-[280px] md:h-[350px]`}><div className={`h-1/3 w-full flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#2EB0D9]/10 to-transparent border-b ${isDark ? 'border-slate-800' : 'border-slate-100'}`}><div className="p-4 bg-white/10 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500">{index % 2 === 0 ? <Scale size={32} className="text-[#2EB0D9]"/> : <BookOpen size={32} className="text-[#2EB0D9]"/>}</div></div><div className="p-5 text-center flex-1 flex flex-col relative"><div className="mb-2"><span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">{CATEGORY_LABELS[article.categories[0]] || 'מידע'}</span></div><h4 className={`font-bold text-lg md:text-xl mb-3 leading-tight ${theme.textTitle}`}>{article.title}</h4><p className={`text-xs md:text-sm leading-relaxed mb-4 line-clamp-4 ${theme.textMuted}`}>{article.abstract}</p><div className="mt-auto pt-2 w-full"><Button onClick={() => setSelectedArticle(article)} className="w-full text-xs h-9" variant="outline">קרא את המדריך</Button></div></div></div>))}</div>
                  </div>
             </Reveal>
         )}
 
-        {/* SPECIAL CONTACT PAGE LAYOUT */}
         {isContactPage && (
             <Reveal className="relative z-20 -mt-20 container mx-auto px-4 mb-20">
                 <SectionTitle title="צור קשר" isDark={isDark} />
-                
-                {/* Contact Card - Mimicking Footer Style */}
                 <div className={`rounded-3xl overflow-hidden shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <div className="grid grid-cols-1 md:grid-cols-2">
-                        
-                        {/* Right Side: Form */}
                         <div className="p-8 md:p-12">
                            <h3 className={`text-2xl font-bold mb-6 ${theme.textTitle}`}>שלחו לנו הודעה</h3>
-                           <div className="space-y-4">
-                                <div>
-                                    <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>שם מלא</label>
-                                    <input type="text" className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})} placeholder="שם מלא"/>
-                                </div>
-                                <div>
-                                    <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>טלפון</label>
-                                    <input type="tel" className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} value={contactForm.phone} onChange={e => setContactForm({...contactForm, phone: e.target.value})} placeholder="050-0000000"/>
-                                </div>
-                                <div>
-                                    <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>הודעה</label>
-                                    <textarea className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition h-32 ${theme.inputBg}`} value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})} placeholder="כיצד נוכל לעזור?"></textarea>
-                                </div>
-                                <Button className="w-full py-4 text-lg font-bold shine-effect" variant="secondary" onClick={handleContactSubmit} disabled={contactSending}>
-                                    {contactSending ? <Loader2 className="animate-spin inline ml-2"/> : null}
-                                    {contactSending ? 'שולח...' : 'שלח הודעה'}
-                                </Button>
-                            </div>
+                           <div className="space-y-4"><div><label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>שם מלא</label><input type="text" className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})} placeholder="שם מלא"/></div><div><label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>טלפון</label><input type="tel" className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition ${theme.inputBg}`} value={contactForm.phone} onChange={e => setContactForm({...contactForm, phone: e.target.value})} placeholder="050-0000000"/></div><div><label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>הודעה</label><textarea className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition h-32 ${theme.inputBg}`} value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})} placeholder="כיצד נוכל לעזור?"></textarea></div><Button className="w-full py-4 text-lg font-bold shine-effect" variant="secondary" onClick={handleContactSubmit} disabled={contactSending}>{contactSending ? <Loader2 className="animate-spin inline ml-2"/> : null}{contactSending ? 'שולח...' : 'שלח הודעה'}</Button></div>
                         </div>
-
-                        {/* Left Side: Info (Footer Style) */}
-                        <div className="bg-slate-950 p-8 md:p-12 text-slate-300 flex flex-col justify-between border-t md:border-t-0 md:border-r border-slate-800" dir="rtl">
-                             <div className="space-y-8">
-                                <div>
-                                    <h2 className="text-3xl font-black text-white mb-2 leading-tight" style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}>
-                                       <span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO
-                                    </h2>
-                                    <p className="text-slate-500 text-sm">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p>
-                                </div>
-                                
-                                <ul className="space-y-6">
-                                     <li className="flex items-start gap-4"><MapPin size={24} className="text-[#2EB0D9] shrink-0"/> <div><span className="block text-white font-bold">כתובת</span><span className="text-slate-400">{state.config.address}</span></div></li>
-                                     <li className="flex items-center gap-4"><Phone size={24} className="text-[#2EB0D9] shrink-0"/> <div><span className="block text-white font-bold">טלפון</span><span className="text-slate-400" dir="ltr">{state.config.phone}</span></div></li>
-                                     <li className="flex items-center gap-4"><Mail size={24} className="text-[#2EB0D9] shrink-0"/> <div><span className="block text-white font-bold">דוא"ל</span><span className="text-slate-400">{state.config.contactEmail}</span></div></li>
-                                </ul>
-                             </div>
-
-                             <div className="mt-8">
-                                <div className="flex gap-3">
-                                     <Button className="flex-1 gap-2 text-xs" variant="outline" onClick={() => window.open(`https://waze.com/ul?q=${state.config.address}`)}>
-                                        <Navigation size={14}/> נווט עם Waze
-                                     </Button>
-                                     <Button className="flex-1 gap-2 text-xs" variant="outline" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${state.config.address}`)}>
-                                        <MapPin size={14}/> Google Maps
-                                     </Button>
-                                </div>
-                             </div>
-                        </div>
-
+                        <div className="bg-slate-950 p-8 md:p-12 text-slate-300 flex flex-col justify-between border-t md:border-t-0 md:border-r border-slate-800" dir="rtl"><div className="space-y-8"><div><h2 className="text-3xl font-black text-white mb-2 leading-tight" style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}><span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO</h2><p className="text-slate-500 text-sm">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p></div><ul className="space-y-6"><li className="flex items-start gap-4"><MapPin size={24} className="text-[#2EB0D9] shrink-0"/> <div><span className="block text-white font-bold">כתובת</span><span className="text-slate-400">{state.config.address}</span></div></li><li className="flex items-center gap-4"><Phone size={24} className="text-[#2EB0D9] shrink-0"/> <div><span className="block text-white font-bold">טלפון</span><span className="text-slate-400" dir="ltr">{state.config.phone}</span></div></li><li className="flex items-center gap-4"><Mail size={24} className="text-[#2EB0D9] shrink-0"/> <div><span className="block text-white font-bold">דוא"ל</span><span className="text-slate-400">{state.config.contactEmail}</span></div></li></ul></div><div className="mt-8"><div className="flex gap-3"><Button className="flex-1 gap-2 text-xs" variant="outline" onClick={() => window.open(`https://waze.com/ul?q=${state.config.address}`)}><Navigation size={14}/> נווט עם Waze</Button><Button className="flex-1 gap-2 text-xs" variant="outline" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${state.config.address}`)}><MapPin size={14}/> Google Maps</Button></div></div></div>
                     </div>
                 </div>
             </Reveal>
         )}
 
-        {/* TIMELINE (SCROLLABLE) - ENABLED FOR HOME OR STORE */}
+        {/* NEWS & UPDATES (TIMELINE) - ENABLED FOR HOME OR STORE */}
         {showTimelineSection && (
             <Reveal className={`py-20 relative border-b ${isDark ? 'border-slate-800/50' : 'border-slate-100'}`} delay={200}>
-               <div className="container mx-auto px-4 mb-8 flex justify-between items-end">
-                  <SectionTitle title="חדשות ועדכונים" isDark={isDark} />
-                  <div className="hidden md:flex gap-2">
-                      <button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button>
-                      <button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button>
-                  </div>
-               </div>
-               
-               <div className="container mx-auto px-4">
-                  <div ref={timelineScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x">
-                      {currentTimelines.map((item, index) => {
-                          const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-'));
-                          const brandGradients = ['from-[#2EB0D9] to-[#1F8CAD]', 'from-[#2EB0D9] to-[#0EA5E9]', 'from-[#06B6D4] to-[#2EB0D9]', 'from-[#22D3EE] to-[#0090B0]'];
-                          const selectedGradient = brandGradients[index % brandGradients.length];
-                          const bgClass = isGenerator 
-                            ? `bg-gradient-to-br ${selectedGradient} text-white shadow-xl shadow-cyan-500/20 transform hover:-translate-y-2` 
-                            : `${theme.cardBg} ${theme.cardHover} transition-all duration-300 transform hover:-translate-y-2`;
-                          const textClass = isGenerator ? 'text-white' : theme.textTitle;
-                          const descClass = isGenerator ? 'text-white/90' : theme.textMuted;
-
-                          return (
-                              <div key={item.id} onClick={() => handleTimelineClick(item)} className={`flex-shrink-0 w-[140px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[200px] md:h-[240px] border border-transparent ${bgClass}`}>
-                                  <div className="p-4 md:p-6 flex flex-col h-full relative">
-                                       <div className={`absolute top-4 left-4 p-2 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>
-                                          {isGenerator ? <FileText size={16} className="text-white"/> : <ArrowLeft size={16} className=""/>}
-                                       </div>
-                                      <div className="mt-8">
-                                           <h4 className={`text-sm md:text-xl font-black mb-2 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4>
-                                           <p className={`text-[10px] md:text-xs leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p>
-                                      </div>
-                                      <div className="mt-auto pt-2 flex items-center justify-between">
-                                           <span className={`text-[10px] md:text-xs font-bold flex items-center gap-1 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>
-                                              {isGenerator ? 'התחל עכשיו' : 'קרא עוד'} <ArrowLeft size={12}/>
-                                           </span>
-                                      </div>
-                                  </div>
-                              </div>
-                          );
-                      })}
-                  </div>
-               </div>
+               <div className="container mx-auto px-4 mb-8 flex justify-between items-end"><SectionTitle title="חדשות ועדכונים" isDark={isDark} /><div className="hidden md:flex gap-2"><button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button><button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button></div></div>
+               <div className="container mx-auto px-4"><div ref={timelineScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x">{currentTimelines.map((item, index) => { const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-')); const brandGradients = ['from-[#2EB0D9] to-[#1F8CAD]', 'from-[#2EB0D9] to-[#0EA5E9]', 'from-[#06B6D4] to-[#2EB0D9]', 'from-[#22D3EE] to-[#0090B0]']; const selectedGradient = brandGradients[index % brandGradients.length]; const bgClass = isGenerator ? `bg-gradient-to-br ${selectedGradient} text-white shadow-xl shadow-cyan-500/20 transform hover:-translate-y-2` : `${theme.cardBg} ${theme.cardHover} transition-all duration-300 transform hover:-translate-y-2`; const textClass = isGenerator ? 'text-white' : theme.textTitle; const descClass = isGenerator ? 'text-white/90' : theme.textMuted; return (<div key={item.id} onClick={() => handleTimelineClick(item)} className={`flex-shrink-0 w-[140px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[200px] md:h-[240px] border border-transparent ${bgClass}`}><div className="p-4 md:p-6 flex flex-col h-full relative"><div className={`absolute top-4 left-4 p-2 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>{isGenerator ? <FileText size={16} className="text-white"/> : (item.imageUrl ? <Newspaper size={16}/> : <ArrowLeft size={16}/>)}</div><div className="mt-8"><h4 className={`text-sm md:text-xl font-black mb-2 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4><p className={`text-[10px] md:text-xs leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p></div><div className="mt-auto pt-2 flex items-center justify-between"><span className={`text-[10px] md:text-xs font-bold flex items-center gap-1 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>{isGenerator ? 'התחל עכשיו' : 'קרא עוד'} <ArrowLeft size={12}/></span></div></div></div>);})}</div></div>
             </Reveal>
         )}
 
-        {/* DYNAMIC FORM RENDERER (ACTIVE FORM) */}
         {currentDynamicForm && (
             <div ref={dynamicFormRef} className={`mb-20 container mx-auto px-4 rounded-2xl p-8 md:p-12 shadow-2xl border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
                  <div className="max-w-2xl mx-auto">
-                     <div className="flex justify-between items-start mb-6">
-                          <div>
-                              <h3 className={`text-3xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3>
-                              <p className={theme.textMuted}>נא למלא את כל השדות הנדרשים</p>
-                          </div>
-                          <button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X size={32}/></button>
-                     </div>
-                     <div className={`space-y-6 p-8 rounded-xl border shadow-inner ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                         {currentDynamicForm.fields.map(field => (
-                             <div key={field.id} className="space-y-2">
-                                 <label className={`block text-sm font-bold ${theme.textMuted}`}>{field.label}</label>
-                                 {field.type === 'text' && <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
-                                 {field.type === 'select' && <select className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}><option value="">בחר...</option>{field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>}
-                             </div>
-                         ))}
-                         <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => {
-                              setIsSubmittingDynamic(true);
-                              try { 
-                                  // Pass form data AND pdf template info to the service
-                                  await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations, currentDynamicForm.pdfTemplate); 
-                                  alert("נשלח בהצלחה! מסמך ה-PDF (אם רלוונטי) יורד למחשבך."); 
-                                  setActiveDynamicFormId(null); 
-                                  setDynamicFormValues({}); 
-                               } catch { 
-                                   alert("שגיאה"); 
-                               } finally { 
-                                   setIsSubmittingDynamic(false); 
-                               }
-                         }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button>
-                     </div>
+                     <div className="flex justify-between items-start mb-6"><div><h3 className={`text-3xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3><p className={theme.textMuted}>נא למלא את כל השדות הנדרשים</p></div><button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X size={32}/></button></div>
+                     <div className={`space-y-6 p-8 rounded-xl border shadow-inner ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>{currentDynamicForm.fields.map(field => (<div key={field.id} className="space-y-2"><label className={`block text-sm font-bold ${theme.textMuted}`}>{field.label}</label>{field.type === 'text' && <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}{field.type === 'select' && <select className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}><option value="">בחר...</option>{field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>}</div>))}<Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => { setIsSubmittingDynamic(true); try { await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations, currentDynamicForm.pdfTemplate); alert("נשלח בהצלחה! מסמך ה-PDF (אם רלוונטי) יורד למחשבך."); setActiveDynamicFormId(null); setDynamicFormValues({}); } catch { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); } }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button></div>
                  </div>
             </div>
         )}
 
-        {/* AVAILABLE FORMS LIST MODAL (FOR CATEGORY) */}
         {showFormsListModal && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
                 <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setShowFormsListModal(false)}></div>
                 <div className={`rounded-xl shadow-2xl w-full max-w-lg relative z-10 animate-fade-in-up border p-6 ${theme.modalBg}`}>
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className={`text-xl font-bold ${theme.textTitle}`}>טפסים זמינים</h3>
-                        <button onClick={() => setShowFormsListModal(false)}><X className={theme.textMuted}/></button>
-                    </div>
+                    <div className="flex justify-between items-center mb-4"><h3 className={`text-xl font-bold ${theme.textTitle}`}>טפסים זמינים</h3><button onClick={() => setShowFormsListModal(false)}><X className={theme.textMuted}/></button></div>
                     <div className="space-y-3">
-                        {currentCategoryForms.length > 0 ? currentCategoryForms.map(form => (
-                            <button 
-                                key={form.id}
-                                onClick={() => {
-                                    setActiveDynamicFormId(form.id);
-                                    setDynamicFormValues({});
-                                    setShowFormsListModal(false);
-                                    setTimeout(() => dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
-                                }}
-                                className={`w-full p-4 rounded-lg border flex items-center justify-between group transition-colors ${isDark ? 'bg-slate-800 border-slate-700 hover:border-[#2EB0D9]' : 'bg-slate-50 border-slate-200 hover:bg-white'}`}
-                            >
-                                <span className={`font-bold ${theme.textTitle}`}>{form.title}</span>
-                                <ChevronLeft className={`text-[#2EB0D9] opacity-0 group-hover:opacity-100 transition-opacity`}/>
+                        {/* Wills Generator Option */}
+                        {hasWillsGenerator && (
+                            <button onClick={() => { setShowWillsModal(true); setShowFormsListModal(false); }} className={`w-full p-4 rounded-lg border flex items-center justify-between group transition-colors bg-gradient-to-r from-[#2EB0D9]/20 to-transparent border-[#2EB0D9]/50`}>
+                                <span className={`font-bold ${theme.textTitle}`}>מחולל צוואות דיגיטלי</span><FileText className={`text-[#2EB0D9]`}/>
                             </button>
-                        )) : <p className={theme.textMuted}>אין טפסים זמינים בקטגוריה זו כרגע.</p>}
+                        )}
+                        {/* Dynamic Forms */}
+                        {currentCategoryForms.map(form => (
+                            <button key={form.id} onClick={() => { setActiveDynamicFormId(form.id); setDynamicFormValues({}); setShowFormsListModal(false); setTimeout(() => dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' }), 300); }} className={`w-full p-4 rounded-lg border flex items-center justify-between group transition-colors ${isDark ? 'bg-slate-800 border-slate-700 hover:border-[#2EB0D9]' : 'bg-slate-50 border-slate-200 hover:bg-white'}`}>
+                                <span className={`font-bold ${theme.textTitle}`}>{form.title}</span><ChevronLeft className={`text-[#2EB0D9] opacity-0 group-hover:opacity-100 transition-opacity`}/>
+                            </button>
+                        ))}
+                        {!hasWillsGenerator && currentCategoryForms.length === 0 && <p className={theme.textMuted}>אין טפסים זמינים בקטגוריה זו כרגע.</p>}
                     </div>
                 </div>
             </div>
         )}
 
-        {/* ARTICLES GRID (BOTTOM - ALL ARTICLES) */}
         {showBottomArticlesGrid && (
             <Reveal delay={300} className="py-20 container mx-auto px-4">
                      <SectionTitle title={state.currentCategory === Category.HOME ? "מאמרים נבחרים" : "מאמרים נוספים"} isDark={isDark} />
                      <div ref={articlesScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x">
-                        {currentArticles.map(article => (
-                            <div key={article.id} className="flex-shrink-0 w-[220px] md:w-[calc(25%-18px)] h-[300px] md:h-[380px] snap-start">
-                                <ArticleCard article={article} onClick={() => setSelectedArticle(article)} />
-                            </div>
-                        ))}
+                        {currentArticles.map(article => (<div key={article.id} className="flex-shrink-0 w-[220px] md:w-[calc(25%-18px)] h-[300px] md:h-[380px] snap-start"><ArticleCard article={article} onClick={() => setSelectedArticle(article)} /></div>))}
                      </div>
             </Reveal>
         )}
 
-        {/* GLOBAL FOOTER (HIDDEN ON CONTACT PAGE) */}
         {showGlobalFooter && (
             <footer className="bg-black text-slate-400 pt-20 pb-10 relative z-10 border-t border-slate-900">
-                <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 items-start text-right" dir="rtl">
-                    <div className="col-span-1 flex flex-col items-start">
-                        <h2 className="text-2xl font-black text-white mb-6 leading-tight" style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}>
-                           <span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO
-                        </h2>
-                        <p className="mb-6 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p>
-                        {onAdminClick && <button onClick={onAdminClick} className="p-2 border border-slate-800 rounded-full"><Settings size={16}/></button>}
-                    </div>
-                    <div className="col-span-1 flex flex-col items-start">
-                        <h4 className="text-white font-bold mb-6 text-lg border-r-4 border-[#2EB0D9] pr-4">פרטי התקשרות</h4>
-                        <ul className="space-y-4 w-full">
-                            <li className="flex items-start gap-4"><MapPin size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.address}</span></li>
-                            <li className="flex items-center gap-4"><Phone size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400" dir="ltr">{state.config.phone}</span></li>
-                            <li className="flex items-center gap-4"><Mail size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.contactEmail}</span></li>
-                        </ul>
-                    </div>
-                    <div className="col-span-1"><div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800"><iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.6, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe></div></div>
-                </div>
+                <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 items-start text-right" dir="rtl"><div className="col-span-1 flex flex-col items-start"><h2 className="text-2xl font-black text-white mb-6 leading-tight" style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}><span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO</h2><p className="mb-6 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p>{onAdminClick && <button onClick={onAdminClick} className="p-2 border border-slate-800 rounded-full"><Settings size={16}/></button>}</div><div className="col-span-1 flex flex-col items-start"><h4 className="text-white font-bold mb-6 text-lg border-r-4 border-[#2EB0D9] pr-4">פרטי התקשרות</h4><ul className="space-y-4 w-full"><li className="flex items-start gap-4"><MapPin size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.address}</span></li><li className="flex items-center gap-4"><Phone size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400" dir="ltr">{state.config.phone}</span></li><li className="flex items-center gap-4"><Mail size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.contactEmail}</span></li></ul></div><div className="col-span-1"><div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800"><iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.6, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe></div></div></div>
                 <div className="container mx-auto px-4 pt-8 border-t border-slate-900 text-center text-sm text-slate-600">&copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO.</div>
-                {/* Public Version Badge */}
                 <div className="text-center text-[10px] text-slate-800 mt-2">{version}</div>
             </footer>
         )}

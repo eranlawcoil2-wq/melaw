@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { PublicSite } from './pages/PublicSite.tsx';
 import { AdminDashboard } from './pages/AdminDashboard.tsx';
-import { AppState, Category, WillsFormData, FormDefinition, TeamMember, Article, SliderSlide, TimelineItem, MenuItem } from './types.ts';
+import { AppState, Category, WillsFormData, FormDefinition, TeamMember, Article, SliderSlide, TimelineItem, MenuItem, Product } from './types.ts';
 import { cloudService } from './services/api.ts';
 import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v2.1';
+const APP_VERSION = 'v2.2';
 
 // ============================================================================
 // הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש
@@ -55,18 +55,6 @@ const initialArticles: Article[] = [
           { title: 'סיפור מקרה', content: 'אדם שלקה בשבץ ולא מינה מיופה כוח, משפחתו נאלצה לעבור הליך יקר וממושך למינוי אפוטרופוס בבית משפט.' },
           { title: 'המלצות', content: '• ערכו ייפוי כוח כעת\n• בחרו מיופה כוח שאתם סומכים עליו' }
       ]
-  },
-  {
-      id: '4',
-      categories: [Category.REAL_ESTATE],
-      title: 'הסכם ממון - לא רק לעשירים',
-      abstract: 'כיצד הסכם ממון יכול למנוע סכסוכים ולהגן על נכסים שנצברו לפני הנישואין.',
-      imageUrl: 'https://picsum.photos/id/1005/800/600',
-      tabs: [
-          { title: 'ניתוח משפטי', content: 'מומלץ לערוך הסכם לפני הנישואין או המעבר למגורים משותפים, אך ניתן גם לאחר מכן.' },
-          { title: 'סיפור מקרה', content: 'בני זוג שנפרדו לאחר שנתיים נקלעו למאבק על דירה שהייתה שייכת לאישה לפני הנישואין.' },
-          { title: 'המלצות', content: '• ערכו הסכם לפני החתונה\n• אשרו אותו בבית משפט או נוטריון' }
-      ]
   }
 ];
 
@@ -75,8 +63,6 @@ const initialTimelines: TimelineItem[] = [
     { id: '1', title: 'עדכון פסיקה: ירושה', description: 'בית המשפט העליון קבע הלכה חדשה בנוגע לפרשנות צוואות שנערכו בכתב יד.', imageUrl: 'https://picsum.photos/id/106/400/300', category: [Category.HOME, Category.WILLS] },
     { id: '2', title: 'המדריך לייפוי כוח', description: 'כל מה שצריך לדעת לפני שממנים מיופה כוח מתמשך.', imageUrl: 'https://picsum.photos/id/109/400/300', category: [Category.HOME, Category.POA] },
     { id: '3', title: 'מיסוי דירות מגורים', description: 'האם כדאי להעביר דירה במתנה לילדים? שיקולי מס שבח ומס רכישה.', imageUrl: 'https://picsum.photos/id/123/400/300', category: [Category.HOME, Category.REAL_ESTATE] },
-    { id: '4', title: 'צו קיום צוואה', description: 'כמה זמן לוקח התהליך ומה עושים במקרה של התנגדות?', imageUrl: 'https://picsum.photos/id/133/400/300', category: [Category.WILLS] },
-    { id: '5', title: 'התנגדות לצוואה', description: 'באילו מקרים ניתן לפסול צוואה? השפעה בלתי הוגנת ומעורבות בעריכה.', imageUrl: 'https://picsum.photos/id/200/400/300', category: [Category.WILLS] },
 ];
 
 const initialSlides: SliderSlide[] = [
@@ -99,7 +85,7 @@ const initialForms: FormDefinition[] = [
     {
         id: 'poa-standard',
         title: 'שאלון ייפוי כוח מתמשך',
-        categories: [Category.POA], // Use Array
+        categories: [Category.POA], 
         submitEmail: 'poa@melaw.co.il',
         fields: [
             { id: 'f1', type: 'text', label: 'שם מלא', required: true },
@@ -109,6 +95,13 @@ const initialForms: FormDefinition[] = [
         ],
         pdfTemplate: 'POA'
     }
+];
+
+const initialProducts: Product[] = [
+    { id: 'prod_1', title: 'צוואה הדדית', price: 1500, category: Category.WILLS, paymentLink: '', imageUrl: '', description: 'עריכת צוואה הדדית לבני זוג כולל ייעוץ' },
+    { id: 'prod_2', title: 'בדיקת חוזה דירה', price: 2500, category: Category.REAL_ESTATE, paymentLink: '', imageUrl: '', description: 'בדיקת חוזה רכישה מקבלן או יד שניה' },
+    { id: 'prod_3', title: 'ייפוי כוח מתמשך', price: 3800, category: Category.POA, paymentLink: '', imageUrl: '', description: 'עריכה והפקדה של ייפוי כוח מתמשך' },
+    { id: 'prod_4', title: 'הסכם מייסדים', price: 1200, category: Category.STORE, paymentLink: '', imageUrl: '', description: 'הסכם משפטי סטנדרטי ליזמים' },
 ];
 
 const initialTeamMembers: TeamMember[] = [
@@ -141,21 +134,10 @@ const initialTeamMembers: TeamMember[] = [
         phone: '050-3333333',
         imageUrl: 'https://picsum.photos/id/64/400/400',
         bio: 'מוסמכת מטעם האפוטרופוס הכללי לעריכת ייפוי כוח מתמשך. בעלת גישה רגישה ואנושית ללקוחות בגיל השלישי.'
-    },
-    {
-        id: '4',
-        fullName: 'עו"ד רון שחר',
-        role: 'עורך דין בכיר - ליטיגציה',
-        specialization: 'ליטיגציה מסחרית ואזרחית',
-        email: 'ron@melaw.co.il',
-        phone: '050-4444444',
-        imageUrl: 'https://picsum.photos/id/91/400/400',
-        bio: 'מייצג לקוחות בערכאות השונות בתיקים אזרחיים מורכבים. בעל תואר שני במשפטים מאוניברסיטת תל אביב.'
     }
 ];
 
 const defaultState: AppState = {
-    // UPDATED: Start on Store by default (will be overridden by config if exists)
     currentCategory: Category.STORE,
     isAdminLoggedIn: false,
     config: {
@@ -168,8 +150,8 @@ const defaultState: AppState = {
         address: 'דרך מנחם בגין 144, תל אביב',
         theme: 'dark', 
         adminPassword: 'admin',
-        passwordHint: 'admin', // Default Hint
-        defaultCategory: Category.STORE, // Default Category
+        passwordHint: 'admin', 
+        defaultCategory: Category.STORE,
         integrations: {
             supabaseUrl: PUBLIC_SUPABASE_URL, 
             supabaseKey: PUBLIC_SUPABASE_KEY,
@@ -190,6 +172,7 @@ const defaultState: AppState = {
     menuItems: initialMenuItems,
     forms: initialForms,
     teamMembers: initialTeamMembers,
+    products: initialProducts,
     lastUpdated: 'Initial', 
 };
 
@@ -231,6 +214,11 @@ const App: React.FC = () => {
                 }
                 return f;
             });
+        }
+
+        // Initialize products if missing
+        if (!parsed.products) {
+            parsed.products = initialProducts;
         }
 
         // --- PUBLIC KEYS INJECTION (Fix for public users having empty keys) ---

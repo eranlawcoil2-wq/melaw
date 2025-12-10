@@ -44,7 +44,7 @@ export interface ArticleTab {
 
 export interface Article {
   id: string;
-  categories: Category[]; // Changed from single 'category' to array 'categories'
+  categories: Category[]; 
   title: string;
   abstract: string;
   imageUrl: string;
@@ -64,6 +64,17 @@ export interface TeamMember {
   bio: string;
 }
 
+export interface Product {
+    id: string;
+    title: string;
+    description?: string;
+    price: number;
+    paymentLink: string; // Stripe/PayPal link
+    category: Category;
+    imageUrl?: string;
+    isPopular?: boolean;
+}
+
 export interface WillsFormData {
   fullName: string;
   spouseName: string;
@@ -77,7 +88,7 @@ export interface WillsFormData {
 
 // New Interface for Third-Party Integrations
 export interface IntegrationsConfig {
-    // Database (Supabase) - The new professional solution
+    // Database (Supabase)
     supabaseUrl: string;
     supabaseKey: string;
 
@@ -88,31 +99,31 @@ export interface IntegrationsConfig {
     unsplashAccessKey: string;
 
     // Database (Legacy Google Sheets)
-    googleSheetsUrl: string; // The Web App URL from Google Apps Script
+    googleSheetsUrl: string; 
     
     // Email (EmailJS)
     emailJsServiceId: string;
     emailJsTemplateId: string;
     emailJsPublicKey: string;
 
-    // Payments (Stripe Links)
-    stripeWillsLink: string;
-    stripeRealEstateLink: string;
-    stripeConsultationLink: string;
+    // Payment Links (Stripe)
+    stripeWillsLink?: string;
+    stripeRealEstateLink?: string;
+    stripeConsultationLink?: string;
 }
 
 export interface SiteConfig {
   officeName: string;
   logoUrl: string;
-  customFontData?: string; // Base64 string of the uploaded TTF file
+  customFontData?: string; 
   contactEmail: string;
   willsEmail: string;
   poaEmail: string;
   phone: string;
   address: string;
   theme: 'dark' | 'light';
-  adminPassword?: string; // Simple local password
-  integrations: IntegrationsConfig; // Add integrations to config
+  adminPassword?: string; 
+  integrations: IntegrationsConfig; 
   
   // New V2.0 Fields
   defaultCategory?: Category;
@@ -139,7 +150,7 @@ export interface FormField {
 export interface FormDefinition {
     id: string;
     title: string;
-    categories: Category[]; // UPDATED: Multi-select support
+    categories: Category[]; 
     fields: FormField[];
     submitEmail: string;
     pdfTemplate?: 'NONE' | 'WILL' | 'POA'; 
@@ -149,11 +160,12 @@ export interface AppState {
   currentCategory: Category;
   config: SiteConfig;
   slides: SliderSlide[];
-  timelines: TimelineItem[];
+  timelines: TimelineItem[]; // Used for "News & Updates"
   articles: Article[];
   menuItems: MenuItem[];
   forms: FormDefinition[];
   teamMembers: TeamMember[];
+  products: Product[]; // V2.2: Added Products to state
   isAdminLoggedIn: boolean;
-  lastUpdated?: string; // Timestamp of last content update
+  lastUpdated?: string; 
 }
