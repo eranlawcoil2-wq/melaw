@@ -8,7 +8,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v2.7';
+const APP_VERSION = 'v2.8';
 
 // ============================================================================
 // הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש
@@ -217,7 +217,7 @@ const defaultState: AppState = {
         integrations: {
             supabaseUrl: PUBLIC_SUPABASE_URL, 
             supabaseKey: PUBLIC_SUPABASE_KEY,
-            geminiApiKey: '', // USER MUST ENTER NEW KEY IN ADMIN
+            geminiApiKey: '', 
             unsplashAccessKey: '',
             googleSheetsUrl: '',
             emailJsServiceId: '',
@@ -261,8 +261,6 @@ const App: React.FC = () => {
         // --- DATA MIGRATION LOGIC (For Existing Users) ---
         
         // SECURITY FIX: FORCE REMOVAL OF LEAKED KEY FROM LOCAL STORAGE
-        // The leaked key ends with "e05Le0" (from previous context). 
-        // We wipe it if it matches the known leaked one.
         const knownLeakedKey = 'AIzaSyBQkmjb1vw20e90bCMBK0eWC9pA6e05Le0';
         if (parsed.config?.integrations?.geminiApiKey === knownLeakedKey) {
             console.warn("Removing leaked API key from local storage");

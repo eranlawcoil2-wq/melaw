@@ -52,9 +52,13 @@ export const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
         setHasSearched(true);
 
         try {
+            // ENHANCEMENT: Auto-append relevant context keywords to improve results
+            // This fixes the issue where searching for "contracts" might show something random
+            const enhancedQuery = `${query} legal lawyer office business`;
+
             if (unsplashAccessKey) {
                 // Real API Call
-                const response = await fetch(`https://api.unsplash.com/search/photos?page=1&query=${encodeURIComponent(query)}&client_id=${unsplashAccessKey}&per_page=9&orientation=landscape`);
+                const response = await fetch(`https://api.unsplash.com/search/photos?page=1&query=${encodeURIComponent(enhancedQuery)}&client_id=${unsplashAccessKey}&per_page=9&orientation=landscape`);
                 
                 if (!response.ok) {
                     if (response.status === 401) throw new Error("Unsplash API Key לא תקין");
@@ -104,11 +108,14 @@ export const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
 
                 {/* Search Bar */}
                 <div className="p-4 bg-slate-900 border-b border-slate-800">
+                    <div className="mb-2 text-xs text-slate-400">
+                        טיפ: המערכת מוסיפה אוטומטית מילות מפתח משפטיות (Legal, Lawyer) לחיפוש שלך כדי למקד תוצאות.
+                    </div>
                     <div className="flex gap-2">
                         <input 
                             type="text" 
                             className="flex-1 p-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:border-[#2EB0D9] outline-none"
-                            placeholder="חפש תמונה (באנגלית עדיף, למשל: Contract, Lawyer, Office)..."
+                            placeholder="נושא (למשל: חוזה, משרד, נדלן)..."
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -135,7 +142,7 @@ export const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
 
                     {!loading && !error && images.length === 0 && hasSearched && (
                         <div className="text-center text-slate-500 py-20">
-                            לא נמצאו תמונות עבור "{query}". נסה מילות חיפוש אחרות (באנגלית).
+                            לא נמצאו תמונות עבור "{query}". נסה מילות חיפוש אחרות באנגלית.
                         </div>
                     )}
 
