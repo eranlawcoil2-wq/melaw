@@ -73,7 +73,7 @@ export interface Product {
     description?: string;
     price: number;
     paymentLink: string; 
-    category: Category;
+    categories: Category[]; // Changed from single category to array
     imageUrl?: string;
     isPopular?: boolean;
     order?: number; // Added order

@@ -76,7 +76,16 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const currentTimelines = state.timelines.filter(t => state.currentCategory === Category.HOME || state.currentCategory === Category.STORE || t.category.includes(state.currentCategory)).sort((a, b) => (a.order || 99) - (b.order || 99));
   const currentCategoryForms = state.forms.filter(f => f.categories && f.categories.includes(state.currentCategory)).sort((a, b) => (a.order || 99) - (b.order || 99));
   const teamMembers = state.teamMembers.sort((a, b) => (a.order || 99) - (b.order || 99));
-  const storeProducts = (state.products || []).filter(p => state.currentCategory === Category.STORE || p.category === state.currentCategory).sort((a, b) => (a.order || 99) - (b.order || 99));
+  
+  // Updated Product Logic: Check if current category is in the product's categories array
+  const storeProducts = (state.products || []).filter(p => {
+      // If product has new 'categories' array
+      if (p.categories) {
+          return state.currentCategory === Category.STORE || p.categories.includes(state.currentCategory);
+      }
+      // Fallback for old data
+      return state.currentCategory === Category.STORE || (p as any).category === state.currentCategory;
+  }).sort((a, b) => (a.order || 99) - (b.order || 99));
 
   useEffect(() => {
     const interval = setInterval(() => { setActiveSlide((prev) => (prev + 1) % currentSlides.length); }, 6000); 
@@ -201,14 +210,17 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             ))}
                         </div>
                     </div>
-                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto scrollbar-hide">
-                        <div className="p-6 md:p-8 flex flex-col">
-                            <div className={`prose max-w-none leading-relaxed text-lg mb-8 ${theme.textMain}`}>
+                    {/* SCROLLABLE CONTAINER */}
+                    <div ref={articleContentTopRef} className="flex-1 overflow-y-auto scrollbar-hide flex flex-col">
+                        <div className="p-6 md:p-8 flex-1 flex flex-col min-h-full">
+                            {/* TEXT CONTENT */}
+                            <div className={`prose max-w-none leading-relaxed text-lg mb-8 flex-1 ${theme.textMain}`}>
                                 {activeTabContent.split('\n').map((paragraph, i) => (<p key={i} className="mb-4">{paragraph}</p>))}
                             </div>
                             
+                            {/* RELATED ARTICLES - PUSHED TO BOTTOM */}
                             {relatedArticles.length > 0 && (
-                                <div className="mt-8 border-t pt-8 border-dashed border-slate-700">
+                                <div className="mt-auto pt-8 border-t border-dashed border-slate-700">
                                     <h4 className="font-bold text-lg mb-4 text-[#2EB0D9]">מאמרים נוספים בנושא</h4>
                                     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
                                         {relatedArticles.map(rel => (
@@ -229,6 +241,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         </div>
       )}
 
+      {/* ... Rest of the modals (Wills, Team, etc.) same as before ... */}
+      
       {showWillsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setShowWillsModal(false)}></div>
@@ -343,7 +357,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                      <div className="absolute inset-0 flex items-center justify-center"><div className="bg-white/10 backdrop-blur-sm p-3 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500"><FileText size={24} className="text-white"/></div></div>
                                  </div>
                                  <div className="p-3 text-center flex-1 flex flex-col">
-                                     <div className="mb-1"><span className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">{CATEGORY_LABELS[product.category] || 'כללי'}</span></div>
+                                     <div className="mb-1 flex flex-wrap justify-center gap-1">
+                                         {product.categories && product.categories.slice(0, 1).map(cat => (
+                                             <span key={cat} className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">{CATEGORY_LABELS[cat]}</span>
+                                         ))}
+                                     </div>
                                      <h4 className={`font-bold text-base md:text-lg mb-1 line-clamp-1 ${theme.textTitle}`}>{product.title}</h4>
                                      <p className="text-[10px] text-slate-500 line-clamp-2 mb-2">{product.description}</p>
                                      <div className={`text-lg font-black mb-3 ${theme.textMuted} flex-1 flex items-center justify-center`}>₪{product.price}</div>
@@ -356,6 +374,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
 
+        {/* ... Rest of the components (Timeline, Dynamic Form, etc.) ... */}
         {/* NEWS & UPDATES (TIMELINE) - HOME & LEGAL PAGES */}
         {showTimelineSection && (
             <Reveal className={`py-20 relative border-b ${isDark ? 'border-slate-800/50' : 'border-slate-100'}`} delay={200}>

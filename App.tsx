@@ -8,7 +8,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v2.4';
+const APP_VERSION = 'v2.5';
 
 // ============================================================================
 // הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש
@@ -115,10 +115,10 @@ const initialForms: FormDefinition[] = [
 ];
 
 const initialProducts: Product[] = [
-    { id: 'prod_1', title: 'צוואה הדדית', price: 1500, category: Category.WILLS, paymentLink: '', imageUrl: '', description: 'עריכת צוואה הדדית לבני זוג כולל ייעוץ', order: 1 },
-    { id: 'prod_2', title: 'בדיקת חוזה דירה', price: 2500, category: Category.REAL_ESTATE, paymentLink: '', imageUrl: '', description: 'בדיקת חוזה רכישה מקבלן או יד שניה', order: 2 },
-    { id: 'prod_3', title: 'ייפוי כוח מתמשך', price: 3800, category: Category.POA, paymentLink: '', imageUrl: '', description: 'עריכה והפקדה של ייפוי כוח מתמשך', order: 3 },
-    { id: 'prod_4', title: 'הסכם מייסדים', price: 1200, category: Category.STORE, paymentLink: '', imageUrl: '', description: 'הסכם משפטי סטנדרטי ליזמים', order: 4 },
+    { id: 'prod_1', title: 'צוואה הדדית', price: 1500, categories: [Category.WILLS, Category.STORE], paymentLink: '', imageUrl: '', description: 'עריכת צוואה הדדית לבני זוג כולל ייעוץ', order: 1 },
+    { id: 'prod_2', title: 'בדיקת חוזה דירה', price: 2500, categories: [Category.REAL_ESTATE, Category.STORE], paymentLink: '', imageUrl: '', description: 'בדיקת חוזה רכישה מקבלן או יד שניה', order: 2 },
+    { id: 'prod_3', title: 'ייפוי כוח מתמשך', price: 3800, categories: [Category.POA, Category.STORE], paymentLink: '', imageUrl: '', description: 'עריכה והפקדה של ייפוי כוח מתמשך', order: 3 },
+    { id: 'prod_4', title: 'הסכם מייסדים', price: 1200, categories: [Category.STORE], paymentLink: '', imageUrl: '', description: 'הסכם משפטי סטנדרטי ליזמים', order: 4 },
 ];
 
 const initialTeamMembers: TeamMember[] = [
@@ -175,7 +175,7 @@ const defaultState: AppState = {
         integrations: {
             supabaseUrl: PUBLIC_SUPABASE_URL, 
             supabaseKey: PUBLIC_SUPABASE_KEY,
-            geminiApiKey: 'AIzaSyBQkmjb1vw20e90bCMBK0eWC9pA6e05Le0',
+            geminiApiKey: '', // REMOVED LEAKED KEY - USER MUST ENTER NEW KEY IN ADMIN
             unsplashAccessKey: '',
             googleSheetsUrl: '',
             emailJsServiceId: '',
@@ -236,8 +236,15 @@ const App: React.FC = () => {
             });
         }
 
-        // Initialize products if missing
-        if (!parsed.products) {
+        // Migrate Products Category -> Categories[]
+        if (parsed.products && parsed.products.length > 0) {
+            parsed.products = parsed.products.map((p: any) => {
+                if (!p.categories && p.category) {
+                    return { ...p, categories: [p.category] };
+                }
+                return p;
+            });
+        } else {
             parsed.products = initialProducts;
         }
 
