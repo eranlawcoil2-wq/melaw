@@ -7,7 +7,7 @@ import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin, Eye, EyeOff, CreditCard } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin, Eye, EyeOff, CreditCard, Palette, Home } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -30,7 +30,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
     var data = JSON.parse(jsonString);
     var action = data.action;
 
-    // --- CASE 1: FORM SUBMISSION & EMAIL PDF ---
     if (action === 'submitForm') {
       var sheetName = data.targetSheet || 'DATA';
       var sheet = ss.getSheetByName(sheetName);
@@ -42,7 +41,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
       var timestamp = new Date();
       var id = data.submissionId || 'N/A';
       
-      // Store in Sheet
       var rowData = [timestamp, id, data.formName];
       for (var key in data) {
         if (key !== 'action' && key !== 'targetSheet' && key !== 'templateSheet' && key !== 'formName' && key !== 'submittedAt' && key !== 'submissionId' && key !== 'officeEmail' && key !== 'clientEmail' && key !== 'sendClientCopy') {
@@ -51,7 +49,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
       }
       sheet.appendRow(rowData);
 
-      // Generate HTML Content
       var html = "<html><body style='font-family: Arial; direction: rtl; text-align: right;'>";
       html += "<h1 style='color: #2EB0D9;'>" + data.formName + "</h1>";
       html += "<div style='background: #f0f0f0; padding: 10px; margin-bottom: 20px;'><strong>מספר אסמכתא:</strong> " + id + "<br><strong>תאריך:</strong> " + timestamp.toLocaleString() + "</div>";
@@ -65,7 +62,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
       html += "</table><br><p>נשלח באופן אוטומטי ע\"י מערכת MeLaw.</p></body></html>";
       var pdfBlob = Utilities.newBlob(html, MimeType.HTML).getAs(MimeType.PDF).setName(data.formName + "_" + id + ".pdf");
 
-      // 1. Send to Office (Always)
       if (data.officeEmail) {
           try {
               MailApp.sendEmail({
@@ -77,7 +73,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
           } catch (e) { console.log("Office email failed: " + e); }
       }
 
-      // 2. Send to Client (If requested and exists)
       if (data.sendClientCopy && data.clientEmail) {
           try {
               MailApp.sendEmail({
@@ -92,7 +87,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // --- CASE 2: SAVE STATE ---
     if (action === 'saveState') {
        var configSheet = ss.getSheetByName('SiteConfig');
        if (!configSheet) configSheet = ss.insertSheet('SiteConfig');
@@ -101,7 +95,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
        return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // --- CASE 3: UPLOAD IMAGE (LEGACY) ---
     if (action === 'uploadImage') {
         var folderName = "MeLaw Images";
         var folders = DriveApp.getFoldersByName(folderName);
@@ -577,8 +570,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-end"><Button onClick={() => setEditingMember({ id: Date.now().toString(), fullName: '', role: '', specialization: '', email: '', phone: '', bio: '', imageUrl: 'https://picsum.photos/400/400', order: 99 })}><Plus size={16}/> איש צוות</Button></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{state.teamMembers.sort((a,b)=>(a.order||99)-(b.order||99)).map(m => (<div key={m.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex gap-4"><img src={m.imageUrl} className="w-16 h-16 rounded-full"/><div className="flex-1"><div className="flex justify-between"><div className="font-bold text-white">{m.fullName}</div><span className="text-xs text-slate-500">#{m.order || 99}</span></div><div className="text-xs text-slate-400">{m.role}</div></div><button onClick={()=>setEditingMember(m)}><Edit size={16}/></button><button onClick={()=>updateState({teamMembers: state.teamMembers.filter(x=>x.id!==m.id)})} className="text-red-400"><Trash size={16}/></button></div>))}</div>
-                {/* Team Editor Modal Logic from previous version */}
-                {editingMember && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto"><h3 className="font-bold text-white mb-4">עריכת איש צוות</h3><div className="flex gap-2"><div className="flex-1"><label className="text-xs text-slate-500">שם מלא</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.fullName} onChange={e=>setEditingMember({...editingMember, fullName: e.target.value})}/></div><div className="w-24"><label className="text-xs text-slate-500">סדר</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.order || 99} onChange={e=>setEditingMember({...editingMember, order: Number(e.target.value)})}/></div></div><div className="flex gap-2"><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.role} onChange={e=>setEditingMember({...editingMember, role: e.target.value})}/><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.specialization} onChange={e=>setEditingMember({...editingMember, specialization: e.target.value})}/></div><textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.bio} onChange={e=>setEditingMember({...editingMember, bio: e.target.value})}/><div className="flex gap-2"><input className="flex-1 p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.imageUrl} onChange={e=>setEditingMember({...editingMember, imageUrl: e.target.value})} placeholder="URL תמונה"/><ImageUploadButton onImageSelected={(url) => setEditingMember({...editingMember, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} /><Button onClick={()=>openImagePicker('team', editingMember.fullName)}><Search size={16}/></Button></div><div className="flex gap-2"><Button onClick={handleSaveMember}>שמור</Button><Button variant="outline" onClick={()=>setEditingMember(null)}>ביטול</Button></div></div></div>}
             </div>
         )}
 
@@ -594,6 +585,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             <div><label className="block text-xs font-bold mb-1 text-slate-400">מספר פקס</label><input className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" value={state.config.fax || ''} onChange={e => updateState({ config: { ...state.config, fax: e.target.value }})} placeholder="אופציונלי" /></div>
                             <div><label className="block text-xs font-bold mb-1 text-slate-400">מספר WhatsApp</label><input className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" value={state.config.whatsapp || ''} onChange={e => updateState({ config: { ...state.config, whatsapp: e.target.value }})} placeholder="לדוגמה: 972500000000" /></div>
                         </div>
+                        
+                        {/* New Theme and Category Settings */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-slate-800 pb-6">
+                            <div>
+                                <label className="block text-xs font-bold mb-1 text-slate-400 flex items-center gap-1"><Palette size={12}/> ערכת נושא (Theme)</label>
+                                <select 
+                                    className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" 
+                                    value={state.config.theme} 
+                                    onChange={e => updateState({ config: { ...state.config, theme: e.target.value as 'dark'|'light' }})}
+                                >
+                                    <option value="dark">כהה (Dark Mode)</option>
+                                    <option value="light">בהיר (Light Mode)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold mb-1 text-slate-400 flex items-center gap-1"><Home size={12}/> עמוד הבית (קטגוריה ראשית)</label>
+                                <select 
+                                    className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" 
+                                    value={state.config.defaultCategory} 
+                                    onChange={e => updateState({ config: { ...state.config, defaultCategory: e.target.value as Category }})}
+                                >
+                                    {Object.values(Category).map(cat => (
+                                        <option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
                         <div className="flex gap-2 mb-2"><input type="text" className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-800 text-white" value={state.config.logoUrl} onChange={e => updateState({ config: { ...state.config, logoUrl: e.target.value }})} placeholder="קישור ללוגו (URL)" /><ImageUploadButton onImageSelected={(url) => updateState({ config: { ...state.config, logoUrl: url }})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} /></div>
                     </div>
                 </div>
@@ -604,9 +623,140 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
       <ImagePickerModal isOpen={showImagePicker} onClose={() => setShowImagePicker(false)} onSelect={handleImageSelect} initialQuery={imagePickerContext?.initialQuery} unsplashAccessKey={state.config.integrations.unsplashAccessKey} />
       
-      {/* ... (Keep Article, Slide, Timeline Modals) ... */}
-      {/* (All existing modals for Article, Slide, Timeline, etc. are implicitly here as they are part of the component structure) */}
-      {/* Ensuring Timeline Modal exists for editing */}
+      {/* RESTORED MODALS FOR EDITING CONTENT */}
+      
+      {/* 1. ARTICLE EDIT MODAL */}
+      {editingArticle && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-4xl space-y-4 max-h-[90vh] overflow-y-auto">
+                <h3 className="font-bold text-white mb-4">עריכת מאמר</h3>
+                <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingArticle.title} onChange={e=>setEditingArticle({...editingArticle, title: e.target.value})} placeholder="כותרת"/>
+                <textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 h-20" value={editingArticle.abstract} onChange={e=>setEditingArticle({...editingArticle, abstract: e.target.value})} placeholder="תקציר"/>
+                
+                {/* Categories */}
+                <div className="bg-slate-950 p-3 rounded border border-slate-800">
+                    <label className="block text-xs font-bold text-slate-400 mb-2">קטגוריות</label>
+                    <div className="flex flex-wrap gap-2">
+                        {Object.values(Category).map(cat => (
+                            <button 
+                                key={cat} 
+                                onClick={() => {
+                                    const current = editingArticle.categories || [];
+                                    const next = current.includes(cat) ? current.filter(c => c !== cat) : [...current, cat];
+                                    setEditingArticle({ ...editingArticle, categories: next });
+                                }} 
+                                className={`text-xs px-2 py-1 rounded border transition-colors ${editingArticle.categories?.includes(cat) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9]' : 'bg-slate-900 text-slate-500 border-slate-700'}`}
+                            >
+                                {CATEGORY_LABELS[cat]} {editingArticle.categories?.includes(cat) && <Check size={10} className="inline ml-1"/>}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex gap-2">
+                    <div className="flex-1"><label className="text-xs text-slate-500">תמונה ראשית</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingArticle.imageUrl} onChange={e=>setEditingArticle({...editingArticle, imageUrl: e.target.value})}/></div>
+                    <div className="w-24"><label className="text-xs text-slate-500">סדר</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingArticle.order || 99} onChange={e=>setEditingArticle({...editingArticle, order: Number(e.target.value)})}/></div>
+                </div>
+                <div className="flex gap-2">
+                    <ImageUploadButton onImageSelected={(url) => setEditingArticle({...editingArticle, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                    <Button onClick={()=>openImagePicker('article', editingArticle.title)}><Search size={16}/></Button>
+                </div>
+
+                {/* Tabs Editor */}
+                <div className="space-y-4 border-t border-slate-800 pt-4">
+                    <label className="block text-xs font-bold text-slate-400">תוכן המאמר (טאבים)</label>
+                    {editingArticle.tabs.map((tab, idx) => (
+                        <div key={idx} className="bg-slate-800 p-3 rounded border border-slate-700">
+                            <input className="w-full p-2 bg-slate-900 text-white rounded border border-slate-700 mb-2 font-bold" value={tab.title} onChange={e => { const newTabs = [...editingArticle.tabs]; newTabs[idx].title = e.target.value; setEditingArticle({...editingArticle, tabs: newTabs}); }} placeholder="כותרת הטאב" />
+                            <textarea className="w-full p-2 bg-slate-900 text-white rounded border border-slate-700 h-32" value={tab.content} onChange={e => { const newTabs = [...editingArticle.tabs]; newTabs[idx].content = e.target.value; setEditingArticle({...editingArticle, tabs: newTabs}); }} placeholder="תוכן" />
+                        </div>
+                    ))}
+                    <Button size="sm" variant="outline" onClick={() => setEditingArticle({...editingArticle, tabs: [...editingArticle.tabs, { title: 'טאב חדש', content: '' }]})}>+ הוסף טאב</Button>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t border-slate-800">
+                    <Button onClick={handleUpdateArticle}>שמור שינויים</Button>
+                    <Button variant="outline" onClick={()=>setEditingArticle(null)}>ביטול</Button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* 2. TEAM MEMBER EDIT MODAL */}
+      {editingMember && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto">
+                <h3 className="font-bold text-white mb-4">עריכת איש צוות</h3>
+                <div className="flex gap-2">
+                    <div className="flex-1"><label className="text-xs text-slate-500">שם מלא</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.fullName} onChange={e=>setEditingMember({...editingMember, fullName: e.target.value})}/></div>
+                    <div className="w-24"><label className="text-xs text-slate-500">סדר</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.order || 99} onChange={e=>setEditingMember({...editingMember, order: Number(e.target.value)})}/></div>
+                </div>
+                <div className="flex gap-2">
+                    <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.role} onChange={e=>setEditingMember({...editingMember, role: e.target.value})} placeholder="תפקיד"/>
+                    <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.specialization} onChange={e=>setEditingMember({...editingMember, specialization: e.target.value})} placeholder="התמחות"/>
+                </div>
+                <div className="flex gap-2">
+                    <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.email} onChange={e=>setEditingMember({...editingMember, email: e.target.value})} placeholder="אימייל"/>
+                    <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.phone} onChange={e=>setEditingMember({...editingMember, phone: e.target.value})} placeholder="טלפון"/>
+                </div>
+                <textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 h-24" value={editingMember.bio} onChange={e=>setEditingMember({...editingMember, bio: e.target.value})} placeholder="ביוגרפיה"/>
+                
+                <div className="flex gap-2">
+                    <input className="flex-1 p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.imageUrl} onChange={e=>setEditingMember({...editingMember, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                    <ImageUploadButton onImageSelected={(url) => setEditingMember({...editingMember, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                    <Button onClick={()=>openImagePicker('team', editingMember.fullName)}><Search size={16}/></Button>
+                </div>
+                
+                <div className="flex gap-2 pt-4 border-t border-slate-800">
+                    <Button onClick={handleSaveMember}>שמור</Button>
+                    <Button variant="outline" onClick={()=>setEditingMember(null)}>ביטול</Button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* 3. SLIDER EDIT MODAL */}
+      {editingSlide && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-lg space-y-4">
+                <h3 className="font-bold text-white mb-4">עריכת סליידר</h3>
+                <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.title} onChange={e=>setEditingSlide({...editingSlide, title: e.target.value})} placeholder="כותרת ראשית"/>
+                <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.subtitle} onChange={e=>setEditingSlide({...editingSlide, subtitle: e.target.value})} placeholder="כותרת משנית"/>
+                <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.buttonText || ''} onChange={e=>setEditingSlide({...editingSlide, buttonText: e.target.value})} placeholder="טקסט כפתור (אופציונלי)"/>
+                
+                <div className="flex gap-2">
+                    <div className="flex-1">
+                        <label className="text-xs text-slate-500">קישור (URL או קטגוריה)</label>
+                        <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.linkTo || ''} onChange={e=>setEditingSlide({...editingSlide, linkTo: e.target.value})} placeholder="https://... או CATEGORY"/>
+                    </div>
+                    <div className="w-24">
+                        <label className="text-xs text-slate-500">סדר</label>
+                        <input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.order || 99} onChange={e=>setEditingSlide({...editingSlide, order: Number(e.target.value)})}/>
+                    </div>
+                </div>
+
+                <div className="bg-slate-950 p-3 rounded border border-slate-800">
+                    <label className="block text-xs font-bold text-slate-400 mb-2">באיזה דף להציג?</label>
+                    <select className="w-full p-2 bg-slate-900 border border-slate-700 rounded text-white" value={editingSlide.category} onChange={e=>setEditingSlide({...editingSlide, category: e.target.value as Category})}>
+                        {Object.values(Category).map(cat => <option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>)}
+                    </select>
+                </div>
+
+                <div className="flex gap-2">
+                    <input className="flex-1 p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.imageUrl} onChange={e=>setEditingSlide({...editingSlide, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                    <ImageUploadButton onImageSelected={(url) => setEditingSlide({...editingSlide, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                    <Button onClick={()=>openImagePicker('slide', editingSlide.title)}><Search size={16}/></Button>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t border-slate-800">
+                    <Button onClick={handleSaveSlide}>שמור</Button>
+                    <Button variant="outline" onClick={()=>setEditingSlide(null)}>ביטול</Button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* 4. TIMELINE EDIT MODAL */}
       {editingTimelineItem && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
             <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl space-y-4 max-h-[90vh] overflow-y-auto">
