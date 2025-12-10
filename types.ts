@@ -25,7 +25,7 @@ export interface SliderSlide {
   category: Category;
   buttonText?: string;
   buttonLink?: string;
-  order?: number; // Added order field for priority sorting
+  order?: number; 
 }
 
 export interface TimelineItem {
@@ -35,6 +35,7 @@ export interface TimelineItem {
   imageUrl: string;
   category: Category[];
   linkTo?: string;
+  order?: number; // Added order
 }
 
 export interface ArticleTab {
@@ -51,6 +52,7 @@ export interface Article {
   videoUrl?: string;
   quote?: string;
   tabs: ArticleTab[];
+  order?: number; // Added order
 }
 
 export interface TeamMember {
@@ -62,6 +64,7 @@ export interface TeamMember {
   phone: string;
   imageUrl: string;
   bio: string;
+  order?: number; // Added order
 }
 
 export interface Product {
@@ -69,10 +72,11 @@ export interface Product {
     title: string;
     description?: string;
     price: number;
-    paymentLink: string; // Stripe/PayPal link
+    paymentLink: string; 
     category: Category;
     imageUrl?: string;
     isPopular?: boolean;
+    order?: number; // Added order
 }
 
 export interface WillsFormData {
@@ -134,6 +138,7 @@ export interface MenuItem {
     id: string;
     label: string;
     cat: Category;
+    order?: number;
 }
 
 export type FieldType = 'text' | 'email' | 'phone' | 'number' | 'boolean' | 'select' | 'repeater';
@@ -154,6 +159,7 @@ export interface FormDefinition {
     fields: FormField[];
     submitEmail: string;
     pdfTemplate?: 'NONE' | 'WILL' | 'POA'; 
+    order?: number; // Added order
 }
 
 export interface AppState {
@@ -165,7 +171,7 @@ export interface AppState {
   menuItems: MenuItem[];
   forms: FormDefinition[];
   teamMembers: TeamMember[];
-  products: Product[]; // V2.2: Added Products to state
+  products: Product[]; 
   isAdminLoggedIn: boolean;
   lastUpdated?: string; 
 }

@@ -8,7 +8,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v2.2';
+const APP_VERSION = 'v2.3';
 
 // ============================================================================
 // הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש
@@ -30,7 +30,8 @@ const initialArticles: Article[] = [
         { title: 'ניתוח משפטי', content: 'סעיף 8א לחוק הירושה קובע את הכללים לגבי צוואות הדדיות. החידוש העיקרי הוא ההגבלה על יכולת הביטול החד-צדדית של הצוואה לאחר מות אחד מבני הזוג. החוק נועד לאזן בין רצון המצווה לבין הסתמכות בן הזוג.' },
         { title: 'סיפור מקרה', content: 'מקרה שהיה: בני זוג שלא ערכו הסכם ונאלצו להתמודד עם התנגדויות ירושה קשות מצד ילדים מנישואים קודמים.' },
         { title: 'המלצות', content: '• לערוך צוואה הדדית בכתב\n• להפקיד אצל רשם הירושות\n• להתייעץ עם עו"ד מומחה' }
-    ]
+    ],
+    order: 1
   },
   {
     id: '2',
@@ -42,7 +43,8 @@ const initialArticles: Article[] = [
         { title: 'ניתוח משפטי', content: 'דירה יחידה עד סכום מסוים פטורה ממס רכישה. מעל הסכום, ישנן מדרגות מס מדורגות המתעדכנות מדי שנה על ידי רשות המיסים.' },
         { title: 'סיפור מקרה', content: 'לקוח שרכש דירה ולא ידע על זכאותו לפטור, שילם מס מיותר של 40,000 ש"ח עד שהגיע לייעוץ.' },
         { title: 'המלצות', content: '• בדקו זכאות לפטור\n• השתמשו בסימולטור רשות המיסים' }
-    ]
+    ],
+    order: 2
   },
   {
       id: '3',
@@ -54,15 +56,29 @@ const initialArticles: Article[] = [
           { title: 'ניתוח משפטי', content: 'מסמך משפטי המאפשר לאדם בגיר למנות מיופה כוח שיהיה מוסמך לקבל החלטות בעניינו אם יאבד את כשירותו.' },
           { title: 'סיפור מקרה', content: 'אדם שלקה בשבץ ולא מינה מיופה כוח, משפחתו נאלצה לעבור הליך יקר וממושך למינוי אפוטרופוס בבית משפט.' },
           { title: 'המלצות', content: '• ערכו ייפוי כוח כעת\n• בחרו מיופה כוח שאתם סומכים עליו' }
-      ]
+      ],
+      order: 3
+  },
+  {
+      id: '4',
+      categories: [Category.REAL_ESTATE],
+      title: 'הסכם ממון - לא רק לעשירים',
+      abstract: 'כיצד הסכם ממון יכול למנוע סכסוכים ולהגן על נכסים שנצברו לפני הנישואין.',
+      imageUrl: 'https://picsum.photos/id/1005/800/600',
+      tabs: [
+          { title: 'ניתוח משפטי', content: 'מומלץ לערוך הסכם לפני הנישואין או המעבר למגורים משותפים, אך ניתן גם לאחר מכן.' },
+          { title: 'סיפור מקרה', content: 'בני זוג שנפרדו לאחר שנתיים נקלעו למאבק על דירה שהייתה שייכת לאישה לפני הנישואין.' },
+          { title: 'המלצות', content: '• ערכו הסכם לפני החתונה\n• אשרו אותו בבית משפט או נוטריון' }
+      ],
+      order: 4
   }
 ];
 
 const initialTimelines: TimelineItem[] = [
-    { id: 'gen-wills', title: 'מחולל הצוואות הדיגיטלי', description: 'ערכו צוואה תקפה משפטית ב-5 דקות ללא עלות ראשונית.', imageUrl: 'https://picsum.photos/id/452/400/300', category: [Category.HOME, Category.WILLS], linkTo: 'wills-generator' },
-    { id: '1', title: 'עדכון פסיקה: ירושה', description: 'בית המשפט העליון קבע הלכה חדשה בנוגע לפרשנות צוואות שנערכו בכתב יד.', imageUrl: 'https://picsum.photos/id/106/400/300', category: [Category.HOME, Category.WILLS] },
-    { id: '2', title: 'המדריך לייפוי כוח', description: 'כל מה שצריך לדעת לפני שממנים מיופה כוח מתמשך.', imageUrl: 'https://picsum.photos/id/109/400/300', category: [Category.HOME, Category.POA] },
-    { id: '3', title: 'מיסוי דירות מגורים', description: 'האם כדאי להעביר דירה במתנה לילדים? שיקולי מס שבח ומס רכישה.', imageUrl: 'https://picsum.photos/id/123/400/300', category: [Category.HOME, Category.REAL_ESTATE] },
+    { id: 'gen-wills', title: 'מחולל הצוואות הדיגיטלי', description: 'ערכו צוואה תקפה משפטית ב-5 דקות ללא עלות ראשונית.', imageUrl: 'https://picsum.photos/id/452/400/300', category: [Category.HOME, Category.WILLS], linkTo: 'wills-generator', order: 1 },
+    { id: '1', title: 'עדכון פסיקה: ירושה', description: 'בית המשפט העליון קבע הלכה חדשה בנוגע לפרשנות צוואות שנערכו בכתב יד.', imageUrl: 'https://picsum.photos/id/106/400/300', category: [Category.HOME, Category.WILLS], order: 2 },
+    { id: '2', title: 'המדריך לייפוי כוח', description: 'כל מה שצריך לדעת לפני שממנים מיופה כוח מתמשך.', imageUrl: 'https://picsum.photos/id/109/400/300', category: [Category.HOME, Category.POA], order: 3 },
+    { id: '3', title: 'מיסוי דירות מגורים', description: 'האם כדאי להעביר דירה במתנה לילדים? שיקולי מס שבח ומס רכישה.', imageUrl: 'https://picsum.photos/id/123/400/300', category: [Category.HOME, Category.REAL_ESTATE], order: 4 },
 ];
 
 const initialSlides: SliderSlide[] = [
@@ -93,15 +109,16 @@ const initialForms: FormDefinition[] = [
             { id: 'f3', type: 'boolean', label: 'האם קיים ייפוי כוח קודם?', required: false },
             { id: 'f4', type: 'select', label: 'סוג מינוי מבוקש', options: ['רכוש', 'גוף', 'שניהם'], required: true }
         ],
-        pdfTemplate: 'POA'
+        pdfTemplate: 'POA',
+        order: 1
     }
 ];
 
 const initialProducts: Product[] = [
-    { id: 'prod_1', title: 'צוואה הדדית', price: 1500, category: Category.WILLS, paymentLink: '', imageUrl: '', description: 'עריכת צוואה הדדית לבני זוג כולל ייעוץ' },
-    { id: 'prod_2', title: 'בדיקת חוזה דירה', price: 2500, category: Category.REAL_ESTATE, paymentLink: '', imageUrl: '', description: 'בדיקת חוזה רכישה מקבלן או יד שניה' },
-    { id: 'prod_3', title: 'ייפוי כוח מתמשך', price: 3800, category: Category.POA, paymentLink: '', imageUrl: '', description: 'עריכה והפקדה של ייפוי כוח מתמשך' },
-    { id: 'prod_4', title: 'הסכם מייסדים', price: 1200, category: Category.STORE, paymentLink: '', imageUrl: '', description: 'הסכם משפטי סטנדרטי ליזמים' },
+    { id: 'prod_1', title: 'צוואה הדדית', price: 1500, category: Category.WILLS, paymentLink: '', imageUrl: '', description: 'עריכת צוואה הדדית לבני זוג כולל ייעוץ', order: 1 },
+    { id: 'prod_2', title: 'בדיקת חוזה דירה', price: 2500, category: Category.REAL_ESTATE, paymentLink: '', imageUrl: '', description: 'בדיקת חוזה רכישה מקבלן או יד שניה', order: 2 },
+    { id: 'prod_3', title: 'ייפוי כוח מתמשך', price: 3800, category: Category.POA, paymentLink: '', imageUrl: '', description: 'עריכה והפקדה של ייפוי כוח מתמשך', order: 3 },
+    { id: 'prod_4', title: 'הסכם מייסדים', price: 1200, category: Category.STORE, paymentLink: '', imageUrl: '', description: 'הסכם משפטי סטנדרטי ליזמים', order: 4 },
 ];
 
 const initialTeamMembers: TeamMember[] = [
@@ -113,7 +130,8 @@ const initialTeamMembers: TeamMember[] = [
         email: 'mor@melaw.co.il',
         phone: '050-1111111',
         imageUrl: 'https://picsum.photos/id/338/400/400',
-        bio: 'בעלת ותק של 15 שנה בתחום דיני המשפחה והירושה. מתמחה בפתרון סכסוכים מורכבים וגישור.'
+        bio: 'בעלת ותק של 15 שנה בתחום דיני המשפחה והירושה. מתמחה בפתרון סכסוכים מורכבים וגישור.',
+        order: 1
     },
     {
         id: '2',
@@ -123,7 +141,8 @@ const initialTeamMembers: TeamMember[] = [
         email: 'eran@melaw.co.il',
         phone: '050-2222222',
         imageUrl: 'https://picsum.photos/id/237/400/400',
-        bio: 'מומחה במיסוי מקרקעין וליווי יזמים בפרויקטים רחבי היקף. חבר בוועדת המקרקעין של לשכת עורכי הדין.'
+        bio: 'מומחה במיסוי מקרקעין וליווי יזמים בפרויקטים רחבי היקף. חבר בוועדת המקרקעין של לשכת עורכי הדין.',
+        order: 2
     },
     {
         id: '3',
@@ -133,7 +152,8 @@ const initialTeamMembers: TeamMember[] = [
         email: 'dana@melaw.co.il',
         phone: '050-3333333',
         imageUrl: 'https://picsum.photos/id/64/400/400',
-        bio: 'מוסמכת מטעם האפוטרופוס הכללי לעריכת ייפוי כוח מתמשך. בעלת גישה רגישה ואנושית ללקוחות בגיל השלישי.'
+        bio: 'מוסמכת מטעם האפוטרופוס הכללי לעריכת ייפוי כוח מתמשך. בעלת גישה רגישה ואנושית ללקוחות בגיל השלישי.',
+        order: 3
     }
 ];
 
