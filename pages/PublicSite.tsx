@@ -168,7 +168,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           if (state.config.integrations.googleSheetsUrl) {
               alert("הפרטים נקלטו בהצלחה במערכת! טיוטת הצוואה תופק ותשלח אליך למייל/לוואטסאפ בהקדם."); 
           } else {
-              alert("הטופס נקלט בהצלחה! קובץ הצוואה יורד כעת למחשב שלך (מצב מקומי)."); 
+              alert("הנתונים נשלחו אך לא הוגדר חיבור ל-Google Sheets."); 
           }
           
           setShowWillsModal(false); setFormStep(0);

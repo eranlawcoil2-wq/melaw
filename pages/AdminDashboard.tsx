@@ -418,7 +418,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                      <div className="space-y-6">
                          {/* Supabase */}
                          <div className="p-4 border border-slate-700 rounded-lg bg-slate-950">
-                             <div className="flex justify-between items-center mb-4"><h4 className="font-bold text-[#2EB0D9] flex items-center gap-2"><Database size={18}/> Supabase (Database & Storage)</h4></div>
+                             <div className="flex justify-between items-center mb-4"><h4 className="font-bold text-[#2EB0D9] flex items-center gap-2"><Database size={18}/> Supabase (מסד נתונים ואחסון תמונות)</h4></div>
+                             
+                             <div className="bg-slate-900 border border-slate-800 p-3 rounded mb-4 text-xs text-slate-400">
+                                <strong className="text-white block mb-1">איך משיגים את הפרטים?</strong>
+                                <ol className="list-decimal list-inside space-y-1">
+                                    <li>הירשם בחינם ב- <a href="https://supabase.com" target="_blank" className="text-[#2EB0D9] underline">supabase.com</a></li>
+                                    <li>צור פרויקט חדש (New Project)</li>
+                                    <li>גש להגדרות הפרויקט (Project Settings) -&gt; API</li>
+                                    <li>העתק את <strong>Project URL</strong> ואת <strong>anon public key</strong> לשדות למטה</li>
+                                </ol>
+                             </div>
+
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                  <div><label className="text-xs text-slate-500 block mb-1">Project URL</label><input type="text" className="w-full p-2 bg-slate-900 border border-slate-800 rounded text-slate-300 text-xs" value={state.config.integrations.supabaseUrl} onChange={e => updateIntegration('supabaseUrl', e.target.value)} placeholder="https://xyz.supabase.co" /></div>
                                  <div><label className="text-xs text-slate-500 block mb-1">Anon Key</label><input type="password" className="w-full p-2 bg-slate-900 border border-slate-800 rounded text-slate-300 text-xs" value={state.config.integrations.supabaseKey} onChange={e => updateIntegration('supabaseKey', e.target.value)} /></div>
@@ -427,7 +438,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                          
                          {/* AI & Images */}
                          <div className="p-4 border border-slate-700 rounded-lg bg-slate-950">
-                             <h4 className="font-bold text-[#2EB0D9] mb-4 flex items-center gap-2"><Sparkles size={18}/> AI & Images</h4>
+                             <h4 className="font-bold text-[#2EB0D9] mb-4 flex items-center gap-2"><Sparkles size={18}/> AI & תמונות</h4>
+                             
+                             {/* Gemini Instructions */}
+                             <div className="bg-slate-900 border border-slate-800 p-3 rounded mb-4 text-xs text-slate-400">
+                                <strong className="text-white block mb-1">מפתח Gemini AI (ליצירת מאמרים):</strong>
+                                <ol className="list-decimal list-inside space-y-1 mb-2">
+                                    <li>כנס ל- <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-[#2EB0D9] underline">Google AI Studio</a></li>
+                                    <li>לחץ על <strong>Create API Key</strong> (חינם)</li>
+                                    <li>העתק את המפתח והדבק למטה</li>
+                                </ol>
+                                <strong className="text-white block mb-1 mt-2">מפתח Unsplash (לחיפוש תמונות - אופציונלי):</strong>
+                                <ol className="list-decimal list-inside space-y-1">
+                                    <li>אם ריק, המערכת תשתמש בתמונות אילוסטרציה</li>
+                                    <li>להתאמה אישית: הירשם ב- <a href="https://unsplash.com/developers" target="_blank" className="text-[#2EB0D9] underline">Unsplash Developers</a></li>
+                                    <li>צור אפליקציה חדשה והעתק את ה-<strong>Access Key</strong></li>
+                                </ol>
+                             </div>
+
                              <div className="space-y-4">
                                  <div><label className="text-xs text-slate-500 block mb-1">Google Gemini API Key</label><input type="password" className="w-full p-2 bg-slate-900 border border-slate-800 rounded text-slate-300 text-xs" value={state.config.integrations.geminiApiKey} onChange={e => updateIntegration('geminiApiKey', e.target.value)} /></div>
                                  <div><label className="text-xs text-slate-500 block mb-1">Unsplash Access Key (Optional)</label><input type="password" className="w-full p-2 bg-slate-900 border border-slate-800 rounded text-slate-300 text-xs" value={state.config.integrations.unsplashAccessKey} onChange={e => updateIntegration('unsplashAccessKey', e.target.value)} /></div>
@@ -436,7 +464,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
                          {/* Google Sheets */}
                          <div className="p-4 border border-slate-700 rounded-lg bg-slate-950">
-                             <h4 className="font-bold text-[#2EB0D9] mb-4 flex items-center gap-2"><FileText size={18}/> Google Sheets (Legacy)</h4>
+                             <h4 className="font-bold text-[#2EB0D9] mb-4 flex items-center gap-2"><FileText size={18}/> Google Sheets (לקליטת טפסים)</h4>
+                             
+                             <div className="bg-slate-900 border border-slate-800 p-3 rounded mb-4 text-xs text-slate-400">
+                                <strong className="text-white block mb-1">הוראות התקנה (חד פעמי):</strong>
+                                <ol className="list-decimal list-inside space-y-1">
+                                    <li>פתח גיליון Google Sheet חדש</li>
+                                    <li>בתפריט: <strong>Extensions</strong> -&gt; <strong>Apps Script</strong></li>
+                                    <li>מחק את כל הקוד והדבק את הקוד שסופק לך ע"י המתכנת</li>
+                                    <li>לחץ <strong>Deploy</strong> -&gt; <strong>New Deployment</strong></li>
+                                    <li>בחר סוג: <strong>Web App</strong></li>
+                                    <li>הגדר <strong>Execute as: Me</strong></li>
+                                    <li>הגדר <strong>Who has access: Anyone</strong> (חשוב!)</li>
+                                    <li>לחץ Deploy והעתק את ה-<strong>Web App URL</strong> לשדה למטה</li>
+                                </ol>
+                             </div>
+
                              <div><label className="text-xs text-slate-500 block mb-1">Apps Script URL</label><input type="text" className="w-full p-2 bg-slate-900 border border-slate-800 rounded text-slate-300 text-xs" value={state.config.integrations.googleSheetsUrl} onChange={e => updateIntegration('googleSheetsUrl', e.target.value)} placeholder="https://script.google.com/..." /></div>
                          </div>
                      </div>

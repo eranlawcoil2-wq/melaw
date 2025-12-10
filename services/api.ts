@@ -80,101 +80,36 @@ export const cloudService = {
 
 // --- Email & Forms Service ---
 export const emailService = {
-    // PDF: Local Fallback (Only used if no Google Sheet connection)
+    // PDF: Local Fallback (Disabled to avoid gibberish)
     generateAndDownloadWill(data: any) {
-        try {
-            const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-            
-            doc.setFontSize(22);
-            doc.text("Legal Document / Will (Local Preview)", 105, 20, { align: "center" });
-            
-            doc.setFontSize(10);
-            doc.text(`Generated locally on: ${new Date().toLocaleDateString()}`, 105, 28, { align: "center" });
-            doc.text("(To get the official format, please connect Google Sheets)", 105, 34, { align: "center" });
-            
-            doc.setLineWidth(0.5);
-            doc.line(20, 38, 190, 38);
-
-            doc.setFontSize(14);
-            let y = 50;
-            
-            Object.keys(data).forEach((key) => {
-                const val = data[key];
-                if (val && typeof val !== 'object' && key !== 'formName' && key !== 'submittedAt') {
-                    if (y > 270) { doc.addPage(); y = 20; }
-                    doc.setFont("helvetica", "bold");
-                    doc.text(`${key}:`, 20, y);
-                    doc.setFont("helvetica", "normal");
-                    const splitText = doc.splitTextToSize(String(val), 120);
-                    doc.text(splitText, 60, y);
-                    y += (splitText.length * 7) + 5;
-                }
-                if (Array.isArray(val)) {
-                     if (y > 270) { doc.addPage(); y = 20; }
-                     doc.setFont("helvetica", "bold");
-                     doc.text(`${key}:`, 20, y);
-                     y += 7;
-                     val.forEach((item, idx) => {
-                         if (y > 270) { doc.addPage(); y = 20; }
-                         doc.setFont("helvetica", "normal");
-                         doc.text(`- ${item}`, 30, y);
-                         y += 7;
-                     });
-                     y += 5;
-                }
-            });
-
-            doc.save("Will_Local_Backup.pdf");
-            return true;
-        } catch (e) {
-            console.error("PDF Generation Error", e);
-            return false;
-        }
+        console.warn("Local PDF generation disabled. Using Google Sheets for PDF generation.");
+        return true; 
     },
 
     generateAndDownloadPOA(data: any) {
-        try {
-            const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-            doc.setFontSize(22);
-            doc.text("Power of Attorney (Local)", 105, 20, { align: "center" });
-            let y = 50;
-            Object.keys(data).forEach((key) => {
-                const val = data[key];
-                if (typeof val === 'string' && y < 270) {
-                    doc.text(`${key}: ${val}`, 20, y);
-                    y += 10;
-                }
-            });
-            doc.save("POA_Local_Backup.pdf");
-            return true;
-        } catch (e) {
-            console.error("POA PDF Generation Error", e);
-            return false;
-        }
+         console.warn("Local PDF generation disabled. Using Google Sheets for PDF generation.");
+         return true;
     },
 
     /**
      * פונקציה ראשית לשליחת טפסים
-     * שינוי לוגיקה: אם יש גוגל שיטס - הוא הבוס. לא מדפיסים מקומית.
      */
     async sendForm(formTitle: string, data: any, config?: IntegrationsConfig, pdfTemplate?: 'NONE' | 'WILL' | 'POA'): Promise<boolean> {
         console.log(`Processing Form: ${formTitle} [Template: ${pdfTemplate}]`);
         
         // --- 1. PRIORITY: GOOGLE SHEETS (Server Side Processing) ---
-        // אם מוגדר חיבור לסקריפט של גוגל - שולחים לשם ומדלגים על יצירה מקומית
         if (config?.googleSheetsUrl && config.googleSheetsUrl.includes('script.google.com')) {
             try {
-                // מכינים את המידע בדיוק כמו שהסקריפט מצפה לקבל
                 const payload = {
-                    action: 'submitForm',       // שם הפעולה בסקריפט
-                    targetSheet: 'DATA',        // שם הגיליון לשמירת הנתונים (כפי שביקשת)
-                    templateSheet: pdfTemplate === 'WILL' ? 'WILL' : (pdfTemplate === 'POA' ? 'POA' : undefined), // שם הגיליון להדפסה
+                    action: 'submitForm',       
+                    targetSheet: 'DATA',        
+                    templateSheet: pdfTemplate === 'WILL' ? 'WILL' : (pdfTemplate === 'POA' ? 'POA' : undefined), 
                     formName: formTitle,
                     submittedAt: new Date().toLocaleString('he-IL'),
-                    ...data // כל השדות הדינמיים נשלחים כפי שהם
+                    ...data 
                 };
 
-                console.log("Sending to Google Script (DATA -> WILL):", payload);
+                console.log("Sending to Google Script:", payload);
 
                 // שימוש ב-no-cors כדי למנוע חסימת דפדפן.
                 await fetch(config.googleSheetsUrl, {
@@ -184,8 +119,6 @@ export const emailService = {
                     body: JSON.stringify(payload)
                 });
 
-                // כאן אנחנו מסיימים. הסקריפט בגוגל אחראי ליצור את ה-PDF מהגיליון 'WILL'
-                // ולשלוח אותו במייל. לא מפעילים generateAndDownloadWill.
                 return true; 
 
             } catch (e) {
@@ -195,21 +128,29 @@ export const emailService = {
             }
         } 
         
-        // --- 2. FALLBACK: LOCAL PDF (Only if NO Google Sheets connected) ---
-        // רק אם אין חיבור לגוגל, נייצר PDF מקומי בסיסי כדי שהלקוח לא יצא בידיים ריקות
+        // --- 2. FALLBACK: Alert user that no backend is configured ---
         else {
-            console.warn("No Google Sheets connected. Generating local PDF fallback.");
-            if (pdfTemplate === 'WILL' || (formTitle === 'Wills Generator' && !pdfTemplate)) {
-                this.generateAndDownloadWill(data);
-            } else if (pdfTemplate === 'POA') {
-                this.generateAndDownloadPOA(data);
-            }
-            return true;
+            alert("לא מוגדר חיבור ל-Google Sheets. הנתונים לא נשמרו.");
+            return false;
         }
     },
 
+    // Special handler for Wills to map keys to Hebrew for readable Google Sheet
     async sendWillsForm(data: WillsFormData, config?: IntegrationsConfig): Promise<boolean> {
-        return this.sendForm('Wills Generator', data, config, 'WILL');
+        // Flatten the data so Google Sheets receives simple Key: Value pairs
+        // and convert field names to Hebrew for the spreadsheet columns
+        const flatData = {
+            'שם מלא': data.fullName,
+            'שם בן/בת הזוג': data.spouseName,
+            'מספר ילדים': data.childrenCount,
+            'שמות הילדים': data.childrenNames.join(', '), // Convert array to string
+            'חלוקה שווה': data.equalDistribution ? 'כן' : 'לא',
+            'טלפון': data.contactPhone,
+            'אימייל': data.contactEmail,
+            'נכסים': data.assets ? data.assets.map(a => `${a.type}: ${a.description}`).join(' | ') : 'ללא'
+        };
+
+        return this.sendForm('Wills Generator', flatData, config, 'WILL');
     }
 };
 
