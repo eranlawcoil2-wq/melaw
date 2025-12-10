@@ -1,5 +1,5 @@
 
-import { Article, TeamMember, WillsFormData, FormDefinition, Category, IntegrationsConfig, AppState } from '../types.ts';
+import { Article, TeamMember, WillsFormData, FormDefinition, Category, IntegrationsConfig, AppState, SiteConfig } from '../types.ts';
 import { jsPDF } from "jspdf";
 
 // --- Cloud Sync Service (Google Sheets as Database) ---
@@ -136,10 +136,14 @@ export const emailService = {
     },
 
     // Special handler for Wills to map keys to Hebrew for readable Google Sheet
-    async sendWillsForm(data: WillsFormData, config?: IntegrationsConfig): Promise<boolean> {
+    async sendWillsForm(data: WillsFormData, config: SiteConfig): Promise<boolean> {
         // Flatten the data so Google Sheets receives simple Key: Value pairs
         // and convert field names to Hebrew for the spreadsheet columns
+        
+        const submissionId = 'WILL-' + Math.random().toString(36).substr(2, 5).toUpperCase();
+
         const flatData = {
+            submissionId: submissionId,
             'שם מלא': data.fullName,
             'שם בן/בת הזוג': data.spouseName,
             'מספר ילדים': data.childrenCount,
@@ -147,10 +151,12 @@ export const emailService = {
             'חלוקה שווה': data.equalDistribution ? 'כן' : 'לא',
             'טלפון': data.contactPhone,
             'אימייל': data.contactEmail,
-            'נכסים': data.assets ? data.assets.map(a => `${a.type}: ${a.description}`).join(' | ') : 'ללא'
+            'נכסים': data.assets ? data.assets.map(a => `${a.type}: ${a.description}`).join(' | ') : 'ללא',
+            submitEmail: config.willsEmail || config.contactEmail || 'office@melaw.co.il' // Ensure email is passed for PDF sending
         };
 
-        return this.sendForm('Wills Generator', flatData, config, 'WILL');
+        // Pass integrations config to sendForm
+        return this.sendForm('Wills Generator', flatData, config.integrations, 'WILL');
     }
 };
 

@@ -34,6 +34,11 @@ interface PublicSiteProps {
   dataVersion?: string;
 }
 
+// Utility to generate short unique ID
+const generateSubmissionId = () => {
+    return 'REF-' + Math.random().toString(36).substr(2, 5).toUpperCase();
+};
+
 export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange, onWillsFormSubmit, onAdminClick, version, dataVersion }) => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -144,8 +149,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const handleContactSubmit = async () => {
       setContactSending(true);
       try {
-          await emailService.sendForm('General Contact Form', contactForm, state.config.integrations);
-          alert('הודעתך נשלחה בהצלחה! ניצור קשר בהקדם.');
+          const submissionId = generateSubmissionId();
+          await emailService.sendForm('General Contact Form', { ...contactForm, submissionId }, state.config.integrations);
+          alert(`הודעתך נשלחה בהצלחה! מספר פנייה: ${submissionId}\nניצור קשר בהקדם.`);
           setContactForm({ name: '', phone: '', message: '' });
       } catch (e) { alert('שגיאה בשליחה.'); } finally { setContactSending(false); }
   };
@@ -161,12 +167,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const handleRealWillsSubmit = async () => {
       setIsSubmittingWill(true);
       try {
-          await emailService.sendWillsForm(willsData, state.config.integrations);
+          // Pass the full config object, not just integrations
+          await emailService.sendWillsForm(willsData, state.config);
           onWillsFormSubmit(willsData);
           
           // Updated success message for server-side generation
           if (state.config.integrations.googleSheetsUrl) {
-              alert("הפרטים נקלטו בהצלחה במערכת! טיוטת הצוואה תופק ותשלח אליך למייל/לוואטסאפ בהקדם."); 
+              alert("הפרטים נקלטו בהצלחה במערכת! טיוטת הצוואה תופק ותשלח אליך למייל בהקדם."); 
           } else {
               alert("הנתונים נשלחו אך לא הוגדר חיבור ל-Google Sheets."); 
           }
@@ -514,14 +521,32 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                          ))}
                          <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => { 
                              setIsSubmittingDynamic(true); 
+                             
+                             // 1. Generate Unique Submission ID
+                             const submissionId = generateSubmissionId();
+
+                             // 2. Map numeric IDs to human-readable labels
+                             const mappedData: any = { submissionId };
+                             Object.keys(dynamicFormValues).forEach(key => {
+                                 const fieldDef = currentDynamicForm.fields.find(f => f.id === key);
+                                 const label = fieldDef ? fieldDef.label : key;
+                                 mappedData[label] = dynamicFormValues[key];
+                             });
+
+                             // 3. Add Submit Email if defined in form
+                             if (currentDynamicForm.submitEmail) {
+                                 mappedData.submitEmail = currentDynamicForm.submitEmail;
+                             } else {
+                                 mappedData.submitEmail = state.config.contactEmail; // Fallback to office email
+                             }
+
                              try { 
-                                 await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations, currentDynamicForm.pdfTemplate); 
+                                 await emailService.sendForm(currentDynamicForm.title, mappedData, state.config.integrations, currentDynamicForm.pdfTemplate); 
                                  
-                                 // Updated message for dynamic forms as well
                                  if (state.config.integrations.googleSheetsUrl) {
-                                     alert("נשלח בהצלחה למערכת! מסמך ה-PDF (אם רלוונטי) יופק וישלח אליך.");
+                                     alert(`נשלח בהצלחה למערכת!\nמספר אסמכתא: ${submissionId}\nמסמך ה-PDF (אם רלוונטי) יישלח למייל המוגדר.`);
                                  } else {
-                                     alert("נשלח בהצלחה! מסמך ה-PDF יורד למחשבך (מצב מקומי).");
+                                     alert("נשלח בהצלחה! (מצב ללא חיבור לשרת).");
                                  }
 
                                  setActiveDynamicFormId(null); 
