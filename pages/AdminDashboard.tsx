@@ -6,7 +6,7 @@ import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -15,33 +15,67 @@ interface AdminDashboardProps {
   version?: string;
 }
 
-// --- RESTORED GOOGLE SCRIPT FOR USER REFERENCE ---
+// --- UPDATED GOOGLE SCRIPT FOR FORMS & PDF WORKFLOW ---
 const GOOGLE_SCRIPT_TEMPLATE = `
-// העתק את כל הקוד הזה והדבק אותו ב-Google Apps Script אם אתה משתמש בחיבור הישן.
-// אם עברת ל-Supabase, אין צורך בזה.
+// --- MeLaw Backend Script ---
+// הדבק את כל הקוד הזה ב-Google Apps Script
+// וודא שביצעת Deploy כ-Web App עם הרשאות "Anyone"
 
 function doGet(e) {
-  var action = e && e.parameter ? e.parameter.action : '';
-  if (action == 'getState') {
-    var sheet = getOrCreateSheet("SiteData");
-    var lastRow = sheet.getLastRow();
-    if (lastRow > 0) {
-      var data = sheet.getRange(lastRow, 1).getValue();
-      return ContentService.createTextOutput(data).setMimeType(ContentService.MimeType.JSON);
-    }
-    return ContentService.createTextOutput(JSON.stringify({status: 'empty'})).setMimeType(ContentService.MimeType.JSON);
-  }
   return ContentService.createTextOutput("MeLaw Server Active");
 }
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
   lock.tryLock(30000); 
+
   try {
     var rawData = e.postData.contents;
     var data = JSON.parse(rawData);
     var action = data.action;
 
+    // --- טיפול בשליחת טפסים (צוואות/צור קשר) ---
+    // הנתונים יישמרו בגיליון בשם "DATA" כדי לאפשר יצירת PDF
+    if (action == 'submitForm') {
+       var doc = SpreadsheetApp.getActiveSpreadsheet();
+       // נסה למצוא גיליון DATA, אחרת Forms, אחרת צור חדש
+       var sheet = doc.getSheetByName("DATA");
+       if (!sheet) sheet = doc.getSheetByName("Forms");
+       if (!sheet) sheet = doc.insertSheet("DATA");
+
+       // כותרות (Headers)
+       var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn() || 1).getValues()[0];
+       var isNewSheet = sheet.getLastColumn() === 0 || (headers.length === 1 && headers[0] === "");
+       
+       if (isNewSheet) {
+         headers = ["Timestamp", "FormName"];
+         // הוסף את כל המפתחות מהאובייקט ככותרות
+         for (var key in data) {
+           if (key !== "action" && key !== "formName" && key !== "submittedAt") headers.push(key);
+         }
+         sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+       }
+
+       // יצירת השורה החדשה
+       var newRow = [];
+       var timestamp = new Date();
+       
+       for (var i = 0; i < headers.length; i++) {
+         var header = headers[i];
+         if (header === "Timestamp") newRow.push(timestamp);
+         else if (header === "FormName") newRow.push(data.formName || "General");
+         else {
+           var val = data[header];
+           // המרת מערכים (כמו שמות ילדים) למחרוזת
+           newRow.push(typeof val === 'object' ? JSON.stringify(val) : (val || ""));
+         }
+       }
+       
+       sheet.appendRow(newRow);
+       return ContentService.createTextOutput(JSON.stringify({ "result": "success" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // --- תמיכה לאחור: העלאת תמונות (אם לא משתמשים ב-Supabase) ---
     if (action == 'uploadImage') {
        var folderName = "MeLaw_Images";
        var folders = DriveApp.getFoldersByName(folderName);
@@ -54,14 +88,16 @@ function doPost(e) {
        return ContentService.createTextOutput(JSON.stringify({ "status": "success", "url": "https://lh3.googleusercontent.com/d/" + file.getId() })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // --- תמיכה לאחור: שמירת הגדרות אתר ---
     if (action == 'saveState') {
        var sheet = getOrCreateSheet("SiteData");
        var jsonString = JSON.stringify({ status: 'success', timestamp: new Date(), data: data.data });
        sheet.appendRow([jsonString]);
-       return ContentService.createTextOutput(JSON.stringify({ "result": "success", "type": "state_saved" })).setMimeType(ContentService.MimeType.JSON);
+       return ContentService.createTextOutput(JSON.stringify({ "result": "success" })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    return ContentService.createTextOutput(JSON.stringify({ "result": "success" })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ "result": "error", "message": "Unknown action" })).setMimeType(ContentService.MimeType.JSON);
+
   } catch (e) {
     return ContentService.createTextOutput(JSON.stringify({ "result": "error", "error": e.toString() })).setMimeType(ContentService.MimeType.JSON);
   } finally {
@@ -75,6 +111,26 @@ function getOrCreateSheet(name) {
   if (!sheet) sheet = doc.insertSheet(name);
   return sheet;
 }
+`;
+
+// --- SUPABASE SETUP INSTRUCTIONS ---
+const SUPABASE_SQL_INSTRUCTIONS = `
+-- 1. פתח את SQL Editor ב-Supabase והרץ את הקוד הבא:
+create table site_config (
+  id bigint primary key generated always as identity,
+  data jsonb not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+insert into site_config (data) values ('{}');
+
+alter table site_config enable row level security;
+create policy "Enable access to all users" on site_config for all using (true) with check (true);
+
+-- 2. פתח את תפריט Storage בצד שמאל.
+-- 3. צור Bucket חדש בשם: images
+-- 4. חובה: סמן את האפשרות "Public Bucket".
+-- 5. שמור.
 `;
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout, version }) => {
@@ -92,6 +148,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [editingSlide, setEditingSlide] = useState<SliderSlide | null>(null);
   const [editingTimelineItem, setEditingTimelineItem] = useState<TimelineItem | null>(null);
+  const [showSupabaseHelp, setShowSupabaseHelp] = useState(false);
 
   const isSupabaseConfigured = state.config.integrations.supabaseUrl && state.config.integrations.supabaseKey;
   const isGoogleSheetsConfigured = state.config.integrations.googleSheetsUrl && state.config.integrations.googleSheetsUrl.includes("script.google.com");
@@ -118,7 +175,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       } catch (e) { alert("שגיאת תקשורת."); } finally { setIsSavingToCloud(false); }
   };
 
-  // ... (Other handlers identical to before: Export, Import, Generate, etc.) ...
+  // --- Handlers ---
   const handleExportData = () => { const dataStr = JSON.stringify(state); const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr); const linkElement = document.createElement('a'); linkElement.setAttribute('href', dataUri); linkElement.setAttribute('download', 'melaw_data.json'); linkElement.click(); };
   const handleImportData = (e: any) => { const file = e.target.files?.[0]; if(!file)return; const reader = new FileReader(); reader.onload = (ev) => { try { const p = JSON.parse(ev.target?.result as string); updateState({...p, isAdminLoggedIn:true}); alert("נטען!"); } catch { alert("שגיאה"); }}; reader.readAsText(file); };
   const handleGenerateArticle = async () => { if (!newArticleTopic) return; setIsGenerating(true); try { const generated = await generateArticleContent(newArticleTopic, selectedCategory, state.config.integrations.geminiApiKey); const newArticle: Article = { id: Date.now().toString(), categories: selectedCategory === 'ALL' ? [Category.HOME] : [selectedCategory], title: generated.title || newArticleTopic, abstract: generated.abstract || '', imageUrl: `https://picsum.photos/seed/${Date.now()}/800/600`, quote: generated.quote, tabs: generated.tabs || [] }; updateState({ articles: [newArticle, ...state.articles] }); setNewArticleTopic(''); alert("נוצר!"); } catch (e: any) { alert("שגיאה: " + e.message); } finally { setIsGenerating(false); } };
@@ -177,13 +234,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       <main className="flex-1 md:mr-64 p-4 md:p-8 overflow-y-auto min-h-screen">
         <div className="md:hidden flex justify-between items-center mb-6 bg-slate-900 p-4 rounded-xl border border-slate-800 sticky top-0 z-30 shadow-lg"><h3 className="font-bold text-white">תפריט ניהול</h3><button onClick={() => setMobileMenuOpen(true)} className="p-2 bg-slate-800 rounded text-[#2EB0D9] border border-slate-700"><Menu size={24} /></button></div>
 
+        {/* --- INTEGRATIONS TAB --- */}
         {activeTab === 'integrations' && (
             <div className="space-y-6 max-w-4xl animate-fade-in">
                 {/* SUPABASE */}
                 <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full bg-[#2EB0D9]"></div>
-                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Database className="text-[#2EB0D9]"/> Supabase (מומלץ)</h3>
-                    <p className="text-slate-400 mb-4 text-sm">כדי להפעיל העלאת תמונות: צור Bucket בשם <code>images</code> וסמן אותו כ-Public.</p>
+                    <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2"><Database className="text-[#2EB0D9]"/> Supabase (מומלץ)</h3>
+                        <button onClick={() => setShowSupabaseHelp(!showSupabaseHelp)} className="text-xs flex items-center gap-1 text-[#2EB0D9] hover:underline"><HelpCircle size={14}/> {showSupabaseHelp ? 'הסתר הוראות' : 'הצג הוראות התקנה'}</button>
+                    </div>
+                    
+                    {showSupabaseHelp && (
+                        <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-300 text-xs font-mono whitespace-pre-wrap mb-4 select-all">
+                            {SUPABASE_SQL_INSTRUCTIONS}
+                        </div>
+                    )}
+
+                    <p className="text-slate-400 mb-4 text-sm">מאפשר עדכון האתר בזמן אמת והעלאת תמונות.</p>
                     <div className="space-y-4 bg-slate-950 p-4 rounded border border-slate-800">
                         <div><label className="block text-xs font-bold text-slate-300 mb-1">Project URL</label><input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white focus:border-[#2EB0D9] outline-none" value={state.config.integrations.supabaseUrl} onChange={e => updateIntegration('supabaseUrl', e.target.value)} /></div>
                         <div><label className="block text-xs font-bold text-slate-300 mb-1">API Key</label><input type="password" className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white focus:border-[#2EB0D9] outline-none" value={state.config.integrations.supabaseKey} onChange={e => updateIntegration('supabaseKey', e.target.value)} /></div>
@@ -192,7 +260,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
                 {/* GOOGLE LEGACY + SCRIPT DISPLAY */}
                 <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 opacity-90">
-                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Cloud/> Google Script (גיבוי)</h3>
+                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Cloud/> Google Script (עבור טפסים ו-PDF)</h3>
                     <div className="space-y-4 bg-slate-950 p-4 rounded border border-slate-800 mb-4">
                         <label className="block text-sm font-bold text-slate-300">Web App URL</label>
                         <input type="text" className="w-full p-3 border border-slate-700 rounded-lg bg-slate-900 text-white placeholder-slate-600 focus:border-[#2EB0D9] outline-none" placeholder="https://script.google.com/..." value={state.config.integrations.googleSheetsUrl} onChange={e => updateIntegration('googleSheetsUrl', e.target.value)} />
@@ -200,7 +268,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     
                     {/* SCRIPT DISPLAY */}
                     <div className="relative">
-                        <div className="text-xs text-slate-500 mb-1">סקריפט (Apps Script) להתקנה במקרה של שימוש בגוגל בלבד:</div>
+                        <div className="text-xs text-slate-500 mb-1">סקריפט מעודכן - שומר לגיליון בשם <b>DATA</b>:</div>
                         <pre className="bg-black p-4 rounded-lg text-xs text-green-400 overflow-x-auto border border-slate-800 h-48 font-mono select-all">{GOOGLE_SCRIPT_TEMPLATE}</pre>
                         <button onClick={() => { navigator.clipboard.writeText(GOOGLE_SCRIPT_TEMPLATE); alert("הועתק!"); }} className="absolute top-6 left-2 bg-slate-800 text-white p-2 rounded hover:bg-slate-700 text-xs flex items-center gap-1"><Copy size={14}/> העתק</button>
                     </div>
@@ -221,26 +289,147 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* ARTICLES */}
+        {/* --- ARTICLES TAB --- */}
         {activeTab === 'articles' && (
-            <div className="space-y-8">
+            <div className="space-y-8 animate-fade-in">
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl"><div className="flex flex-col md:flex-row gap-4"><input type="text" className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9]" placeholder="נושא למאמר..." value={newArticleTopic} onChange={(e) => setNewArticleTopic(e.target.value)} /><Button onClick={handleGenerateArticle} disabled={isGenerating} className="min-w-[150px]">{isGenerating ? <Loader2 className="animate-spin ml-2"/> : 'צור (AI)'}</Button></div></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{filteredArticles.map(article => (<div key={article.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group"><div className="h-40 relative"><img src={article.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div><div className="p-4"><h4 className="font-bold mb-2 line-clamp-1 text-white">{article.title}</h4><div className="flex justify-end gap-2"><button onClick={() => setEditingArticle(article)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white"><Edit size={16}/></button><button onClick={() => updateState({ articles: state.articles.filter(a => a.id !== article.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white"><Trash size={16}/></button></div></div></div>))}</div>
             </div>
         )}
 
-        {/* TIMELINES (Simplified for brevity in update, but functionally same) */}
+        {/* --- TIMELINES TAB --- */}
         {activeTab === 'timelines' && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-fade-in">
                 <div className="flex gap-4 border-b border-slate-800 pb-4"><button onClick={() => setTimelineSubTab('slider')} className={`pb-2 px-4 font-bold ${timelineSubTab === 'slider' ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-500'}`}>סליידר</button><button onClick={() => setTimelineSubTab('cards')} className={`pb-2 px-4 font-bold ${timelineSubTab === 'cards' ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-500'}`}>כרטיסים</button></div>
                 {timelineSubTab === 'slider' && <div className="space-y-4">{state.slides.map(slide => (<div key={slide.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex justify-between items-center"><div className="flex gap-4"><img src={slide.imageUrl} className="w-16 h-10 object-cover rounded"/><span className="text-white">{slide.title}</span></div><button onClick={() => setEditingSlide(slide)}><Edit size={16} className="text-white"/></button></div>))}</div>}
                 {timelineSubTab === 'cards' && <div className="space-y-4"><Button onClick={() => setEditingTimelineItem({ id: Date.now().toString(), title: '', description: '', imageUrl: 'https://picsum.photos/400/300', category: [Category.HOME] })}><Plus size={16}/></Button><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{filteredTimelines.map(t => (<div key={t.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex justify-between"><div className="text-white font-bold">{t.title}</div><button onClick={() => setEditingTimelineItem(t)}><Edit size={16}/></button></div>))}</div></div>}
             </div>
         )}
 
-        {/* FORMS & TEAM (Placeholder for layout, using previous logic) */}
-        {(activeTab === 'forms' || activeTab === 'team') && (
-             <div className="text-center text-slate-500 mt-10">ניהול {activeTab} (פונקציונליות זהה לגרסה קודמת)</div>
+        {/* --- CONFIG TAB --- */}
+        {activeTab === 'config' && (
+             <div className="space-y-6 animate-fade-in">
+                
+                {/* --- WARNING BANNER --- */}
+                <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl flex items-start gap-3">
+                    <CloudUpload className="text-[#2EB0D9] flex-shrink-0 mt-1" />
+                    <div>
+                        <h4 className="font-bold text-[#2EB0D9]">סנכרון ענן</h4>
+                        <p className="text-sm text-slate-400 mt-1">
+                            מומלץ לבצע גיבוי ידני מדי פעם גם אם הענן מחובר.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800 max-w-2xl">
+                    <h3 className="text-xl font-bold flex items-center gap-2 text-white mb-6"><Monitor/> הגדרות כלליות</h3>
+                    
+                    {/* EXPORT / IMPORT SECTION */}
+                    <div className="grid md:grid-cols-2 gap-4 mb-8 pb-8 border-b border-slate-800">
+                        <div className="bg-slate-950 p-4 rounded-lg border border-slate-700">
+                            <h5 className="font-bold text-[#2EB0D9] mb-2 flex items-center gap-2"><Download size={16}/> גיבוי/ייצוא נתונים</h5>
+                            <p className="text-xs text-slate-500 mb-3">הורד קובץ עם כל המידע (מאמרים, הגדרות) כדי לשמור או להעביר למכשיר אחר.</p>
+                            <Button onClick={handleExportData} className="w-full" variant="outline">הורד קובץ נתונים</Button>
+                        </div>
+
+                        <div className="bg-slate-950 p-4 rounded-lg border border-slate-700">
+                            <h5 className="font-bold text-green-400 mb-2 flex items-center gap-2"><Upload size={16}/> טעינת נתונים</h5>
+                            <p className="text-xs text-slate-500 mb-3">טען קובץ נתונים ממכשיר אחר. זהירות: זה ימחק את המידע הקיים!</p>
+                            <div className="relative">
+                                <Button className="w-full bg-green-600 hover:bg-green-700 pointer-events-none">בחר קובץ לטעינה</Button>
+                                <input 
+                                    type="file" 
+                                    accept=".json" 
+                                    onChange={handleImportData}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* Custom Font */}
+                        <div className="border-b border-slate-800 pb-6 mb-6">
+                            <h4 className="font-bold text-lg mb-4 text-[#2EB0D9] flex items-center gap-2">
+                                <Type size={18}/> פונט לוגו מותאם אישית
+                            </h4>
+                            <div className="bg-slate-950 p-4 rounded-lg border border-slate-700">
+                                <input type="file" accept=".ttf,.otf" className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#2EB0D9] file:text-white file:cursor-pointer hover:file:bg-[#259cc0]" onChange={handleFontUpload} />
+                                {state.config.customFontData && <button onClick={handleResetFont} className="text-red-400 hover:text-red-300 text-xs mt-2">מחק פונט</button>}
+                            </div>
+                        </div>
+                        
+                        {/* Theme */}
+                        <div className="border-b border-slate-800 pb-6 mb-6">
+                            <label className="block text-sm font-bold mb-3 text-slate-400">ערכת נושא</label>
+                            <div className="flex gap-4">
+                                <button onClick={() => updateState({ config: { ...state.config, theme: 'dark' }})} className={`flex-1 p-4 rounded-xl border-2 flex flex-col items-center gap-2 ${state.config.theme === 'dark' ? 'border-[#2EB0D9] bg-slate-800' : 'border-slate-700'}`}><Moon size={24}/> <span className="text-xs">כהה</span></button>
+                                <button onClick={() => updateState({ config: { ...state.config, theme: 'light' }})} className={`flex-1 p-4 rounded-xl border-2 flex flex-col items-center gap-2 ${state.config.theme === 'light' ? 'border-[#2EB0D9] bg-white text-black' : 'border-slate-700'}`}><Sun size={24}/> <span className="text-xs">בהיר</span></button>
+                            </div>
+                        </div>
+
+                        {/* General Fields */}
+                        <input type="text" className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white mb-2" value={state.config.officeName} onChange={e => updateState({ config: { ...state.config, officeName: e.target.value }})} placeholder="שם המשרד" />
+                        <input type="text" className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white mb-2" value={state.config.logoUrl} onChange={e => updateState({ config: { ...state.config, logoUrl: e.target.value }})} placeholder="לוגו URL" />
+                        
+                        <div className="flex justify-end pt-4">
+                            <button 
+                                onClick={() => {
+                                    if(confirm("איפוס מלא?")) {
+                                        localStorage.removeItem('melaw_site_data_v1');
+                                        localStorage.removeItem('melaw_site_data_v2');
+                                        window.location.reload();
+                                    }
+                                }}
+                                className="text-red-400 text-xs border border-red-900 px-3 py-1 rounded"
+                            >
+                                איפוס מלא
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* --- FORMS TAB --- */}
+        {activeTab === 'forms' && (
+             <div className="space-y-6 animate-fade-in">
+                 <div className="flex justify-end"><Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', category: Category.POA, fields: [], submitEmail: '' })}><Plus size={16}/> טופס חדש</Button></div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     {state.forms.map(f => (<div key={f.id} className="bg-slate-900 p-4 rounded border border-slate-800 relative">
+                         <h4 className="font-bold text-white">{f.title}</h4>
+                         {/* Copy ID Button for Forms */}
+                         <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                             <span>ID: form-{f.id}</span>
+                             <button 
+                                onClick={() => {
+                                    navigator.clipboard.writeText(`form-${f.id}`);
+                                    alert("מזהה הטופס הועתק! הדבק אותו בשדה הקישור בטיים-ליין.");
+                                }}
+                                title="העתק מזהה לקישור בטיים-ליין"
+                                className="text-[#2EB0D9] hover:text-white"
+                             >
+                                 <Copy size={12}/>
+                             </button>
+                         </div>
+                         <button onClick={() => setEditingForm(f)} className="absolute top-4 left-10 p-2"><Edit size={16}/></button>
+                         <button onClick={() => updateState({ forms: state.forms.filter(x => x.id !== f.id) })} className="absolute top-4 left-2 p-2 text-red-400"><Trash size={16}/></button>
+                     </div>))}
+                 </div>
+                 {editingForm && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl h-[80vh] flex flex-col"><h3 className="font-bold text-white mb-4">עריכת טופס</h3><div className="flex-1 overflow-y-auto space-y-4"><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingForm.title} onChange={e=>setEditingForm({...editingForm, title: e.target.value})}/><div className="flex gap-2"><button onClick={()=>addFieldToForm('text')} className="p-2 bg-slate-800 border rounded text-xs">טקסט</button><button onClick={()=>addFieldToForm('select')} className="p-2 bg-slate-800 border rounded text-xs">בחירה</button></div>{editingForm.fields.map((field,i)=>(<div key={i} className="flex gap-2 items-center"><input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="bg-slate-800 text-white p-1 rounded flex-1"/><button onClick={()=>removeFormField(i)} className="text-red-400"><Trash size={14}/></button></div>))}</div><div className="flex gap-2 mt-4"><Button onClick={handleSaveForm}>שמור</Button><Button variant="outline" onClick={()=>setEditingForm(null)}>ביטול</Button></div></div></div>}
+             </div>
+        )}
+
+        {/* --- TEAM TAB --- */}
+        {activeTab === 'team' && (
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-end"><Button onClick={() => setEditingMember({ id: Date.now().toString(), fullName: '', role: '', specialization: '', email: '', phone: '', bio: '', imageUrl: 'https://picsum.photos/400/400' })}><Plus size={16}/> איש צוות</Button></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{state.teamMembers.map(m => (<div key={m.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex gap-4"><img src={m.imageUrl} className="w-16 h-16 rounded-full"/><div className="flex-1"><div className="font-bold text-white">{m.fullName}</div><div className="text-xs text-slate-400">{m.role}</div></div><button onClick={()=>setEditingMember(m)}><Edit size={16}/></button><button onClick={()=>updateState({teamMembers: state.teamMembers.filter(x=>x.id!==m.id)})} className="text-red-400"><Trash size={16}/></button></div>))}</div>
+                {editingMember && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-lg space-y-4"><h3 className="font-bold text-white">עריכת צוות</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingMember.fullName} onChange={e=>setEditingMember({...editingMember, fullName: e.target.value})}/><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingMember.role} onChange={e=>setEditingMember({...editingMember, role: e.target.value})}/><div className="flex gap-2">
+                    <input className="flex-1 p-2 bg-slate-800 text-white rounded" value={editingMember.imageUrl} onChange={e=>setEditingMember({...editingMember, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                    <ImageUploadButton onImageSelected={(url) => setEditingMember({...editingMember, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                </div><div className="flex gap-2"><Button onClick={handleSaveMember}>שמור</Button><Button variant="outline" onClick={()=>setEditingMember(null)}>ביטול</Button></div></div></div>}
+            </div>
         )}
 
       </main>
