@@ -38,9 +38,8 @@ function doPost(e) {
     // הנתונים יישמרו בגיליון בשם "DATA" כדי לאפשר יצירת PDF
     if (action == 'submitForm') {
        var doc = SpreadsheetApp.getActiveSpreadsheet();
-       // נסה למצוא גיליון DATA, אחרת Forms, אחרת צור חדש
+       // מחפש גיליון DATA, אם אין - יוצר חדש
        var sheet = doc.getSheetByName("DATA");
-       if (!sheet) sheet = doc.getSheetByName("Forms");
        if (!sheet) sheet = doc.insertSheet("DATA");
 
        // כותרות (Headers)
@@ -417,7 +416,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                         
                         {/* UPDATED LOGO URL WITH UPLOAD BUTTON */}
                         <div className="flex gap-2 mb-2">
-                            <input type="text" className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-800 text-white" value={state.config.logoUrl} onChange={e => updateState({ config: { ...state.config, logoUrl: e.target.value }})} placeholder="לוגו URL (או העלה תמונה)" />
+                            <input type="text" className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-800 text-white" value={state.config.logoUrl} onChange={e => updateState({ config: { ...state.config, logoUrl: e.target.value }})} placeholder="קישור ללוגו (URL)" />
                             <ImageUploadButton onImageSelected={(url) => updateState({ config: { ...state.config, logoUrl: url }})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
                         </div>
                         
