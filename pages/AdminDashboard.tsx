@@ -164,12 +164,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
           return;
       }
       setIsSavingToCloud(true);
+      
+      // Update Timestamp locally before saving
+      const now = new Date().toLocaleString('he-IL');
+      const stateToSave = { ...state, lastUpdated: now };
+      updateState({ lastUpdated: now });
+
       try {
           if (isSupabaseConfigured) {
-              const success = await dbService.saveState(state.config.integrations.supabaseUrl, state.config.integrations.supabaseKey, state);
+              const success = await dbService.saveState(state.config.integrations.supabaseUrl, state.config.integrations.supabaseKey, stateToSave);
               alert(success ? "נשמר בהצלחה ב-Supabase!" : "שגיאה בשמירה ל-Supabase.");
           } else if (isGoogleSheetsConfigured) {
-              const success = await cloudService.saveStateToCloud(state.config.integrations.googleSheetsUrl, state);
+              const success = await cloudService.saveStateToCloud(state.config.integrations.googleSheetsUrl, stateToSave);
               alert(success ? "נשמר בהצלחה בגוגל!" : "שגיאה בשמירה לגוגל.");
           }
       } catch (e) { alert("שגיאת תקשורת."); } finally { setIsSavingToCloud(false); }
@@ -255,6 +261,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         <div className="p-4 border-b border-slate-800 space-y-2">
              <div className="text-center mb-2">
                  {isCloudConnected ? <span className="text-xs text-green-500 flex items-center justify-center gap-1 font-bold"><CloudUpload size={12}/> מחובר לענן</span> : <span className="text-xs text-red-500 flex items-center justify-center gap-1 font-bold animate-pulse"><CloudOff size={12}/> ענן לא מחובר</span>}
+                 {state.lastUpdated && <div className="text-[10px] text-slate-500 mt-1">עודכן: {state.lastUpdated}</div>}
              </div>
              
              {/* SAVE BUTTON */}

@@ -7,7 +7,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v1.7';
+const APP_VERSION = 'v1.8';
 
 // --- INITIAL DEFAULT DATA (Fallback) ---
 const initialArticles: Article[] = [
@@ -179,6 +179,7 @@ const defaultState: AppState = {
     menuItems: initialMenuItems,
     forms: initialForms,
     teamMembers: initialTeamMembers,
+    lastUpdated: 'Initial', // Default
 };
 
 // UPDATED: Stable Key for persistence across updates
@@ -420,6 +421,7 @@ const App: React.FC = () => {
             onWillsFormSubmit={handleWillsSubmit}
             onAdminClick={() => setIsAdminView(true)}
             version={APP_VERSION}
+            dataVersion={appState.lastUpdated}
          />
       )}
     </div>

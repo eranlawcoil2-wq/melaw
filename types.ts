@@ -150,4 +150,5 @@ export interface AppState {
   forms: FormDefinition[];
   teamMembers: TeamMember[];
   isAdminLoggedIn: boolean;
+  lastUpdated?: string; // Timestamp of last content update
 }

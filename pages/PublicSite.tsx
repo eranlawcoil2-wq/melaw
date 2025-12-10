@@ -48,9 +48,10 @@ interface PublicSiteProps {
   onWillsFormSubmit: (data: WillsFormData) => void;
   onAdminClick?: () => void;
   version?: string;
+  dataVersion?: string;
 }
 
-export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange, onWillsFormSubmit, onAdminClick, version }) => {
+export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange, onWillsFormSubmit, onAdminClick, version, dataVersion }) => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
@@ -730,10 +731,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 <div className="container mx-auto px-4 pt-8 border-t border-slate-900 text-center text-sm text-slate-600">&copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO.</div>
                 {/* Public Version Badge (Hidden normally, but visible on footer for now) */}
                 <div className="text-center text-[10px] text-slate-800 mt-2">{version}</div>
+                {dataVersion && <div className="text-center text-[9px] text-slate-800">Data: {dataVersion}</div>}
             </footer>
         )}
       </main>
-      <FloatingWidgets version={version} />
+      <FloatingWidgets version={version} dataVersion={dataVersion} />
     </div>
   );
 };

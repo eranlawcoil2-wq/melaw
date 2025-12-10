@@ -45,7 +45,8 @@ export const dbService = {
        forms: state.forms,
        teamMembers: state.teamMembers,
        menuItems: state.menuItems,
-       config: state.config
+       config: state.config,
+       lastUpdated: state.lastUpdated // Ensure this is saved
     };
 
     try {

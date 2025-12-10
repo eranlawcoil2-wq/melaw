@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { MessageCircle, Accessibility, X, Type, Eye, PauseCircle, RefreshCw } from 'lucide-react';
+import { MessageCircle, Accessibility, X, Type, Eye, PauseCircle, RefreshCw, CalendarDays } from 'lucide-react';
 import { ShareMenu } from './ShareMenu.tsx';
 
 interface FloatingWidgetsProps {
   version?: string;
+  dataVersion?: string;
 }
 
-export const FloatingWidgets: React.FC<FloatingWidgetsProps> = ({ version }) => {
+export const FloatingWidgets: React.FC<FloatingWidgetsProps> = ({ version, dataVersion }) => {
   const [showAccess, setShowAccess] = useState(false);
   const [largeText, setLargeText] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
@@ -51,11 +52,19 @@ export const FloatingWidgets: React.FC<FloatingWidgetsProps> = ({ version }) => 
     <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3 items-start">
       {/* Version Badge - Temporary */}
       {version && (
-        <div className="flex items-center gap-1 bg-slate-800 text-[10px] text-white py-1 px-2 rounded-md shadow-lg border border-slate-700 mb-1 opacity-80 hover:opacity-100 cursor-default">
-            <span>{version}</span>
-            <button onClick={handleHardReset} className="ml-1 p-0.5 hover:bg-slate-700 rounded text-yellow-400" title="רענון מלא (ניקוי מטמון)">
-                <RefreshCw size={10} />
-            </button>
+        <div className="flex flex-col gap-1 items-start mb-1">
+             <div className="flex items-center gap-1 bg-slate-800 text-[10px] text-white py-1 px-2 rounded-md shadow-lg border border-slate-700 opacity-80 hover:opacity-100 cursor-default">
+                <span>{version}</span>
+                <button onClick={handleHardReset} className="ml-1 p-0.5 hover:bg-slate-700 rounded text-yellow-400" title="רענון מלא (ניקוי מטמון)">
+                    <RefreshCw size={10} />
+                </button>
+            </div>
+            {dataVersion && (
+                <div className="flex items-center gap-1 bg-black/60 text-[9px] text-slate-300 py-0.5 px-2 rounded-md shadow-sm border border-slate-700/50 backdrop-blur-sm">
+                    <CalendarDays size={8} />
+                    <span>עודכן: {dataVersion}</span>
+                </div>
+            )}
         </div>
       )}
 
