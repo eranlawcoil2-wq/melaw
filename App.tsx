@@ -7,7 +7,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v1.6';
+const APP_VERSION = 'v1.7';
 
 // --- INITIAL DEFAULT DATA (Fallback) ---
 const initialArticles: Article[] = [
@@ -181,15 +181,22 @@ const defaultState: AppState = {
     teamMembers: initialTeamMembers,
 };
 
-// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v1.6
-const STORAGE_KEY = `melaw_site_data_${APP_VERSION}`;
+// UPDATED: Stable Key for persistence across updates
+const STORAGE_KEY = 'melaw_site_data_stable';
 
 const App: React.FC = () => {
   const [loadingCloud, setLoadingCloud] = useState(false);
 
-  // Initialize State from LocalStorage if available, otherwise use Default
+  // Initialize State from LocalStorage with Migration Logic
   const [appState, setAppState] = useState<AppState>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    // 1. Try stable key
+    let saved = localStorage.getItem(STORAGE_KEY);
+    
+    // 2. Migration: If no stable data, try previous version keys to rescue user data
+    if (!saved) saved = localStorage.getItem('melaw_site_data_v1.6');
+    if (!saved) saved = localStorage.getItem('melaw_site_data_v1.5');
+    if (!saved) saved = localStorage.getItem('melaw_site_data_v1.4');
+
     if (saved) {
       try {
         const parsed = JSON.parse(saved);

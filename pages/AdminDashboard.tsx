@@ -252,7 +252,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             <div>
                                 <strong className="text-white block mb-1">שלב 1: פתיחת פרויקט</strong>
                                 1. היכנס לאתר <a href="https://supabase.com" target="_blank" className="text-[#2EB0D9] underline">supabase.com</a> וצור פרויקט חדש.<br/>
-                                2. לאחר שהפרויקט מוכן, לך ל-Settings (גלגל שיניים למטה) -> API.<br/>
+                                2. לאחר שהפרויקט מוכן, לך ל-Settings (גלגל שיניים למטה) &rarr; API.<br/>
                                 3. העתק את ה-URL ואת ה-<code>anon</code> key והדבק אותם בשדות למטה.
                             </div>
                             <div>
@@ -293,9 +293,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                          <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-300 text-sm mb-4 space-y-4">
                             <div>
                                 1. פתח גיליון Google Sheet חדש.<br/>
-                                2. בתפריט העליון, בחר <b>Extensions</b> -> <b>Apps Script</b>.<br/>
+                                2. בתפריט העליון, בחר <b>Extensions</b> &rarr; <b>Apps Script</b>.<br/>
                                 3. מחק את כל הקוד שיש שם, והדבק את הקוד שמופיע בתיבה השחורה למטה.<br/>
-                                4. לחץ על כפתור <b>Deploy</b> (כחול למעלה) -> <b>New deployment</b>.<br/>
+                                4. לחץ על כפתור <b>Deploy</b> (כחול למעלה) &rarr; <b>New deployment</b>.<br/>
                                 5. בחר סוג: <b>Web App</b>.<br/>
                                 6. <b>חשוב מאוד:</b> בשדה <i>Who has access</i> בחר <b>Anyone</b>.<br/>
                                 7. לחץ Deploy, אשר הרשאות, והעתק את ה-URL שקיבלת (Web App URL).<br/>
