@@ -168,6 +168,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const filteredArticles = state.articles.filter(a => selectedCategory === 'ALL' || a.categories.includes(selectedCategory)).sort((a,b) => (a.order || 99) - (b.order || 99));
   const filteredTimelines = state.timelines.filter(t => selectedCategory === 'ALL' || t.category.includes(selectedCategory)).sort((a,b) => (a.order || 99) - (b.order || 99));
 
+  // Helper to ensure timeline tabs array exists
+  const ensureTimelineTabs = (item: TimelineItem) => {
+      if (!item.tabs) return [];
+      return item.tabs;
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 flex font-sans text-slate-200 overflow-hidden relative">
       <aside className={`fixed h-full right-0 z-50 w-64 bg-slate-900 border-l border-slate-800 flex flex-col transition-transform duration-300 transform ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}`}>
@@ -203,7 +209,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       <main className="flex-1 md:mr-64 p-4 md:p-8 overflow-y-auto min-h-screen">
         <div className="md:hidden flex justify-between items-center mb-6 bg-slate-900 p-4 rounded-xl border border-slate-800 sticky top-0 z-30 shadow-lg"><h3 className="font-bold text-white">תפריט ניהול</h3><button onClick={() => setMobileMenuOpen(true)} className="p-2 bg-slate-800 rounded text-[#2EB0D9] border border-slate-700"><Menu size={24} /></button></div>
 
-        {/* --- ARTICLES TAB --- */}
+        {/* ... (Previous tabs content remains the same) ... */}
         {activeTab === 'articles' && (
             <div className="space-y-8 animate-fade-in">
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl"><div className="flex flex-col md:flex-row gap-4"><input type="text" className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9]" placeholder="נושא למאמר..." value={newArticleTopic} onChange={(e) => setNewArticleTopic(e.target.value)} /><Button onClick={handleGenerateArticle} disabled={isGenerating} className="min-w-[150px]">{isGenerating ? <Loader2 className="animate-spin ml-2"/> : 'צור (AI)'}</Button></div></div>
@@ -217,11 +223,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 <h3 className="text-xl font-bold text-white mb-4">ניהול חדשות ועדכונים (Timeline)</h3>
                 <div className="flex gap-4 border-b border-slate-800 pb-4"><button onClick={() => setTimelineSubTab('slider')} className={`pb-2 px-4 font-bold ${timelineSubTab === 'slider' ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-500'}`}>סליידר ראשי</button><button onClick={() => setTimelineSubTab('cards')} className={`pb-2 px-4 font-bold ${timelineSubTab === 'cards' ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-500'}`}>עדכונים רצים</button></div>
                 {timelineSubTab === 'slider' && <div className="space-y-4">{state.slides.sort((a,b)=>(a.order||99)-(b.order||99)).map(slide => (<div key={slide.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex justify-between items-center"><div className="flex gap-4"><img src={slide.imageUrl} className="w-16 h-10 object-cover rounded"/><div className="flex flex-col"><span className="text-white">{slide.title}</span><span className="text-xs text-slate-500">Order: {slide.order || 99}</span></div></div><button onClick={() => setEditingSlide(slide)}><Edit size={16} className="text-white"/></button></div>))}</div>}
-                {timelineSubTab === 'cards' && <div className="space-y-4"><Button onClick={() => setEditingTimelineItem({ id: Date.now().toString(), title: '', description: '', imageUrl: 'https://picsum.photos/400/300', category: [Category.HOME], order: 99 })}><Plus size={16}/> עדכון חדש</Button><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{filteredTimelines.map(t => (<div key={t.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex justify-between"><div className="flex-1"><div className="text-white font-bold">{t.title}</div><div className="text-xs text-slate-500">Order: {t.order || 99}</div></div><button onClick={() => setEditingTimelineItem(t)}><Edit size={16}/></button></div>))}</div></div>}
+                {timelineSubTab === 'cards' && <div className="space-y-4"><Button onClick={() => setEditingTimelineItem({ id: Date.now().toString(), title: '', description: '', imageUrl: 'https://picsum.photos/400/300', category: [Category.HOME], order: 99, tabs: [] })}><Plus size={16}/> עדכון חדש</Button><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{filteredTimelines.map(t => (<div key={t.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex justify-between"><div className="flex-1"><div className="text-white font-bold">{t.title}</div><div className="text-xs text-slate-500">Order: {t.order || 99}</div></div><button onClick={() => setEditingTimelineItem(t)}><Edit size={16}/></button></div>))}</div></div>}
             </div>
         )}
 
-        {/* --- PAYMENTS & STORE TAB --- */}
+        {/* ... (Other tabs kept as is) ... */}
+        
         {activeTab === 'payments' && (
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-between items-center mb-6">
@@ -295,8 +302,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* ... (Other tabs) ... */}
-        {/* Forms Tab, Team Tab, Config Tab - No changes needed except keeping previous structure */}
+        {/* ... (Forms, Team, Config tabs - keeping existing content) ... */}
         {activeTab === 'forms' && (
              <div className="space-y-6 animate-fade-in">
                  <div className="flex justify-end"><Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', categories: [Category.POA], fields: [], submitEmail: '', pdfTemplate: 'NONE', order: 99 })}><Plus size={16}/> טופס חדש</Button></div>
@@ -317,7 +323,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                  {editingForm && (
                      <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
                          <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-3xl h-[90vh] flex flex-col">
-                             {/* ... Form Editor Content ... */}
                              <h3 className="font-bold text-white mb-4">עריכת טופס</h3>
                              <div className="flex-1 overflow-y-auto space-y-4 px-2">
                                  <div className="flex gap-2">
@@ -345,7 +350,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
              </div>
         )}
 
-        {/* ... (Team & Config) ... */}
         {activeTab === 'team' && (
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-end"><Button onClick={() => setEditingMember({ id: Date.now().toString(), fullName: '', role: '', specialization: '', email: '', phone: '', bio: '', imageUrl: 'https://picsum.photos/400/400', order: 99 })}><Plus size={16}/> איש צוות</Button></div>
@@ -359,7 +363,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* ... (Config tab - no major change needed) ... */}
         {activeTab === 'config' && (
              <div className="space-y-6 animate-fade-in">
                 <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800 max-w-2xl">
@@ -420,13 +423,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         </div>
       )}
       
-      {/* Timeline Item Editor Modal */}
+      {/* Timeline Item Editor Modal - Enhanced with Tabs */}
       {editingTimelineItem && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
-            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-md space-y-4">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl space-y-4 max-h-[90vh] overflow-y-auto">
                 <h3 className="font-bold text-white">עריכת עדכון חדשות</h3>
                 <input className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.title} onChange={e=>setEditingTimelineItem({...editingTimelineItem, title: e.target.value})} placeholder="כותרת"/>
-                <textarea className="w-full p-2 bg-slate-800 text-white rounded h-24" value={editingTimelineItem.description} onChange={e=>setEditingTimelineItem({...editingTimelineItem, description: e.target.value})} placeholder="תוכן"/>
+                <textarea className="w-full p-2 bg-slate-800 text-white rounded h-24" value={editingTimelineItem.description} onChange={e=>setEditingTimelineItem({...editingTimelineItem, description: e.target.value})} placeholder="תוכן ראשי (תקציר)"/>
                 <div className="flex gap-2">
                     <div className="flex-1"><label className="text-xs text-slate-500">תמונה (אופציונלי)</label><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.imageUrl} onChange={e=>setEditingTimelineItem({...editingTimelineItem, imageUrl: e.target.value})}/></div>
                     <div className="w-24"><label className="text-xs text-slate-500">סדר</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.order || 99} onChange={e=>setEditingTimelineItem({...editingTimelineItem, order: Number(e.target.value)})}/></div>
@@ -435,6 +438,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     <ImageUploadButton onImageSelected={(url) => setEditingTimelineItem({...editingTimelineItem, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
                     <Button onClick={()=>openImagePicker('timeline', editingTimelineItem.title)}><Search size={16}/></Button>
                 </div>
+
+                {/* Tabs Editor for Timeline */}
+                <div className="border-t border-slate-800 pt-4 mt-4">
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs text-slate-500 font-bold">תוכן מורחב (טאבים)</label>
+                        <button 
+                            onClick={() => setEditingTimelineItem({ ...editingTimelineItem, tabs: [...(editingTimelineItem.tabs || []), { title: 'חדש', content: '' }] })}
+                            className="text-xs text-[#2EB0D9] hover:underline"
+                        >
+                            + הוסף טאב
+                        </button>
+                    </div>
+                    <div className="space-y-3">
+                        {(editingTimelineItem.tabs || []).map((tab, idx) => (
+                            <div key={idx} className="bg-slate-950 p-2 rounded border border-slate-800">
+                                <div className="flex justify-between mb-1">
+                                    <input 
+                                        className="bg-transparent font-bold text-sm text-white w-full" 
+                                        value={tab.title} 
+                                        onChange={(e) => {
+                                            const newTabs = [...(editingTimelineItem.tabs || [])];
+                                            newTabs[idx].title = e.target.value;
+                                            setEditingTimelineItem({...editingTimelineItem, tabs: newTabs});
+                                        }}
+                                        placeholder="כותרת הטאב"
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            const newTabs = (editingTimelineItem.tabs || []).filter((_, i) => i !== idx);
+                                            setEditingTimelineItem({...editingTimelineItem, tabs: newTabs});
+                                        }}
+                                        className="text-red-400 hover:text-red-300"
+                                    >
+                                        <Trash size={14}/>
+                                    </button>
+                                </div>
+                                <textarea 
+                                    className="w-full bg-slate-900 p-2 rounded text-slate-300 text-xs h-20 border border-slate-800" 
+                                    value={tab.content} 
+                                    onChange={(e) => {
+                                        const newTabs = [...(editingTimelineItem.tabs || [])];
+                                        newTabs[idx].content = e.target.value;
+                                        setEditingTimelineItem({...editingTimelineItem, tabs: newTabs});
+                                    }}
+                                    placeholder="תוכן הטאב..."
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 <div className="flex gap-2"><Button onClick={handleSaveTimelineItem}>שמור</Button><Button variant="outline" onClick={()=>setEditingTimelineItem(null)}>ביטול</Button></div>
             </div>
         </div>

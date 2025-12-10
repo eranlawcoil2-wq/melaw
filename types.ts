@@ -35,7 +35,8 @@ export interface TimelineItem {
   imageUrl: string;
   category: Category[];
   linkTo?: string;
-  order?: number; // Added order
+  order?: number; 
+  tabs?: ArticleTab[]; // Added tabs support like articles
 }
 
 export interface ArticleTab {
@@ -73,7 +74,7 @@ export interface Product {
     description?: string;
     price: number;
     paymentLink: string; 
-    categories: Category[]; // Changed from single category to array
+    categories: Category[]; 
     imageUrl?: string;
     isPopular?: boolean;
     order?: number; // Added order

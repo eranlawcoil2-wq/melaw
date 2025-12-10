@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember, CATEGORY_LABELS } from '../types.ts';
+import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember, TimelineItem, CATEGORY_LABELS } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
@@ -38,6 +38,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const [activeSlide, setActiveSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [selectedTimelineItem, setSelectedTimelineItem] = useState<TimelineItem | null>(null); // New state for Timeline Modal
   const [showWillsModal, setShowWillsModal] = useState(false); 
   const [isSubmittingWill, setIsSubmittingWill] = useState(false); 
   const [activeArticleTab, setActiveArticleTab] = useState(0); 
@@ -77,13 +78,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const currentCategoryForms = state.forms.filter(f => f.categories && f.categories.includes(state.currentCategory)).sort((a, b) => (a.order || 99) - (b.order || 99));
   const teamMembers = state.teamMembers.sort((a, b) => (a.order || 99) - (b.order || 99));
   
-  // Updated Product Logic: Check if current category is in the product's categories array
+  // Updated Product Logic
   const storeProducts = (state.products || []).filter(p => {
-      // If product has new 'categories' array
       if (p.categories) {
           return state.currentCategory === Category.STORE || p.categories.includes(state.currentCategory);
       }
-      // Fallback for old data
       return state.currentCategory === Category.STORE || (p as any).category === state.currentCategory;
   }).sort((a, b) => (a.order || 99) - (b.order || 99));
 
@@ -99,7 +98,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       }
   }, [selectedArticle]);
 
-  const handleTimelineClick = (item: any) => {
+  // Handle Timeline Click - Updated to open modal for content items
+  const handleTimelineClick = (item: TimelineItem) => {
     if (item.linkTo === 'wills-generator') {
         setShowWillsModal(true); 
     } else if (item.linkTo && item.linkTo.startsWith('form-')) {
@@ -107,6 +107,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         setActiveDynamicFormId(formId);
         setDynamicFormValues({});
         setTimeout(() => { dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100);
+    } else {
+        // Open the Timeline Modal
+        setSelectedTimelineItem(item);
+        setActiveArticleTab(0); // reuse tab state for timeline
     }
   };
   
@@ -114,7 +118,6 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       if (product.paymentLink) {
           window.open(product.paymentLink, '_blank');
       } else {
-          // Fallback to contact or form if no link
           alert(`לרכישת "${product.title}" אנא צור קשר.`);
       }
   };
@@ -149,25 +152,19 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const currentDynamicForm = state.forms.find(f => f.id === activeDynamicFormId);
   const activeTabContent = selectedArticle?.tabs?.[activeArticleTab]?.content || "";
   
-  // Related articles logic
   const relatedArticles = selectedArticle ? state.articles.filter(a => a.id !== selectedArticle.id && a.categories.some(c => selectedArticle.categories.includes(c))).slice(0, 4) : [];
 
-  // --- PAGE LOGIC FLAGS ---
   const isContactPage = state.currentCategory === Category.CONTACT;
   const isStorePage = state.currentCategory === Category.STORE;
   const isHomePage = state.currentCategory === Category.HOME;
-  
-  // Logic: "Legal Page" is any page that is NOT Home, Contact or Store (e.g. Wills, Real Estate)
   const isLegalPage = !isHomePage && !isStorePage && !isContactPage;
 
-  // VISIBILITY FLAGS based on User Requirements
-  const showTeamSection = isHomePage; // Only on Home
-  const showTimelineSection = !isContactPage; // Show on Home and Legal pages, but NOT Contact
-  const showProductsSection = (isLegalPage || isStorePage); // Show on Legal Pages (instead of team) and Store
-  const showArticlesGrid = !isContactPage; // Show on Home, Legal, Store
-  const showGlobalFooter = !isContactPage; // Hide on Contact Page
+  const showTeamSection = isHomePage;
+  const showTimelineSection = !isContactPage;
+  const showProductsSection = (isLegalPage || isStorePage);
+  const showArticlesGrid = !isContactPage;
+  const showGlobalFooter = !isContactPage;
 
-  // Determine if we should show the "Forms" button (Dynamic Forms OR Wills Generator logic)
   const hasWillsGenerator = state.currentCategory === Category.WILLS;
   const hasDynamicForms = currentCategoryForms.length > 0;
   const showFormsButton = (hasDynamicForms || hasWillsGenerator) && !isContactPage && !isStorePage && !isHomePage;
@@ -189,7 +186,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           <div className="absolute bottom-[20%] left-[-5%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] animate-float-slow" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      {/* --- Article Modal (Updated with Related Articles) --- */}
+      {/* --- Article Modal --- */}
       {selectedArticle && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setSelectedArticle(null)}></div>
@@ -210,15 +207,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             ))}
                         </div>
                     </div>
-                    {/* SCROLLABLE CONTAINER */}
                     <div ref={articleContentTopRef} className="flex-1 overflow-y-auto scrollbar-hide flex flex-col">
                         <div className="p-6 md:p-8 flex-1 flex flex-col min-h-full">
-                            {/* TEXT CONTENT */}
                             <div className={`prose max-w-none leading-relaxed text-lg mb-8 flex-1 ${theme.textMain}`}>
                                 {activeTabContent.split('\n').map((paragraph, i) => (<p key={i} className="mb-4">{paragraph}</p>))}
                             </div>
-                            
-                            {/* RELATED ARTICLES - PUSHED TO BOTTOM */}
                             {relatedArticles.length > 0 && (
                                 <div className="mt-auto pt-8 border-t border-dashed border-slate-700">
                                     <h4 className="font-bold text-lg mb-4 text-[#2EB0D9]">מאמרים נוספים בנושא</h4>
@@ -241,8 +234,45 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         </div>
       )}
 
-      {/* ... Rest of the modals (Wills, Team, etc.) same as before ... */}
-      
+      {/* --- Timeline Modal (Simpler Article) --- */}
+      {selectedTimelineItem && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSelectedTimelineItem(null)}></div>
+            <div className={`rounded-xl shadow-2xl w-full max-w-3xl h-[80vh] flex flex-col relative z-10 animate-fade-in-up border ${theme.modalBg}`}>
+                <div className={`p-4 border-b flex justify-between items-center ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+                    <div>
+                        <h2 className={`text-xl font-black ${theme.textTitle}`}>{selectedTimelineItem.title}</h2>
+                        <span className="text-xs text-[#2EB0D9] uppercase tracking-wider">עדכון / פסיקה</span>
+                    </div>
+                    <button onClick={() => setSelectedTimelineItem(null)} className={`p-2 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={24} /></button>
+                </div>
+                
+                {/* Tabs for Timeline */}
+                {selectedTimelineItem.tabs && selectedTimelineItem.tabs.length > 0 ? (
+                    <>
+                        <div className={`px-4 pt-4 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+                            <div className={`flex gap-2 border-b overflow-x-auto scrollbar-hide ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+                                {selectedTimelineItem.tabs.map((tab, idx) => (
+                                    <button key={idx} onClick={() => setActiveArticleTab(idx)} className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap ${activeArticleTab === idx ? 'bg-[#2EB0D9] text-white' : `${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'}`}`}>{tab.title}</button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <div className={`prose max-w-none leading-relaxed text-lg ${theme.textMain}`}>
+                                {selectedTimelineItem.tabs[activeArticleTab]?.content?.split('\n').map((p, i) => <p key={i} className="mb-3">{p}</p>)}
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    // Fallback if no tabs
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <p className={`text-lg leading-relaxed ${theme.textMain}`}>{selectedTimelineItem.description}</p>
+                    </div>
+                )}
+            </div>
+        </div>
+      )}
+
       {showWillsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setShowWillsModal(false)}></div>
@@ -266,10 +296,37 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       {selectedTeamMember && (
          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setSelectedTeamMember(null)}></div>
-             <div className={`rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
+             {/* UPDATED TEAM MEMBER MODAL for better mobile scrolling and actions */}
+             <div className={`rounded-2xl shadow-2xl w-full max-w-3xl h-full md:h-auto md:max-h-[85vh] overflow-hidden relative z-10 flex flex-col md:flex-row animate-fade-in-up border ${theme.modalBg}`}>
                  <button onClick={() => setSelectedTeamMember(null)} className="absolute top-4 left-4 z-20 p-2 bg-black/50 rounded-full hover:bg-black/70 text-white"><X size={20} /></button>
-                 <div className="md:w-2/5 h-64 md:h-auto relative"><img src={selectedTeamMember.imageUrl} className="w-full h-full object-cover opacity-90" /></div>
-                 <div className={`md:w-3/5 p-8 flex flex-col justify-center ${theme.textMain}`}><span className="text-[#2EB0D9] font-bold text-sm mb-1">{selectedTeamMember.role}</span><h2 className={`text-3xl font-black mb-2 ${theme.textTitle}`}>{selectedTeamMember.fullName}</h2><p className={`leading-relaxed text-sm p-4 rounded-lg border mb-4 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>{selectedTeamMember.bio || 'אין מידע נוסף.'}</p><div className="space-y-2 text-sm"><div className="flex items-center gap-2"><Mail size={16} className="text-[#2EB0D9]"/> <span>{selectedTeamMember.email}</span></div><div className="flex items-center gap-2"><Phone size={16} className="text-[#2EB0D9]"/> <span dir="ltr">{selectedTeamMember.phone}</span></div></div></div>
+                 <div className="md:w-2/5 h-64 md:h-auto relative flex-shrink-0"><img src={selectedTeamMember.imageUrl} className="w-full h-full object-cover opacity-90" /></div>
+                 
+                 {/* Main Content Area - Scrollable */}
+                 <div className={`flex-1 flex flex-col overflow-hidden`}>
+                     <div className={`p-8 overflow-y-auto ${theme.textMain}`}>
+                         <span className="text-[#2EB0D9] font-bold text-sm mb-1">{selectedTeamMember.role}</span>
+                         <h2 className={`text-3xl font-black mb-2 ${theme.textTitle}`}>{selectedTeamMember.fullName}</h2>
+                         <p className={`leading-relaxed text-sm p-4 rounded-lg border mb-4 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>{selectedTeamMember.bio || 'אין מידע נוסף.'}</p>
+                         
+                         {/* Action Buttons for Mobile */}
+                         <div className="space-y-3 mt-auto">
+                             <a href={`mailto:${selectedTeamMember.email}`} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors hover:bg-[#2EB0D9]/10 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                                 <div className="p-2 bg-[#2EB0D9]/20 rounded-full text-[#2EB0D9]"><Mail size={18}/></div>
+                                 <div className="flex flex-col">
+                                     <span className="text-xs text-slate-500">שלח מייל</span>
+                                     <span className="font-bold text-sm">{selectedTeamMember.email}</span>
+                                 </div>
+                             </a>
+                             <a href={`tel:${selectedTeamMember.phone}`} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors hover:bg-[#2EB0D9]/10 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                                 <div className="p-2 bg-[#2EB0D9]/20 rounded-full text-[#2EB0D9]"><Phone size={18}/></div>
+                                 <div className="flex flex-col">
+                                     <span className="text-xs text-slate-500">חייג ישירות</span>
+                                     <span className="font-bold text-sm" dir="ltr">{selectedTeamMember.phone}</span>
+                                 </div>
+                             </a>
+                         </div>
+                     </div>
+                 </div>
              </div>
          </div>
       )}
@@ -278,27 +335,41 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       {showLegalDisclaimer && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fade-in">
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowLegalDisclaimer(false)}></div>
-              <div className={`relative z-10 max-w-2xl w-full p-8 rounded-2xl shadow-2xl border border-slate-700 bg-slate-900`}>
+              <div className={`relative z-10 max-w-3xl w-full p-8 rounded-2xl shadow-2xl border border-slate-700 bg-slate-900 max-h-[90vh] flex flex-col`}>
                   <button onClick={() => setShowLegalDisclaimer(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white"><X size={24}/></button>
-                  <div className="flex items-center gap-3 mb-6 text-yellow-500">
+                  <div className="flex items-center gap-3 mb-6 text-yellow-500 flex-shrink-0">
                       <AlertOctagon size={32} />
-                      <h2 className="text-2xl font-black">הצהרת פרטיות ופטור מאחריות</h2>
+                      <h2 className="text-2xl font-black">תנאי שימוש והצהרת פרטיות</h2>
                   </div>
-                  <div className="space-y-4 text-slate-300 leading-relaxed text-sm h-64 overflow-y-auto pr-2 custom-scrollbar">
-                      <p><strong>1. כללי</strong><br/>השימוש באתר זה, לרבות השימוש במחולל הצוואות, הטפסים המקוונים והמידע המשפטי המופיע בו, הינו באחריות המשתמש בלבד.</p>
-                      <p><strong>2. היעדר ייעוץ משפטי מחייב</strong><br/>המידע המוצג באתר אינו מהווה תחליף לייעוץ משפטי אישי ומקצועי. כל מקרה לגופו, והסתמכות על המידע באתר מבלי להיוועץ בעורך דין היא על אחריות המשתמש בלבד.</p>
-                      <p><strong>3. פטור מאחריות לניסוחים</strong><br/>משרד {state.config.officeName} ו/או מי מטעמו אינם אחראים לטיב, חוקיות או תקפות המסמכים (כגון צוואות או ייפוי כוח) המופקים באופן אוטומטי דרך האתר. המסמכים מופקים על בסיס הנתונים שהוזנו על ידי המשתמש, ללא בדיקה משפטית אנושית בזמן אמת.</p>
-                      <p><strong>4. פרטיות</strong><br/>אנו מכבדים את פרטיותך. המידע המוזן נשמר בשרתים מאובטחים ומשמש אך ורק לצורך מתן השירות המבוקש. לא נעביר מידע לצד ג' ללא הסכמתך, למעט כנדרש בחוק.</p>
-                      <p><strong>5. הסכמה</strong><br/>עצם השימוש באתר מהווה הסכמה לתנאים אלו.</p>
+                  <div className="space-y-4 text-slate-300 leading-relaxed text-sm overflow-y-auto pr-2 custom-scrollbar flex-1">
+                      <p className="font-bold text-white">1. כללי</p>
+                      <p>השימוש באתר זה ("האתר") ובשירותים המוצעים בו, לרבות מחולל הצוואות והטפסים המקוונים, כפוף לתנאי השימוש המפורטים להלן. הגלישה באתר ושימוש בשירותיו מהווה הסכמה מלאה ובלתי מסויגת לתנאים אלו.</p>
+                      
+                      <p className="font-bold text-white">2. היעדר ייעוץ משפטי מחייב</p>
+                      <p>התכנים, המאמרים, והמידע המופיעים באתר נועדו למטרות אינפורמטיביות בלבד ואינם מהווים ייעוץ משפטי, חוות דעת מקצועית או תחליף להתייעצות עם עורך דין. כל שימוש במידע זה נעשה על אחריות המשתמש בלבד. אין להסתמך על המידע באת לצורך קבלת החלטות משפטיות או אחרות ללא קבלת ייעוץ אישי המתחשב בנסיבות הספציפיות.</p>
+                      
+                      <p className="font-bold text-white">3. אחריות על מסמכים אוטומטיים</p>
+                      <p>מחולל הצוואות והטפסים באתר מפיק מסמכים על בסיס הנתונים המוזנים על ידי המשתמש. משרד עורכי הדין ו/או מפעילי האתר אינם בודקים את הנתונים המוזנים ואינם אחראים לנכונותם, חוקיותם או תקפותם המשפטית של המסמכים המופקים באופן זה. האחריות על בדיקת המסמך הסופי מוטלת על המשתמש.</p>
+                      
+                      <p className="font-bold text-white">4. קניין רוחני</p>
+                      <p>כל זכויות הקניין הרוחני באתר, לרבות עיצובו, קוד המקור, תכנים טקסטואליים, לוגו ושם המשרד, שמורות למשרד {state.config.officeName}. אין להעתיק, לשכפל, להפיץ או לעשות כל שימוש מסחרי בתכנים ללא אישור בכתב ומראש.</p>
+                      
+                      <p className="font-bold text-white">5. הגבלת אחריות</p>
+                      <p>מפעילי האתר לא יישאו בכל אחריות לכל נזק, ישיר או עקיף, שייגרם למשתמש או לצד שלישי כלשהו כתוצאה משימוש באתר, אי-זמינות האתר, או הסתמכות על תכניו.</p>
+                      
+                      <p className="font-bold text-white">6. מדיניות פרטיות</p>
+                      <p>אנו מכבדים את פרטיותך. המידע האישי שיימסר על ידך (כגון שם, טלפון, דוא"ל) יישמר במאגרי המידע של המשרד וישמש לצורך יצירת קשר ומתן השירותים המבוקשים בלבד. המשרד נוקט באמצעי אבטחה מקובלים אך אינו יכול להבטיח חסינות מוחלטת מפני חדירה למחשביו.</p>
                   </div>
-                  <div className="mt-6 pt-4 border-t border-slate-800 text-center">
+                  <div className="mt-6 pt-4 border-t border-slate-800 text-center flex-shrink-0">
                       <Button onClick={() => setShowLegalDisclaimer(false)} className="w-full">קראתי ואני מסכים</Button>
                   </div>
               </div>
           </div>
       )}
 
+      {/* Header, Main, Footer sections same as before, just rendering `selectedTimelineItem` logic added above */}
       <header className={`fixed top-0 left-0 right-0 backdrop-blur-md shadow-lg z-40 h-20 transition-all border-b ${theme.headerBg}`}>
+        {/* ... Header content ... */}
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
           <div className="flex items-center gap-4"><h1 className="text-lg md:text-xl font-black tracking-wide cursor-pointer leading-none" onClick={() => onCategoryChange(Category.HOME)} style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}><span className="block text-[#2EB0D9] drop-shadow-md">MOR ERAN KAGAN</span><span className={`${theme.textMuted} text-sm tracking-widest font-sans font-normal`}>& CO</span></h1></div>
           <nav className="hidden md:flex items-center gap-6">{state.menuItems.map(item => (<button key={item.id} onClick={() => onCategoryChange(item.cat)} className={`text-sm font-medium transition-colors border-b-2 hover:text-[#2EB0D9] ${state.currentCategory === item.cat ? 'text-[#2EB0D9] border-[#2EB0D9]' : `${theme.textMuted} border-transparent`}`}>{item.label}</button>))}<div className={`w-px h-6 mx-2 ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}></div><button className={`${theme.textMuted} hover:text-[#2EB0D9]`}><Search size={20}/></button></nav>
@@ -374,7 +445,6 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
 
-        {/* ... Rest of the components (Timeline, Dynamic Form, etc.) ... */}
         {/* NEWS & UPDATES (TIMELINE) - HOME & LEGAL PAGES */}
         {showTimelineSection && (
             <Reveal className={`py-20 relative border-b ${isDark ? 'border-slate-800/50' : 'border-slate-100'}`} delay={200}>
@@ -386,6 +456,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         {/* DYNAMIC FORM RENDERER */}
         {currentDynamicForm && (
             <div ref={dynamicFormRef} className={`mb-20 container mx-auto px-4 rounded-2xl p-8 md:p-12 shadow-2xl border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
+                 {/* ... Form Content ... */}
                  <div className="max-w-2xl mx-auto">
                      <div className="flex justify-between items-start mb-6"><div><h3 className={`text-3xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3><p className={theme.textMuted}>נא למלא את כל השדות הנדרשים</p></div><button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X size={32}/></button></div>
                      <div className={`space-y-6 p-8 rounded-xl border shadow-inner ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>

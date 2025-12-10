@@ -8,7 +8,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v2.5';
+const APP_VERSION = 'v2.6';
 
 // ============================================================================
 // הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש
@@ -75,10 +75,52 @@ const initialArticles: Article[] = [
 ];
 
 const initialTimelines: TimelineItem[] = [
-    { id: 'gen-wills', title: 'מחולל הצוואות הדיגיטלי', description: 'ערכו צוואה תקפה משפטית ב-5 דקות ללא עלות ראשונית.', imageUrl: 'https://picsum.photos/id/452/400/300', category: [Category.HOME, Category.WILLS], linkTo: 'wills-generator', order: 1 },
-    { id: '1', title: 'עדכון פסיקה: ירושה', description: 'בית המשפט העליון קבע הלכה חדשה בנוגע לפרשנות צוואות שנערכו בכתב יד.', imageUrl: 'https://picsum.photos/id/106/400/300', category: [Category.HOME, Category.WILLS], order: 2 },
-    { id: '2', title: 'המדריך לייפוי כוח', description: 'כל מה שצריך לדעת לפני שממנים מיופה כוח מתמשך.', imageUrl: 'https://picsum.photos/id/109/400/300', category: [Category.HOME, Category.POA], order: 3 },
-    { id: '3', title: 'מיסוי דירות מגורים', description: 'האם כדאי להעביר דירה במתנה לילדים? שיקולי מס שבח ומס רכישה.', imageUrl: 'https://picsum.photos/id/123/400/300', category: [Category.HOME, Category.REAL_ESTATE], order: 4 },
+    { 
+        id: 'gen-wills', 
+        title: 'מחולל הצוואות הדיגיטלי', 
+        description: 'ערכו צוואה תקפה משפטית ב-5 דקות ללא עלות ראשונית.', 
+        imageUrl: 'https://picsum.photos/id/452/400/300', 
+        category: [Category.HOME, Category.WILLS], 
+        linkTo: 'wills-generator', 
+        order: 1,
+        tabs: []
+    },
+    { 
+        id: '1', 
+        title: 'עדכון פסיקה: ירושה', 
+        description: 'בית המשפט העליון קבע הלכה חדשה בנוגע לפרשנות צוואות שנערכו בכתב יד.', 
+        imageUrl: 'https://picsum.photos/id/106/400/300', 
+        category: [Category.HOME, Category.WILLS], 
+        order: 2,
+        tabs: [
+            { title: "תמצית הפסיקה", content: "בית המשפט העליון קבע כי כאשר כוונת המצווה ברורה, יש להעדיף קיום צוואה גם אם נפלו בה פגמים צורניים קלים." },
+            { title: "משמעות מעשית", content: "החלטה זו מחזקת את עקרון 'מצווה לקיים דברי המת' ומפחיתה את המשקל של טענות פרוצדורליות בהתנגדויות לצוואה." }
+        ]
+    },
+    { 
+        id: '2', 
+        title: 'המדריך לייפוי כוח', 
+        description: 'כל מה שצריך לדעת לפני שממנים מיופה כוח מתמשך.', 
+        imageUrl: 'https://picsum.photos/id/109/400/300', 
+        category: [Category.HOME, Category.POA], 
+        order: 3,
+        tabs: [
+            { title: "מהו יפוי כוח?", content: "כלי משפטי המאפשר לאדם לתכנן את עתידו ולקבוע מי יקבל החלטות עבורו." },
+            { title: "מתי נכנס לתוקף?", content: "רק כאשר האדם אינו מסוגל עוד להבין בדבר ולקבל החלטות בעצמו, לפי חוות דעת רפואית." }
+        ]
+    },
+    { 
+        id: '3', 
+        title: 'מיסוי דירות מגורים', 
+        description: 'האם כדאי להעביר דירה במתנה לילדים? שיקולי מס שבח ומס רכישה.', 
+        imageUrl: 'https://picsum.photos/id/123/400/300', 
+        category: [Category.HOME, Category.REAL_ESTATE], 
+        order: 4,
+        tabs: [
+            { title: "מס רכישה", content: "העברה לקרוב משפחה חייבת ב-1/3 ממס הרכישה הרגיל." },
+            { title: "מס שבח", content: "יש לשים לב לתקופת הצינון הנדרשת לפני שהמקבל יוכל למכור את הדירה בפטור ממס." }
+        ]
+    },
 ];
 
 const initialSlides: SliderSlide[] = [
@@ -130,7 +172,7 @@ const initialTeamMembers: TeamMember[] = [
         email: 'mor@melaw.co.il',
         phone: '050-1111111',
         imageUrl: 'https://picsum.photos/id/338/400/400',
-        bio: 'בעלת ותק של 15 שנה בתחום דיני המשפחה והירושה. מתמחה בפתרון סכסוכים מורכבים וגישור.',
+        bio: 'בעלת ותק של 15 שנה בתחום דיני המשפחה והירושה. מתמחה בפתרון סכסוכים מורכבים וגישור. בוגרת הפקולטה למשפטים באוניברסיטת תל אביב בהצטיינות.',
         order: 1
     },
     {
@@ -226,6 +268,20 @@ const App: React.FC = () => {
             });
         }
         
+        // Migrate Timeline Items to have tabs if missing
+        if (parsed.timelines) {
+            parsed.timelines = parsed.timelines.map((t: any) => {
+                if (!t.tabs) {
+                    // Create default tab from description if tabs are missing
+                    return { 
+                        ...t, 
+                        tabs: t.description ? [{ title: "מידע כללי", content: t.description }] : [] 
+                    };
+                }
+                return t;
+            });
+        }
+
         // Migrate Forms Category -> Categories[]
         if (parsed.forms && parsed.forms.length > 0) {
             parsed.forms = parsed.forms.map((f: any) => {
