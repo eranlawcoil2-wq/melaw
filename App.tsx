@@ -7,7 +7,14 @@ import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v1.8';
+const APP_VERSION = 'v1.9.2';
+
+// ============================================================================
+// הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש
+// ============================================================================
+const PUBLIC_SUPABASE_URL: string = 'https://kqjmwwjafypkswkkbncc.supabase.co'; 
+const PUBLIC_SUPABASE_KEY: string = 'sb_publishable_ftgAGUontmVJ-BfgzfQJsA_n7npD__t';
+// ============================================================================
 
 // --- INITIAL DEFAULT DATA (Fallback) ---
 const initialArticles: Article[] = [
@@ -160,8 +167,8 @@ const defaultState: AppState = {
         theme: 'dark', 
         adminPassword: 'admin',
         integrations: {
-            supabaseUrl: '', // To be filled by user
-            supabaseKey: '', // To be filled by user
+            supabaseUrl: PUBLIC_SUPABASE_URL, // Use hardcoded/env value by default
+            supabaseKey: PUBLIC_SUPABASE_KEY, // Use hardcoded/env value by default
             geminiApiKey: 'AIzaSyBQkmjb1vw20e90bCMBK0eWC9pA6e05Le0',
             unsplashAccessKey: '',
             googleSheetsUrl: '',
@@ -213,10 +220,31 @@ const App: React.FC = () => {
             });
         }
 
+        // --- PUBLIC KEYS INJECTION (Fix for public users having empty keys) ---
+        // If the saved state has empty Supabase keys, but we have hardcoded ones, inject them.
+        const currentSupabaseUrl = parsed.config?.integrations?.supabaseUrl;
+        const currentSupabaseKey = parsed.config?.integrations?.supabaseKey;
+
+        // Check if user has real keys (not the placeholder text)
+        const hasHardcodedKeys = PUBLIC_SUPABASE_URL && PUBLIC_SUPABASE_URL !== 'הדבק_כאן_את_ה_URL_שלך' && PUBLIC_SUPABASE_KEY && PUBLIC_SUPABASE_KEY !== 'הדבק_כאן_את_ה_KEY_שלך';
+        
+        // Force update if saved keys are missing but hardcoded ones exist
+        const shouldUseHardcoded = (!currentSupabaseUrl || !currentSupabaseKey) && hasHardcodedKeys;
+
         return {
            ...defaultState,
            ...parsed,
-           config: { ...defaultState.config, ...parsed.config, integrations: { ...defaultState.config.integrations, ...parsed.config?.integrations } },
+           config: { 
+               ...defaultState.config, 
+               ...parsed.config, 
+               integrations: { 
+                   ...defaultState.config.integrations, 
+                   ...parsed.config?.integrations,
+                   // Force inject hardcoded keys if missing in storage or if overridden by code
+                   supabaseUrl: shouldUseHardcoded ? PUBLIC_SUPABASE_URL : (parsed.config?.integrations?.supabaseUrl || PUBLIC_SUPABASE_URL),
+                   supabaseKey: shouldUseHardcoded ? PUBLIC_SUPABASE_KEY : (parsed.config?.integrations?.supabaseKey || PUBLIC_SUPABASE_KEY),
+               } 
+           },
            isAdminLoggedIn: false, 
            // Ensure Store is default if not set
            currentCategory: parsed.currentCategory || Category.STORE 
@@ -242,10 +270,14 @@ const App: React.FC = () => {
   // --- SUPABASE SYNC ON STARTUP ---
   useEffect(() => {
     const initSupabase = async () => {
-        // Priority 1: Check if Supabase keys exist in the current state
+        // Priority 1: Check if Supabase keys exist in the current state (either from storage or hardcoded)
         const { supabaseUrl, supabaseKey } = appState.config.integrations;
         
-        if (supabaseUrl && supabaseKey) {
+        // Validation to ensure we don't try to connect with placeholder text
+        const isValidUrl = supabaseUrl && supabaseUrl.startsWith('http');
+        const isValidKey = supabaseKey && supabaseKey.length > 20;
+
+        if (isValidUrl && isValidKey) {
             setLoadingCloud(true);
             const dbData = await dbService.loadState(supabaseUrl, supabaseKey);
             if (dbData) {
@@ -259,13 +291,16 @@ const App: React.FC = () => {
                     // Preserve session
                     isAdminLoggedIn: prev.isAdminLoggedIn,
                     currentCategory: prev.currentCategory,
-                    // IMPORTANT: Preserve API keys if they were somehow missing in cloud but present locally
+                    // IMPORTANT: Preserve API keys if they were somehow missing in cloud but present locally/hardcoded
                     config: {
                         ...prev.config,
                         ...dbData.config,
                         integrations: {
                             ...prev.config.integrations,
-                            ...(dbData.config?.integrations || {})
+                            ...(dbData.config?.integrations || {}),
+                            // Ensure we don't lose the keys if the DB version has them empty
+                            supabaseUrl: dbData.config?.integrations?.supabaseUrl || prev.config.integrations.supabaseUrl,
+                            supabaseKey: dbData.config?.integrations?.supabaseKey || prev.config.integrations.supabaseKey,
                         }
                     }
                 }));
