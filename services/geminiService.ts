@@ -16,63 +16,53 @@ const getAiClient = (apiKey: string) => {
 
 export const generateArticleContent = async (topic: string, category: Category | 'ALL', apiKey: string): Promise<Partial<Article>> => {
   
-  // Internal Mock Generator
-  const getMockResponse = () => ({
+  // Internal Mock Generator (Fallback)
+  const getMockResponse = (errorMsg?: string) => ({
       title: topic,
-      abstract: `זהו תקציר שנוצר אוטומטית (מצב דמו/גיבוי) עבור הנושא: "${topic}". לא ניתן היה ליצור קשר עם מודל ה-AI כרגע. אנא בדוק את מפתח ה-API.`,
+      abstract: `(שגיאה ביצירה: ${errorMsg || 'סיבה לא ידועה'}) - זהו טקסט דמו.`,
       quote: "המשפט הוא מעוז החלש ומגן היתום.",
       tabs: [
-        { title: "ניתוח משפטי", content: `בחלק זה נסקור את העקרונות הרלוונטיים לנושא ${topic} בצורה בהירה ומקצועית. (תוכן דמו).` },
-        { title: "סיפור מקרה", content: "מקרה שהיה: בני זוג שלא ערכו הסכם ונאלצו להתמודד עם..." },
-        { title: "המלצות", content: "• סעיף ראשון חשוב\n• סעיף שני חשוב" }
+        { title: "ניתוח משפטי", content: `לא הצלחנו ליצור קשר עם ה-AI. השגיאה שהתקבלה: ${errorMsg}` },
+        { title: "סיפור מקרה", content: "..." },
+        { title: "המלצות", content: "..." }
       ]
   });
 
-  // If no key provided, return mock immediately without error
-  if (!apiKey || apiKey === 'demo' || apiKey.length < 10) {
-      return getMockResponse();
+  // Validation
+  if (!apiKey || apiKey.trim() === '') {
+      throw new Error("חסר מפתח API. אנא הגדר מפתח Gemini בלוח הבקרה בלשונית 'חיבורים'.");
   }
 
   const ai = getAiClient(apiKey);
   if (!ai) {
-      console.error("Could not initialize Gemini Client");
-      return getMockResponse();
+      throw new Error("שגיאה באתחול מנוע ה-AI.");
   }
 
   const prompt = `
-      אתה שותף בכיר ומנוסה במשרד עורכי דין מוביל בישראל (Senior Partner).
-      המשימה שלך: לכתוב מאמר משפטי מעמיק, חד, פרקטי ובעל ערך מוסף אמיתי בנושא: "${topic}".
+      אתה שותף בכיר ומנוסה במשרד עורכי דין מוביל בישראל.
+      כתוב מאמר משפטי מקצועי בנושא: "${topic}".
       
-      המאמר חייב לשדר מקצועיות עליונה, שליטה מוחלטת בחוק הישראלי ובפסיקה העדכנית.
-      אל תכתוב סיסמאות שיווקיות שטחיות. כתוב ניתוח משפטי שנותן ערך לקורא אינטליגנטי.
+      הנחיות:
+      1. כתוב בעברית רהוטה, משפטית אך ברורה.
+      2. צטט חוקים ישראליים רלוונטיים (חוק הירושה, חוק המקרקעין וכו').
+      3. המבנה חייב להיות בפורמט JSON בלבד לפי הסכמה למטה.
       
-      הנחיות קריטיות לתוכן (חובה):
-      1. **עומק משפטי אמיתי:** נתח את הסוגיה לעומק. הצג את המורכבות, את החריגים לכלל, ואת הניואנסים הקטנים.
-      2. **חובה לצטט מקורות:** חובה לציין במפורש שמות של חוקים רלוונטיים (למשל: "סעיף 8א לחוק הירושה, תשכ"ה-1965", "חוק המקרקעין", "תקנות סדר הדין האזרחי") ופסקי דין מרכזיים אם רלוונטי (למשל: "הלכת השיתוף", "פס"ד ורד פרי").
-      3. **אורך ועושר:** חלק הניתוח המשפטי חייב להיות מפורט (לפחות 3-4 פסקאות מלאות).
-      4. **טון:** סמכותי, חד, אינטליגנטי, אך מוסבר בבהירות.
-      
-      מבנה התשובה הנדרש (JSON בלבד):
-      
-      1. **Abstract (תקציר):** פתיח חזק של 4-5 משפטים שמסביר את הבעיה המשפטית, החידוש או החשיבות שלה.
-      2. **Quote (ציטוט):** משפט מחץ קצר או פתגם משפטי שקשור לנושא.
-      3. **Tab 1 - "ניתוח משפטי מעמיק":**
-         - זהו הלב של המאמר. כתוב כאן טקסט ארוך ומפורט.
-         - הסבר את לשון החוק הספציפית.
-         - הסבר את הפרשנות המשפטית המקובלת בבתי המשפט.
-         - ציין חריגים וסייגים לחוק.
-      4. **Tab 2 - "סיפור מקרה (Case Study)":**
-         - כתוב סיפור ריאליסטי ומפורט על לקוח שהגיע למשרד עם בעיה בנושא זה.
-         - תאר את הקונפליקט, את הטעות שעשה (או כמעט עשה), ואת הפתרון המשפטי שניתן באמצעות סעיפי החוק הספציפיים.
-      5. **Tab 3 - "המלצות וסיכום":**
-         - רשימה ממוקדת של 4-5 המלצות פרקטיות ("עשה ואל תעשה").
-         - סיכום קצר.
-
-      Output MUST be a valid JSON object matching the schema.
+      Structure:
+      {
+        "title": "כותרת שיווקית ומשפטית",
+        "abstract": "תקציר של 3-4 משפטים (Abstract)",
+        "quote": "ציטוט משפטי קצר ומחכים",
+        "tabs": [
+           { "title": "ניתוח משפטי", "content": "הסבר מעמיק, סעיפי חוק, פסיקה רלוונטית" },
+           { "title": "סיפור מקרה", "content": "תיאור מקרה של לקוח והפתרון המשפטי" },
+           { "title": "המלצות", "content": "רשימת המלצות פרקטיות ללקוח" }
+        ]
+      }
   `;
 
   const config = {
     responseMimeType: "application/json",
+    // We use a looser schema to prevent validation errors on the model side
     responseSchema: {
       type: Type.OBJECT,
       properties: {
@@ -93,41 +83,55 @@ export const generateArticleContent = async (topic: string, category: Category |
     }
   };
 
-  // Helper to parse response
   const parseResponse = (response: any) => {
       if (response.text) {
         let cleanText = response.text.trim();
-        // Remove Markdown Code Blocks
-        if (cleanText.startsWith('```json')) cleanText = cleanText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-        else if (cleanText.startsWith('```')) cleanText = cleanText.replace(/^```\s*/, "").replace(/\s*```$/, "");
-        return JSON.parse(cleanText);
+        // Clean up markdown formatting if present
+        cleanText = cleanText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "");
+        try {
+            return JSON.parse(cleanText);
+        } catch (e) {
+            console.error("JSON Parse Error", cleanText);
+            throw new Error("המודל החזיר תשובה שאינה בפורמט תקין.");
+        }
       }
-      throw new Error("Empty text in response");
+      throw new Error("התקבלה תשובה ריקה מהמודל.");
   };
 
-  // TRY PRIMARY MODEL (gemini-2.5-flash)
+  // TRY MODELS SEQUENTIALLY
   try {
+    // Attempt 1: Gemini 2.5 Flash
+    console.log("Trying gemini-2.5-flash...");
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: config
     });
     return parseResponse(response);
-  } catch (error: any) {
-    console.warn("Primary model (gemini-2.5-flash) failed, trying fallback...", error);
 
-    // TRY FALLBACK MODEL (gemini-2.0-flash)
+  } catch (error: any) {
+    console.warn("gemini-2.5-flash failed:", error);
+    
+    // Attempt 2: Gemini 2.0 Flash (Fallback)
     try {
+        console.log("Trying fallback to gemini-2.0-flash...");
         const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash", // Fallback
+          model: "gemini-2.0-flash",
           contents: prompt,
           config: config
         });
         return parseResponse(response);
     } catch (fallbackError: any) {
-        console.error("Fallback model failed:", fallbackError);
-        // Return mock data instead of crashing completely so the UI stays responsive
-        return getMockResponse();
+        console.error("All models failed:", fallbackError);
+        
+        // Extract meaningful error message
+        let msg = fallbackError.message || fallbackError.toString();
+        if (msg.includes('400')) msg = "שגיאת בקשה (400). ייתכן שהמודל לא זמין באזורך.";
+        if (msg.includes('403')) msg = "אין הרשאה (403). בדוק את מפתח ה-API.";
+        if (msg.includes('404')) msg = "המודל לא נמצא (404).";
+        
+        // Return mock with error detail so user sees it in the UI
+        return getMockResponse(msg);
     }
   }
 };
