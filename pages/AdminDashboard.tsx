@@ -133,6 +133,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'timelines' | 'forms' | 'team'>('articles');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); 
   const [isSavingToCloud, setIsSavingToCloud] = useState(false); 
+  const [isLoadingFromCloud, setIsLoadingFromCloud] = useState(false); 
   const [timelineSubTab, setTimelineSubTab] = useState<'slider' | 'cards'>('slider');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
   const [showImagePicker, setShowImagePicker] = useState(false);
@@ -174,6 +175,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       } catch (e) { alert("שגיאת תקשורת."); } finally { setIsSavingToCloud(false); }
   };
 
+  const handleLoadFromCloud = async () => {
+    if (!isCloudConnected) {
+        alert("לא ניתן לטעון: אין חיבור מוגדר");
+        return;
+    }
+    
+    if (!confirm("פעולה זו תדרוס את המידע הנוכחי במכשיר זה ותטען את הגרסה האחרונה מהענן. להמשיך?")) return;
+
+    setIsLoadingFromCloud(true);
+    try {
+        let newData = null;
+        if (isSupabaseConfigured) {
+            newData = await dbService.loadState(state.config.integrations.supabaseUrl, state.config.integrations.supabaseKey);
+        } else if (isGoogleSheetsConfigured) {
+            newData = await cloudService.loadStateFromCloud(state.config.integrations.googleSheetsUrl);
+        }
+
+        if (newData) {
+             updateState({
+                 ...newData,
+                 // Preserve API keys to avoid locking out
+                 config: {
+                     ...state.config,
+                     ...newData.config,
+                     integrations: {
+                         ...state.config.integrations,
+                         ...(newData.config?.integrations || {})
+                     }
+                 }
+             });
+             alert("הנתונים נטענו בהצלחה מהענן!");
+        } else {
+            alert("לא נמצאו נתונים או שאירעה שגיאה בטעינה.");
+        }
+    } catch (e) {
+        alert("שגיאה בטעינה מהענן.");
+    } finally {
+        setIsLoadingFromCloud(false);
+    }
+  };
+
   // --- Handlers ---
   const handleExportData = () => { const dataStr = JSON.stringify(state); const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr); const linkElement = document.createElement('a'); linkElement.setAttribute('href', dataUri); linkElement.setAttribute('download', 'melaw_data.json'); linkElement.click(); };
   const handleImportData = (e: any) => { const file = e.target.files?.[0]; if(!file)return; const reader = new FileReader(); reader.onload = (ev) => { try { const p = JSON.parse(ev.target?.result as string); updateState({...p, isAdminLoggedIn:true}); alert("נטען!"); } catch { alert("שגיאה"); }}; reader.readAsText(file); };
@@ -210,12 +252,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
           <div><h2 className="text-2xl font-bold text-white"><span className="text-[#2EB0D9]">Me</span>Law Admin</h2>{version && <span className="text-[10px] text-slate-500 font-mono bg-black/30 px-1 rounded">{version}</span>}</div>
           <button className="md:hidden text-slate-400" onClick={() => setMobileMenuOpen(false)}><X/></button>
         </div>
-        <div className="p-4 border-b border-slate-800">
+        <div className="p-4 border-b border-slate-800 space-y-2">
              <div className="text-center mb-2">
                  {isCloudConnected ? <span className="text-xs text-green-500 flex items-center justify-center gap-1 font-bold"><CloudUpload size={12}/> מחובר לענן</span> : <span className="text-xs text-red-500 flex items-center justify-center gap-1 font-bold animate-pulse"><CloudOff size={12}/> ענן לא מחובר</span>}
              </div>
+             
+             {/* SAVE BUTTON */}
              <Button onClick={handleSaveToCloud} className={`w-full flex items-center justify-center gap-2 font-bold shine-effect ${isSavingToCloud ? 'opacity-70 cursor-wait' : ''}`} variant={isCloudConnected ? "secondary" : "outline"} disabled={isSavingToCloud}>
                  {isSavingToCloud ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />} {isSavingToCloud ? 'שומר...' : 'שמור לענן'}
+             </Button>
+
+             {/* LOAD BUTTON */}
+             <Button onClick={handleLoadFromCloud} className={`w-full flex items-center justify-center gap-2 font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 ${isLoadingFromCloud ? 'opacity-70 cursor-wait' : ''}`} disabled={isLoadingFromCloud}>
+                 {isLoadingFromCloud ? <Loader2 className="animate-spin" size={18}/> : <Download size={18} />} {isLoadingFromCloud ? 'טוען...' : 'טען מהענן'}
              </Button>
         </div>
         <nav className="flex-1 space-y-1 p-4 overflow-y-auto">

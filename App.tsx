@@ -4,7 +4,7 @@ import { AdminDashboard } from './pages/AdminDashboard.tsx';
 import { AppState, Category, WillsFormData, FormDefinition, TeamMember, Article, SliderSlide, TimelineItem, MenuItem } from './types.ts';
 import { cloudService } from './services/api.ts';
 import { dbService } from './services/supabase.ts';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
 const APP_VERSION = 'v1.7';
@@ -186,6 +186,7 @@ const STORAGE_KEY = 'melaw_site_data_stable';
 
 const App: React.FC = () => {
   const [loadingCloud, setLoadingCloud] = useState(false);
+  const [cloudSyncSuccess, setCloudSyncSuccess] = useState(false);
 
   // Initialize State from LocalStorage with Migration Logic
   const [appState, setAppState] = useState<AppState>(() => {
@@ -248,12 +249,24 @@ const App: React.FC = () => {
             const dbData = await dbService.loadState(supabaseUrl, supabaseKey);
             if (dbData) {
                 console.log("Synced from Supabase successfully!");
+                setCloudSyncSuccess(true);
+                setTimeout(() => setCloudSyncSuccess(false), 5000);
+                
                 setAppState(prev => ({
                     ...prev,
                     ...dbData,
                     // Preserve session
                     isAdminLoggedIn: prev.isAdminLoggedIn,
-                    currentCategory: prev.currentCategory
+                    currentCategory: prev.currentCategory,
+                    // IMPORTANT: Preserve API keys if they were somehow missing in cloud but present locally
+                    config: {
+                        ...prev.config,
+                        ...dbData.config,
+                        integrations: {
+                            ...prev.config.integrations,
+                            ...(dbData.config?.integrations || {})
+                        }
+                    }
                 }));
             }
             setLoadingCloud(false);
@@ -267,11 +280,22 @@ const App: React.FC = () => {
             const cloudData = await cloudService.loadStateFromCloud(url);
             if (cloudData) {
                 console.log("Synced from Google Sheets successfully");
+                setCloudSyncSuccess(true);
+                setTimeout(() => setCloudSyncSuccess(false), 5000);
+                
                 setAppState(prev => ({
                     ...prev,
                     ...cloudData,
                     isAdminLoggedIn: prev.isAdminLoggedIn,
-                    currentCategory: prev.currentCategory
+                    currentCategory: prev.currentCategory,
+                     config: {
+                        ...prev.config,
+                        ...cloudData.config,
+                        integrations: {
+                            ...prev.config.integrations,
+                            ...(cloudData.config?.integrations || {})
+                        }
+                    }
                 }));
             }
             setLoadingCloud(false);
@@ -362,6 +386,14 @@ const App: React.FC = () => {
           <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-[#2EB0D9]/20 overflow-hidden flex items-center justify-center">
              <div className="h-full bg-[#2EB0D9] animate-shine w-full absolute"></div>
              <span className="relative z-10 text-[10px] text-black font-bold px-2">טוען עדכונים מהשרת...</span>
+          </div>
+      )}
+
+      {/* Cloud Success Toast */}
+      {cloudSyncSuccess && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[150] bg-green-600 text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 animate-fade-in-up">
+              <CheckCircle2 size={16} />
+              <span className="text-sm font-bold">הנתונים סונכרנו בהצלחה מהענן</span>
           </div>
       )}
 
