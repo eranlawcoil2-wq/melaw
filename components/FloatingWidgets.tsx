@@ -4,11 +4,11 @@ import { MessageCircle, Accessibility, X, Type, Eye, PauseCircle, RefreshCw, Cal
 import { ShareMenu } from './ShareMenu.tsx';
 
 interface FloatingWidgetsProps {
-  version?: string;
+  version?: string; // Kept for interface compatibility but optional/unused now
   dataVersion?: string;
 }
 
-export const FloatingWidgets: React.FC<FloatingWidgetsProps> = ({ version, dataVersion }) => {
+export const FloatingWidgets: React.FC<FloatingWidgetsProps> = ({ dataVersion }) => {
   const [showAccess, setShowAccess] = useState(false);
   const [largeText, setLargeText] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
@@ -49,12 +49,13 @@ export const FloatingWidgets: React.FC<FloatingWidgetsProps> = ({ version, dataV
 
   return (
     <div className="fixed bottom-2 left-2 md:bottom-4 md:left-4 z-50 flex flex-col gap-2 md:gap-3 items-start">
-      {/* Version Badge - Only Version */}
-      {version && (
+      {/* Last Updated Badge - Replaces Version */}
+      {dataVersion && (
         <div className="flex flex-col gap-1 items-start mb-1">
-             <div className="flex items-center gap-1 bg-slate-800 text-[9px] md:text-[10px] text-white py-0.5 px-1.5 md:py-1 md:px-2 rounded-md shadow-lg border border-slate-700 opacity-70 hover:opacity-100 cursor-default">
-                <span>{version}</span>
-                <button onClick={handleHardReset} className="ml-1 p-0.5 hover:bg-slate-700 rounded text-yellow-400" title="רענון מלא">
+             <div className="flex items-center gap-1 bg-slate-800 text-[9px] md:text-[10px] text-white py-0.5 px-1.5 md:py-1 md:px-2 rounded-md shadow-lg border border-slate-700 opacity-70 hover:opacity-100 cursor-default" title="עודכן לאחרונה">
+                <CalendarDays size={10} className="text-[#2EB0D9]"/>
+                <span dir="ltr">{dataVersion}</span>
+                <button onClick={handleHardReset} className="ml-1 p-0.5 hover:bg-slate-700 rounded text-yellow-400" title="רענון מלא (נקה מטמון)">
                     <RefreshCw size={10} />
                 </button>
             </div>

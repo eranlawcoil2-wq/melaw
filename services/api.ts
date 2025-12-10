@@ -15,7 +15,8 @@ export const cloudService = {
                     forms: state.forms,
                     teamMembers: state.teamMembers,
                     menuItems: state.menuItems,
-                    config: state.config
+                    config: state.config,
+                    lastUpdated: state.lastUpdated // Ensure sync
                 }
             };
 
@@ -80,15 +81,73 @@ export const cloudService = {
 
 // --- Email & Forms Service ---
 export const emailService = {
-    // PDF: Local Fallback (Disabled to avoid gibberish)
-    generateAndDownloadWill(data: any) {
-        console.warn("Local PDF generation disabled. Using Google Sheets for PDF generation.");
-        return true; 
-    },
+    // Generate a simple HTML print view for immediate local printing (Perfect Hebrew Support)
+    openLocalPrint(title: string, data: any) {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert('הדפדפן חסם את החלון הקופץ. אנא אפשר חלונות קופצים כדי להדפיס.');
+            return;
+        }
 
-    generateAndDownloadPOA(data: any) {
-         console.warn("Local PDF generation disabled. Using Google Sheets for PDF generation.");
-         return true;
+        const keys = Object.keys(data).filter(k => k !== 'submissionId' && k !== 'email' && typeof data[k] !== 'object');
+        
+        let htmlContent = `
+            <!DOCTYPE html>
+            <html lang="he" dir="rtl">
+            <head>
+                <meta charset="utf-8">
+                <title>${title} - הדפסה</title>
+                <style>
+                    body { font-family: 'Arial', sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6; }
+                    h1 { color: #2EB0D9; border-bottom: 2px solid #2EB0D9; padding-bottom: 10px; margin-bottom: 30px; }
+                    .header-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 30px; font-size: 0.9em; color: #555; }
+                    .field-row { display: flex; border-bottom: 1px solid #eee; padding: 12px 0; }
+                    .field-label { font-weight: bold; width: 35%; color: #333; }
+                    .field-value { width: 65%; color: #000; }
+                    .footer { margin-top: 50px; text-align: center; font-size: 0.8em; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                    @media print {
+                        body { padding: 0; }
+                        .no-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="no-print" style="text-align: left; margin-bottom: 20px;">
+                    <button onclick="window.print()" style="background: #2EB0D9; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; font-weight: bold;">🖨️ הדפס / שמור כ-PDF</button>
+                </div>
+
+                <h1>${title}</h1>
+                
+                <div class="header-info">
+                    <strong>מספר אסמכתא:</strong> ${data.submissionId || 'N/A'}<br>
+                    <strong>תאריך הפקה:</strong> ${new Date().toLocaleString('he-IL')}
+                </div>
+
+                <div class="content">
+        `;
+
+        keys.forEach(key => {
+            htmlContent += `
+                <div class="field-row">
+                    <div class="field-label">${key}</div>
+                    <div class="field-value">${data[key]}</div>
+                </div>
+            `;
+        });
+
+        htmlContent += `
+                </div>
+                
+                <div class="footer">
+                    מסמך זה הופק באופן אוטומטי ע"י מערכת MeLaw Digital Office.<br>
+                    © כל הזכויות שמורות.
+                </div>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
     },
 
     /**
@@ -97,6 +156,8 @@ export const emailService = {
     async sendForm(formTitle: string, data: any, config?: IntegrationsConfig, pdfTemplate?: 'NONE' | 'WILL' | 'POA', sendClientCopy: boolean = false, officeEmail?: string): Promise<boolean> {
         console.log(`Processing Form: ${formTitle} [Template: ${pdfTemplate}]`);
         
+        let success = false;
+
         // --- 1. PRIORITY: GOOGLE SHEETS (Server Side Processing) ---
         if (config?.googleSheetsUrl && config.googleSheetsUrl.includes('script.google.com')) {
             try {
@@ -132,20 +193,31 @@ export const emailService = {
                     body: JSON.stringify(payload)
                 });
 
-                return true; 
+                success = true;
 
             } catch (e) {
                 console.error("Google Sheets Error:", e);
-                alert("אירעה שגיאה בשליחה למערכת הניהול.");
-                return false;
+                // Don't alert here yet, fallback to local print logic for user convenience
             }
         } 
         
-        // --- 2. FALLBACK: Alert user that no backend is configured ---
-        else {
-            alert("לא מוגדר חיבור ל-Google Sheets. הנתונים לא נשמרו.");
-            return false;
+        // --- 2. ALWAYS OFFER LOCAL PRINT FOR WILLS (Since Email is flaky for user) ---
+        // If it's a WILL or POA, or if the server send failed, open the local print view
+        if (pdfTemplate === 'WILL' || pdfTemplate === 'POA' || !success) {
+             // Slight delay to allow the "Success" alert from the caller to happen (or happen after)
+             setTimeout(() => {
+                 this.openLocalPrint(formTitle, data);
+             }, 1000);
+             return true; // Mark as "handled" so the UI doesn't think it failed completely
         }
+
+        if (!success && !config?.googleSheetsUrl) {
+             alert("לא מוגדר חיבור ל-Google Sheets. הנתונים לא נשמרו בשרת, אך תוכל להדפיס אותם כעת.");
+             this.openLocalPrint(formTitle, data);
+             return true;
+        }
+
+        return success;
     },
 
     // Special handler for Wills to map keys to Hebrew for readable Google Sheet

@@ -7,11 +7,8 @@ import { cloudService } from './services/api.ts';
 import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
-// --- VERSION CONTROL ---
-const APP_VERSION = 'v2.14';
-
 // ============================================================================
-// הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש
+// הגדרות חיבור ציבוריות
 // ============================================================================
 const PUBLIC_SUPABASE_URL: string = 'https://kqjmwwjafypkswkkbncc.supabase.co'; 
 const PUBLIC_SUPABASE_KEY: string = 'sb_publishable_ftgAGUontmVJ-BfgzfQJsA_n7npD__t';
@@ -235,7 +232,7 @@ const defaultState: AppState = {
     forms: initialForms,
     teamMembers: initialTeamMembers,
     products: initialProducts,
-    lastUpdated: 'Initial', 
+    lastUpdated: 'טרם עודכן', 
 };
 
 // UPDATED: Stable Key for persistence across updates
@@ -338,7 +335,9 @@ const App: React.FC = () => {
            },
            isAdminLoggedIn: false, 
            // USE CONFIG DEFAULT IF AVAILABLE
-           currentCategory: parsed.config?.defaultCategory || parsed.currentCategory || Category.STORE 
+           currentCategory: parsed.config?.defaultCategory || parsed.currentCategory || Category.STORE,
+           // IMPORTANT: Retain previous update date if exists
+           lastUpdated: parsed.lastUpdated || 'טרם עודכן'
         };
       } catch (e) {
         console.error("Failed to load saved state", e);
@@ -382,6 +381,8 @@ const App: React.FC = () => {
                     isAdminLoggedIn: prev.isAdminLoggedIn,
                     // Respect user navigation unless it's initial load, but for simplicity keep current
                     currentCategory: prev.currentCategory,
+                    // Preserve last updated from DB
+                    lastUpdated: dbData.lastUpdated || prev.lastUpdated,
                     // IMPORTANT: Preserve API keys if they were somehow missing in cloud but present locally/hardcoded
                     config: {
                         ...prev.config,
@@ -414,6 +415,7 @@ const App: React.FC = () => {
                     ...prev,
                     ...cloudData,
                     isAdminLoggedIn: prev.isAdminLoggedIn,
+                    lastUpdated: cloudData.lastUpdated || prev.lastUpdated,
                      config: {
                         ...prev.config,
                         ...cloudData.config,
@@ -529,7 +531,6 @@ const App: React.FC = () => {
             state={appState} 
             updateState={handleUpdateState} 
             onLogout={() => { handleUpdateState({ isAdminLoggedIn: false }); setIsAdminView(false); }}
-            version={APP_VERSION}
          />
       ) : (
          <PublicSite 
@@ -537,7 +538,6 @@ const App: React.FC = () => {
             onCategoryChange={(cat) => handleUpdateState({ currentCategory: cat })}
             onWillsFormSubmit={handleWillsSubmit}
             onAdminClick={() => setIsAdminView(true)}
-            version={APP_VERSION}
             dataVersion={appState.lastUpdated}
          />
       )}

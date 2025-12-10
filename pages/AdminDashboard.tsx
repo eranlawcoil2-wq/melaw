@@ -13,7 +13,7 @@ interface AdminDashboardProps {
   state: AppState;
   updateState: (newState: Partial<AppState>) => void;
   onLogout: () => void;
-  version?: string;
+  version?: string; // Kept for compatibility but ignored
 }
 
 // --- PUBLIC KEYS FALLBACK (For Image Uploads) ---
@@ -121,7 +121,7 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
   }
 }`;
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout, version }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'news' | 'sliders' | 'forms' | 'team' | 'payments'>('articles');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); 
   const [isSavingToCloud, setIsSavingToCloud] = useState(false); 
@@ -159,7 +159,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       }
       setIsSavingToCloud(true);
       
-      const now = new Date().toLocaleString('he-IL');
+      // Update timestamp immediately before saving
+      const now = new Date().toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
       const stateToSave = { ...state, lastUpdated: now };
       updateState({ lastUpdated: now });
 
@@ -202,7 +203,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                      }
                  }
              });
-             alert("הנתונים נטענו בהצלחה מהענן!");
+             alert(`הנתונים נטענו בהצלחה! (עדכון אחרון: ${newData.lastUpdated || 'לא ידוע'})`);
         } else {
             alert("לא נמצאו נתונים או שאירעה שגיאה בטעינה.");
         }
@@ -275,7 +276,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
     <div className="min-h-screen bg-slate-950 flex font-sans text-slate-200 overflow-hidden relative">
       <aside className={`fixed h-full right-0 z-50 w-64 bg-slate-900 border-l border-slate-800 flex flex-col transition-transform duration-300 transform ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-          <div><h2 className="text-2xl font-bold text-white"><span className="text-[#2EB0D9]">Me</span>Law Admin</h2>{version && <span className="text-[10px] text-slate-500 font-mono bg-black/30 px-1 rounded">{version}</span>}</div>
+          <div><h2 className="text-2xl font-bold text-white"><span className="text-[#2EB0D9]">Me</span>Law Admin</h2>
+          {/* Version Removed, Last updated is in state */}
+          </div>
           <button className="md:hidden text-slate-400" onClick={() => setMobileMenuOpen(false)}><X/></button>
         </div>
         <div className="p-4 border-b border-slate-800 space-y-2">
@@ -285,6 +288,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
              <Button onClick={handleSaveToCloud} className={`w-full flex items-center justify-center gap-2 font-bold shine-effect ${isSavingToCloud ? 'opacity-70 cursor-wait' : ''}`} variant={isCloudConnected ? "secondary" : "outline"} disabled={isSavingToCloud}>
                  {isSavingToCloud ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />} {isSavingToCloud ? 'שומר...' : 'שמור לענן'}
              </Button>
+             <div className="text-center text-[10px] text-slate-500 mt-1">עדכון אחרון: {state.lastUpdated}</div>
              <Button onClick={handleLoadFromCloud} className={`w-full flex items-center justify-center gap-2 font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 ${isLoadingFromCloud ? 'opacity-70 cursor-wait' : ''}`} disabled={isLoadingFromCloud}>
                  {isLoadingFromCloud ? <Loader2 className="animate-spin" size={18}/> : <Download size={18} />} {isLoadingFromCloud ? 'טוען...' : 'טען מהענן'}
              </Button>
