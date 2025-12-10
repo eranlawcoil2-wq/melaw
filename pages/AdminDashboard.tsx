@@ -115,7 +115,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
   const handleExportData = () => { const dataStr = JSON.stringify(state); const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr); const linkElement = document.createElement('a'); linkElement.setAttribute('href', dataUri); linkElement.setAttribute('download', 'melaw_data.json'); linkElement.click(); };
   const handleImportData = (e: any) => { const file = e.target.files?.[0]; if(!file)return; const reader = new FileReader(); reader.onload = (ev) => { try { const p = JSON.parse(ev.target?.result as string); updateState({...p, isAdminLoggedIn:true}); alert("נטען!"); } catch { alert("שגיאה"); }}; reader.readAsText(file); };
-  const handleGenerateArticle = async () => { if (!newArticleTopic) return; setIsGenerating(true); try { const generated = await generateArticleContent(newArticleTopic, selectedCategory, state.config.integrations.geminiApiKey); const newArticle: Article = { id: Date.now().toString(), categories: selectedCategory === 'ALL' ? [Category.HOME] : [selectedCategory], title: generated.title || newArticleTopic, abstract: generated.abstract || '', imageUrl: `https://picsum.photos/seed/${Date.now()}/800/600`, quote: generated.quote, tabs: generated.tabs || [], order: 99 }; updateState({ articles: [newArticle, ...state.articles] }); setNewArticleTopic(''); alert("נוצר!"); } catch (e: any) { alert("שגיאה: " + e.message); } finally { setIsGenerating(false); } };
+  
+  // UPDATED GENERATE FUNCTION: CHECKS FOR KEY
+  const handleGenerateArticle = async () => { 
+      if (!newArticleTopic) return;
+      
+      const apiKey = state.config.integrations.geminiApiKey;
+      if (!apiKey || apiKey.length < 10) {
+          alert("שגיאה: חסר מפתח Gemini API.\n\nאנא עבור ללשונית 'חיבורים' והדבק מפתח API תקין מ-Google AI Studio.");
+          setActiveTab('integrations');
+          return;
+      }
+
+      setIsGenerating(true); 
+      try { 
+          const generated = await generateArticleContent(newArticleTopic, selectedCategory, apiKey); 
+          const newArticle: Article = { id: Date.now().toString(), categories: selectedCategory === 'ALL' ? [Category.HOME] : [selectedCategory], title: generated.title || newArticleTopic, abstract: generated.abstract || '', imageUrl: `https://picsum.photos/seed/${Date.now()}/800/600`, quote: generated.quote, tabs: generated.tabs || [], order: 99 }; 
+          updateState({ articles: [newArticle, ...state.articles] }); 
+          setNewArticleTopic(''); 
+          alert("נוצר!"); 
+      } catch (e: any) { 
+          alert("שגיאה ביצירת המאמר: " + e.message); 
+      } finally { 
+          setIsGenerating(false); 
+      } 
+  };
+
   const handleUpdateArticle = () => { if(editingArticle) { updateState({ articles: state.articles.map(a => a.id === editingArticle.id ? editingArticle : a) }); setEditingArticle(null); }};
   const handleImageSelect = (url: string) => {
       if (!imagePickerContext) return;
@@ -177,7 +202,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   return (
     <div className="min-h-screen bg-slate-950 flex font-sans text-slate-200 overflow-hidden relative">
       <aside className={`fixed h-full right-0 z-50 w-64 bg-slate-900 border-l border-slate-800 flex flex-col transition-transform duration-300 transform ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}`}>
-        {/* ... Sidebar content same as before ... */}
         <div className="p-6 border-b border-slate-800 flex justify-between items-center">
           <div><h2 className="text-2xl font-bold text-white"><span className="text-[#2EB0D9]">Me</span>Law Admin</h2>{version && <span className="text-[10px] text-slate-500 font-mono bg-black/30 px-1 rounded">{version}</span>}</div>
           <button className="md:hidden text-slate-400" onClick={() => setMobileMenuOpen(false)}><X/></button>
@@ -209,7 +233,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       <main className="flex-1 md:mr-64 p-4 md:p-8 overflow-y-auto min-h-screen">
         <div className="md:hidden flex justify-between items-center mb-6 bg-slate-900 p-4 rounded-xl border border-slate-800 sticky top-0 z-30 shadow-lg"><h3 className="font-bold text-white">תפריט ניהול</h3><button onClick={() => setMobileMenuOpen(true)} className="p-2 bg-slate-800 rounded text-[#2EB0D9] border border-slate-700"><Menu size={24} /></button></div>
 
-        {/* ... (Previous tabs content remains the same) ... */}
+        {/* ... (Integrations Tab skipped) ... */}
+        {/* ... (Same as before) ... */}
+
+        {/* --- ARTICLES TAB --- */}
         {activeTab === 'articles' && (
             <div className="space-y-8 animate-fade-in">
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl"><div className="flex flex-col md:flex-row gap-4"><input type="text" className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9]" placeholder="נושא למאמר..." value={newArticleTopic} onChange={(e) => setNewArticleTopic(e.target.value)} /><Button onClick={handleGenerateArticle} disabled={isGenerating} className="min-w-[150px]">{isGenerating ? <Loader2 className="animate-spin ml-2"/> : 'צור (AI)'}</Button></div></div>
@@ -227,8 +254,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* ... (Other tabs kept as is) ... */}
-        
+        {/* ... (PAYMENTS & STORE TAB - same as before) ... */}
         {activeTab === 'payments' && (
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-between items-center mb-6">
@@ -350,6 +376,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
              </div>
         )}
 
+        {/* ... (Team, Config tabs - keeping existing content) ... */}
         {activeTab === 'team' && (
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-end"><Button onClick={() => setEditingMember({ id: Date.now().toString(), fullName: '', role: '', specialization: '', email: '', phone: '', bio: '', imageUrl: 'https://picsum.photos/400/400', order: 99 })}><Plus size={16}/> איש צוות</Button></div>
@@ -381,6 +408,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
       <ImagePickerModal isOpen={showImagePicker} onClose={() => setShowImagePicker(false)} onSelect={handleImageSelect} initialQuery={imagePickerContext?.initialQuery} unsplashAccessKey={state.config.integrations.unsplashAccessKey} />
       
+      {/* ... Article/Slide/Timeline Editors ... */}
       {/* Article Editor Modal */}
       {editingArticle && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">

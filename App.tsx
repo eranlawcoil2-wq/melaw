@@ -8,7 +8,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v2.6';
+const APP_VERSION = 'v2.7';
 
 // ============================================================================
 // הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש
@@ -217,7 +217,7 @@ const defaultState: AppState = {
         integrations: {
             supabaseUrl: PUBLIC_SUPABASE_URL, 
             supabaseKey: PUBLIC_SUPABASE_KEY,
-            geminiApiKey: '', // REMOVED LEAKED KEY - USER MUST ENTER NEW KEY IN ADMIN
+            geminiApiKey: '', // USER MUST ENTER NEW KEY IN ADMIN
             unsplashAccessKey: '',
             googleSheetsUrl: '',
             emailJsServiceId: '',
@@ -259,6 +259,18 @@ const App: React.FC = () => {
         const parsed = JSON.parse(saved);
         
         // --- DATA MIGRATION LOGIC (For Existing Users) ---
+        
+        // SECURITY FIX: FORCE REMOVAL OF LEAKED KEY FROM LOCAL STORAGE
+        // The leaked key ends with "e05Le0" (from previous context). 
+        // We wipe it if it matches the known leaked one.
+        const knownLeakedKey = 'AIzaSyBQkmjb1vw20e90bCMBK0eWC9pA6e05Le0';
+        if (parsed.config?.integrations?.geminiApiKey === knownLeakedKey) {
+            console.warn("Removing leaked API key from local storage");
+            if (parsed.config.integrations) {
+                parsed.config.integrations.geminiApiKey = '';
+            }
+        }
+
         if (parsed.articles && parsed.articles.length > 0) {
             parsed.articles = parsed.articles.map((art: any) => {
                 if (!art.categories && art.category) {
@@ -305,14 +317,9 @@ const App: React.FC = () => {
         }
 
         // --- PUBLIC KEYS INJECTION (Fix for public users having empty keys) ---
-        // If the saved state has empty Supabase keys, but we have hardcoded ones, inject them.
         const currentSupabaseUrl = parsed.config?.integrations?.supabaseUrl;
         const currentSupabaseKey = parsed.config?.integrations?.supabaseKey;
-
-        // Check if user has real keys (not the placeholder text)
         const hasHardcodedKeys = PUBLIC_SUPABASE_URL && PUBLIC_SUPABASE_URL !== 'הדבק_כאן_את_ה_URL_שלך' && PUBLIC_SUPABASE_KEY && PUBLIC_SUPABASE_KEY !== 'הדבק_כאן_את_ה_KEY_שלך';
-        
-        // Force update if saved keys are missing but hardcoded ones exist
         const shouldUseHardcoded = (!currentSupabaseUrl || !currentSupabaseKey) && hasHardcodedKeys;
 
         return {
