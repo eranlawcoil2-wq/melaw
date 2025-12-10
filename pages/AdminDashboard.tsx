@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide, CATEGORY_LABELS } from '../types.ts';
 import { Button } from '../components/Button.tsx';
@@ -6,7 +7,7 @@ import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -154,7 +155,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const isGoogleSheetsConfigured = state.config.integrations.googleSheetsUrl && state.config.integrations.googleSheetsUrl.includes("script.google.com");
   const isCloudConnected = isSupabaseConfigured || isGoogleSheetsConfigured;
 
-  // Supabase Config Object for Upload Button
+  // Supabase Config Object for Upload Button - Derived from fresh state
   const supabaseConfig = { url: state.config.integrations.supabaseUrl, key: state.config.integrations.supabaseKey };
 
   const handleSaveToCloud = async () => {
@@ -261,7 +262,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         <div className="p-4 border-b border-slate-800 space-y-2">
              <div className="text-center mb-2">
                  {isCloudConnected ? <span className="text-xs text-green-500 flex items-center justify-center gap-1 font-bold"><CloudUpload size={12}/> מחובר לענן</span> : <span className="text-xs text-red-500 flex items-center justify-center gap-1 font-bold animate-pulse"><CloudOff size={12}/> ענן לא מחובר</span>}
-                 {state.lastUpdated && <div className="text-[10px] text-slate-500 mt-1">עודכן: {state.lastUpdated}</div>}
              </div>
              
              {/* SAVE BUTTON */}
@@ -457,6 +457,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                 {state.config.customFontData && <button onClick={handleResetFont} className="text-red-400 hover:text-red-300 text-xs mt-2">מחק פונט</button>}
                             </div>
                         </div>
+
+                        {/* DEFAULT CATEGORY */}
+                        <div>
+                            <label className="block text-sm font-bold mb-2 text-slate-400">קטגוריה ראשית בטעינה</label>
+                            <select 
+                                value={state.config.defaultCategory || Category.STORE} 
+                                onChange={(e) => updateState({ config: { ...state.config, defaultCategory: e.target.value as Category }})} 
+                                className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white"
+                            >
+                                {Object.values(Category).map(cat => (<option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>))}
+                            </select>
+                            <p className="text-xs text-slate-500 mt-1">איזה עמוד יוצג למשתמש כשהוא נכנס לאתר לראשונה.</p>
+                        </div>
+
+                        {/* PASSWORD HINT */}
+                        <div>
+                            <label className="block text-sm font-bold mb-2 text-slate-400">רמז לסיסמת ניהול</label>
+                            <input 
+                                type="text" 
+                                className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white" 
+                                value={state.config.passwordHint || ''} 
+                                onChange={e => updateState({ config: { ...state.config, passwordHint: e.target.value }})} 
+                                placeholder="לדוגמה: ת.ז שלי" 
+                            />
+                        </div>
                         
                         {/* Theme */}
                         <div className="border-b border-slate-800 pb-6 mb-6">
@@ -498,10 +523,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {/* --- FORMS TAB --- */}
         {activeTab === 'forms' && (
              <div className="space-y-6 animate-fade-in">
-                 <div className="flex justify-end"><Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', category: Category.POA, fields: [], submitEmail: '' })}><Plus size={16}/> טופס חדש</Button></div>
+                 <div className="flex justify-end"><Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', category: Category.POA, fields: [], submitEmail: '', pdfTemplate: 'NONE' })}><Plus size={16}/> טופס חדש</Button></div>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                      {state.forms.map(f => (<div key={f.id} className="bg-slate-900 p-4 rounded border border-slate-800 relative">
                          <h4 className="font-bold text-white">{f.title}</h4>
+                         <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400 mt-2 inline-block">PDF: {f.pdfTemplate || 'NONE'}</span>
                          {/* Copy ID Button for Forms */}
                          <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
                              <span>ID: form-{f.id}</span>
@@ -520,7 +546,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                          <button onClick={() => updateState({ forms: state.forms.filter(x => x.id !== f.id) })} className="absolute top-4 left-2 p-2 text-red-400"><Trash size={16}/></button>
                      </div>))}
                  </div>
-                 {editingForm && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl h-[80vh] flex flex-col"><h3 className="font-bold text-white mb-4">עריכת טופס</h3><div className="flex-1 overflow-y-auto space-y-4"><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingForm.title} onChange={e=>setEditingForm({...editingForm, title: e.target.value})}/><div className="flex gap-2"><button onClick={()=>addFieldToForm('text')} className="p-2 bg-slate-800 border rounded text-xs">טקסט</button><button onClick={()=>addFieldToForm('select')} className="p-2 bg-slate-800 border rounded text-xs">בחירה</button></div>{editingForm.fields.map((field,i)=>(<div key={i} className="flex gap-2 items-center"><input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="bg-slate-800 text-white p-1 rounded flex-1"/><button onClick={()=>removeFormField(i)} className="text-red-400"><Trash size={14}/></button></div>))}</div><div className="flex gap-2 mt-4"><Button onClick={handleSaveForm}>שמור</Button><Button variant="outline" onClick={()=>setEditingForm(null)}>ביטול</Button></div></div></div>}
+                 {editingForm && (
+                     <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+                         <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl h-[80vh] flex flex-col">
+                             <h3 className="font-bold text-white mb-4">עריכת טופס</h3>
+                             <div className="flex-1 overflow-y-auto space-y-4">
+                                 <input className="w-full p-2 bg-slate-800 text-white rounded" value={editingForm.title} onChange={e=>setEditingForm({...editingForm, title: e.target.value})} placeholder="שם הטופס"/>
+                                 
+                                 {/* PDF Selection */}
+                                 <div>
+                                     <label className="block text-xs font-bold text-slate-400 mb-1">סוג הדפסה (PDF Template)</label>
+                                     <select 
+                                        className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" 
+                                        value={editingForm.pdfTemplate || 'NONE'} 
+                                        onChange={e => setEditingForm({...editingForm, pdfTemplate: e.target.value as any})}
+                                     >
+                                         <option value="NONE">ללא (רק שליחה)</option>
+                                         <option value="WILL">צוואה (Will)</option>
+                                         <option value="POA">ייפוי כוח (POA)</option>
+                                     </select>
+                                 </div>
+
+                                 <div className="flex gap-2">
+                                     <button onClick={()=>addFieldToForm('text')} className="p-2 bg-slate-800 border rounded text-xs text-white">טקסט</button>
+                                     <button onClick={()=>addFieldToForm('select')} className="p-2 bg-slate-800 border rounded text-xs text-white">בחירה</button>
+                                 </div>
+                                 {editingForm.fields.map((field,i)=>(
+                                     <div key={i} className="flex gap-2 items-center">
+                                         <input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="bg-slate-800 text-white p-1 rounded flex-1"/>
+                                         <button onClick={()=>removeFormField(i)} className="text-red-400"><Trash size={14}/></button>
+                                     </div>
+                                 ))}
+                             </div>
+                             <div className="flex gap-2 mt-4"><Button onClick={handleSaveForm}>שמור</Button><Button variant="outline" onClick={()=>setEditingForm(null)}>ביטול</Button></div>
+                         </div>
+                     </div>
+                 )}
              </div>
         )}
 
@@ -531,7 +592,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{state.teamMembers.map(m => (<div key={m.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex gap-4"><img src={m.imageUrl} className="w-16 h-16 rounded-full"/><div className="flex-1"><div className="font-bold text-white">{m.fullName}</div><div className="text-xs text-slate-400">{m.role}</div></div><button onClick={()=>setEditingMember(m)}><Edit size={16}/></button><button onClick={()=>updateState({teamMembers: state.teamMembers.filter(x=>x.id!==m.id)})} className="text-red-400"><Trash size={16}/></button></div>))}</div>
                 {editingMember && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-lg space-y-4"><h3 className="font-bold text-white">עריכת צוות</h3><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingMember.fullName} onChange={e=>setEditingMember({...editingMember, fullName: e.target.value})}/><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingMember.role} onChange={e=>setEditingMember({...editingMember, role: e.target.value})}/><div className="flex gap-2">
                     <input className="flex-1 p-2 bg-slate-800 text-white rounded" value={editingMember.imageUrl} onChange={e=>setEditingMember({...editingMember, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                    {/* Fix: Pass the derived supabaseConfig */}
                     <ImageUploadButton onImageSelected={(url) => setEditingMember({...editingMember, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                    <Button onClick={()=>openImagePicker('team', editingMember.fullName)}><Search size={16}/></Button>
                 </div><div className="flex gap-2"><Button onClick={handleSaveMember}>שמור</Button><Button variant="outline" onClick={()=>setEditingMember(null)}>ביטול</Button></div></div></div>}
             </div>
         )}
@@ -548,7 +611,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 <input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.title} onChange={e=>setEditingSlide({...editingSlide, title: e.target.value})}/>
                 <div className="flex gap-2">
                     <input className="flex-1 p-2 bg-slate-800 text-white rounded" value={editingSlide.imageUrl} onChange={e=>setEditingSlide({...editingSlide, imageUrl: e.target.value})}/>
+                    {/* Fix: Add Search and Upload buttons to Slider as requested */}
                     <ImageUploadButton onImageSelected={(url) => setEditingSlide({...editingSlide, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                    <Button onClick={()=>openImagePicker('slide', editingSlide.title)}><Search size={16}/></Button>
                 </div>
                 <div className="flex gap-2"><Button onClick={handleSaveSlide}>שמור</Button><Button variant="outline" onClick={()=>setEditingSlide(null)}>ביטול</Button></div>
             </div>

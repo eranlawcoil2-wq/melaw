@@ -113,6 +113,10 @@ export interface SiteConfig {
   theme: 'dark' | 'light';
   adminPassword?: string; // Simple local password
   integrations: IntegrationsConfig; // Add integrations to config
+  
+  // New V2.0 Fields
+  defaultCategory?: Category;
+  passwordHint?: string;
 }
 
 export interface MenuItem {
@@ -138,6 +142,7 @@ export interface FormDefinition {
     category: Category;
     fields: FormField[];
     submitEmail: string;
+    pdfTemplate?: 'NONE' | 'WILL' | 'POA'; // V2.0: Which PDF template to generate
 }
 
 export interface AppState {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember, CATEGORY_LABELS } from '../types.ts';
 import { Button } from '../components/Button.tsx';
@@ -686,7 +687,17 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                          ))}
                          <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => {
                               setIsSubmittingDynamic(true);
-                              try { await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations); alert("נשלח בהצלחה!"); setActiveDynamicFormId(null); setDynamicFormValues({}); } catch { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); }
+                              try { 
+                                  // Pass form data AND pdf template info to the service
+                                  await emailService.sendForm(currentDynamicForm.title, dynamicFormValues, state.config.integrations, currentDynamicForm.pdfTemplate); 
+                                  alert("נשלח בהצלחה! מסמך ה-PDF (אם רלוונטי) יורד למחשבך."); 
+                                  setActiveDynamicFormId(null); 
+                                  setDynamicFormValues({}); 
+                               } catch { 
+                                   alert("שגיאה"); 
+                               } finally { 
+                                   setIsSubmittingDynamic(false); 
+                               }
                          }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button>
                      </div>
                  </div>
@@ -729,9 +740,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                     <div className="col-span-1"><div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800"><iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.6, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe></div></div>
                 </div>
                 <div className="container mx-auto px-4 pt-8 border-t border-slate-900 text-center text-sm text-slate-600">&copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO.</div>
-                {/* Public Version Badge (Hidden normally, but visible on footer for now) */}
+                {/* Public Version Badge */}
                 <div className="text-center text-[10px] text-slate-800 mt-2">{version}</div>
-                {dataVersion && <div className="text-center text-[9px] text-slate-800">Data: {dataVersion}</div>}
             </footer>
         )}
       </main>

@@ -1,3 +1,4 @@
+
 import { Article, TeamMember, WillsFormData, FormDefinition, Category, IntegrationsConfig, AppState } from '../types.ts';
 import { jsPDF } from "jspdf";
 
@@ -86,29 +87,26 @@ export const cloudService = {
 
 // --- Email & Forms Service ---
 export const emailService = {
-    // פונקציה ליצירת PDF והורדה מיידית (Client Side)
-    generateAndDownloadWill(data: WillsFormData) {
+    // PDF: Last Will
+    generateAndDownloadWill(data: any) {
         try {
-            const doc = new jsPDF({
-                orientation: "portrait",
-                unit: "mm",
-                format: "a4"
-            });
-
+            const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
             doc.setFontSize(22);
             doc.text("Last Will and Testament", 105, 20, { align: "center" });
             
             doc.setFontSize(16);
-            doc.text(`Testator: ${data.fullName}`, 20, 40);
-            doc.text(`ID/Spouse: ${data.spouseName}`, 20, 50);
+            doc.text(`Testator: ${data.fullName || 'N/A'}`, 20, 40);
+            doc.text(`ID/Spouse: ${data.spouseName || 'N/A'}`, 20, 50);
             
             doc.setFontSize(14);
             doc.text("Heirs (Children):", 20, 70);
-            data.childrenNames.forEach((child, index) => {
-                doc.text(`${index + 1}. ${child}`, 30, 80 + (index * 10));
-            });
+            if (Array.isArray(data.childrenNames)) {
+                data.childrenNames.forEach((child: string, index: number) => {
+                    doc.text(`${index + 1}. ${child}`, 30, 80 + (index * 10));
+                });
+            }
 
-            const yPos = 80 + (data.childrenNames.length * 10) + 20;
+            const yPos = 80 + ((data.childrenNames?.length || 0) * 10) + 20;
             doc.text("Declarations:", 20, yPos);
             doc.setFontSize(12);
             doc.text("I hereby declare that this is my last will, made in sound mind.", 20, yPos + 10);
@@ -122,15 +120,45 @@ export const emailService = {
         }
     },
 
+    // PDF: Power of Attorney (POA) - New V2.0 Feature
+    generateAndDownloadPOA(data: any) {
+        try {
+            const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+            doc.setFontSize(22);
+            doc.text("Enduring Power of Attorney", 105, 20, { align: "center" });
+            
+            doc.setFontSize(14);
+            let y = 50;
+            
+            // Iterate over dynamic fields and print them
+            Object.keys(data).forEach((key) => {
+                const val = data[key];
+                if (typeof val === 'string' && y < 270) {
+                    doc.text(`${key}: ${val}`, 20, y);
+                    y += 10;
+                }
+            });
+
+            doc.text(`Date Signed: ${new Date().toLocaleDateString()}`, 20, y + 20);
+            doc.save("POA_Document.pdf");
+            return true;
+        } catch (e) {
+            console.error("POA PDF Generation Error", e);
+            return false;
+        }
+    },
+
     /**
      * פונקציה כללית לשליחת טפסים (גם צוואות וגם טפסים דינמיים)
      */
-    async sendForm(formTitle: string, data: any, config?: IntegrationsConfig): Promise<boolean> {
-        console.log(`Processing Form: ${formTitle}`, data);
+    async sendForm(formTitle: string, data: any, config?: IntegrationsConfig, pdfTemplate?: 'NONE' | 'WILL' | 'POA'): Promise<boolean> {
+        console.log(`Processing Form: ${formTitle} [Template: ${pdfTemplate}]`, data);
         
-        // אם זה טופס צוואה, נוריד גם PDF
-        if (formTitle === 'Wills Generator' && data.childrenNames) {
-            this.generateAndDownloadWill(data as WillsFormData);
+        // Handle PDF Generation based on selection
+        if (pdfTemplate === 'WILL' || (formTitle === 'Wills Generator' && !pdfTemplate)) {
+            this.generateAndDownloadWill(data);
+        } else if (pdfTemplate === 'POA') {
+            this.generateAndDownloadPOA(data);
         }
 
         // 1. שמירה ל-Google Sheets (אם הוגדר URL)
@@ -165,7 +193,7 @@ export const emailService = {
 
     // תמיכה לאחור בקוד קיים שקורא ל-sendWillsForm
     async sendWillsForm(data: WillsFormData, config?: IntegrationsConfig): Promise<boolean> {
-        return this.sendForm('Wills Generator', data, config);
+        return this.sendForm('Wills Generator', data, config, 'WILL');
     }
 };
 

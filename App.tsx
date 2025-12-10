@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { PublicSite } from './pages/PublicSite.tsx';
 import { AdminDashboard } from './pages/AdminDashboard.tsx';
@@ -7,7 +8,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v1.9.2';
+const APP_VERSION = 'v2.0';
 
 // ============================================================================
 // הגדרות חיבור ציבוריות - הוטמעו בקוד כפי שהתבקש
@@ -105,7 +106,8 @@ const initialForms: FormDefinition[] = [
             { id: 'f2', type: 'text', label: 'תעודת זהות', required: true },
             { id: 'f3', type: 'boolean', label: 'האם קיים ייפוי כוח קודם?', required: false },
             { id: 'f4', type: 'select', label: 'סוג מינוי מבוקש', options: ['רכוש', 'גוף', 'שניהם'], required: true }
-        ]
+        ],
+        pdfTemplate: 'POA'
     }
 ];
 
@@ -153,7 +155,7 @@ const initialTeamMembers: TeamMember[] = [
 ];
 
 const defaultState: AppState = {
-    // UPDATED: Start on Store by default
+    // UPDATED: Start on Store by default (will be overridden by config if exists)
     currentCategory: Category.STORE,
     isAdminLoggedIn: false,
     config: {
@@ -166,9 +168,11 @@ const defaultState: AppState = {
         address: 'דרך מנחם בגין 144, תל אביב',
         theme: 'dark', 
         adminPassword: 'admin',
+        passwordHint: 'admin', // Default Hint
+        defaultCategory: Category.STORE, // Default Category
         integrations: {
-            supabaseUrl: PUBLIC_SUPABASE_URL, // Use hardcoded/env value by default
-            supabaseKey: PUBLIC_SUPABASE_KEY, // Use hardcoded/env value by default
+            supabaseUrl: PUBLIC_SUPABASE_URL, 
+            supabaseKey: PUBLIC_SUPABASE_KEY,
             geminiApiKey: 'AIzaSyBQkmjb1vw20e90bCMBK0eWC9pA6e05Le0',
             unsplashAccessKey: '',
             googleSheetsUrl: '',
@@ -186,7 +190,7 @@ const defaultState: AppState = {
     menuItems: initialMenuItems,
     forms: initialForms,
     teamMembers: initialTeamMembers,
-    lastUpdated: 'Initial', // Default
+    lastUpdated: 'Initial', 
 };
 
 // UPDATED: Stable Key for persistence across updates
@@ -194,7 +198,6 @@ const STORAGE_KEY = 'melaw_site_data_stable';
 
 const App: React.FC = () => {
   const [loadingCloud, setLoadingCloud] = useState(false);
-  const [cloudSyncSuccess, setCloudSyncSuccess] = useState(false);
 
   // Initialize State from LocalStorage with Migration Logic
   const [appState, setAppState] = useState<AppState>(() => {
@@ -237,6 +240,8 @@ const App: React.FC = () => {
            config: { 
                ...defaultState.config, 
                ...parsed.config, 
+               passwordHint: parsed.config?.passwordHint || 'admin',
+               defaultCategory: parsed.config?.defaultCategory || Category.STORE,
                integrations: { 
                    ...defaultState.config.integrations, 
                    ...parsed.config?.integrations,
@@ -246,15 +251,15 @@ const App: React.FC = () => {
                } 
            },
            isAdminLoggedIn: false, 
-           // Ensure Store is default if not set
-           currentCategory: parsed.currentCategory || Category.STORE 
+           // USE CONFIG DEFAULT IF AVAILABLE
+           currentCategory: parsed.config?.defaultCategory || parsed.currentCategory || Category.STORE 
         };
       } catch (e) {
         console.error("Failed to load saved state", e);
         return defaultState;
       }
     }
-    // If no saved state, use default (which defaults to STORE)
+    // If no saved state, use default
     return defaultState;
   });
 
@@ -282,19 +287,21 @@ const App: React.FC = () => {
             const dbData = await dbService.loadState(supabaseUrl, supabaseKey);
             if (dbData) {
                 console.log("Synced from Supabase successfully!");
-                setCloudSyncSuccess(true);
-                setTimeout(() => setCloudSyncSuccess(false), 5000);
+                // No more Toast here
                 
                 setAppState(prev => ({
                     ...prev,
                     ...dbData,
                     // Preserve session
                     isAdminLoggedIn: prev.isAdminLoggedIn,
+                    // Respect user navigation unless it's initial load, but for simplicity keep current
                     currentCategory: prev.currentCategory,
                     // IMPORTANT: Preserve API keys if they were somehow missing in cloud but present locally/hardcoded
                     config: {
                         ...prev.config,
                         ...dbData.config,
+                        passwordHint: dbData.config?.passwordHint || prev.config.passwordHint || 'admin',
+                        defaultCategory: dbData.config?.defaultCategory || prev.config.defaultCategory || Category.STORE,
                         integrations: {
                             ...prev.config.integrations,
                             ...(dbData.config?.integrations || {}),
@@ -316,14 +323,11 @@ const App: React.FC = () => {
             const cloudData = await cloudService.loadStateFromCloud(url);
             if (cloudData) {
                 console.log("Synced from Google Sheets successfully");
-                setCloudSyncSuccess(true);
-                setTimeout(() => setCloudSyncSuccess(false), 5000);
                 
                 setAppState(prev => ({
                     ...prev,
                     ...cloudData,
                     isAdminLoggedIn: prev.isAdminLoggedIn,
-                    currentCategory: prev.currentCategory,
                      config: {
                         ...prev.config,
                         ...cloudData.config,
@@ -390,7 +394,7 @@ const App: React.FC = () => {
                 />
                 <input 
                     type="password" 
-                    placeholder="רמז: ת.ז." 
+                    placeholder={`רמז: ${appState.config.passwordHint || 'admin'}`} 
                     className="w-full p-3 border border-slate-700 rounded mb-6 bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9] outline-none" 
                     value={loginPass}
                     onChange={e => setLoginPass(e.target.value)}
@@ -401,7 +405,7 @@ const App: React.FC = () => {
                         if (loginPass === appState.config.adminPassword) {
                             handleUpdateState({ isAdminLoggedIn: true });
                         } else {
-                            alert("סיסמא שגויה. (ברירת מחדל: admin)");
+                            alert(`סיסמא שגויה. (רמז: ${appState.config.passwordHint || 'admin'})`);
                         }
                     }}
                     className="w-full bg-[#2EB0D9] text-white py-3 rounded font-bold hover:bg-[#259cc0] transition shadow-lg shadow-[#2EB0D9]/20"
@@ -422,14 +426,6 @@ const App: React.FC = () => {
           <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-[#2EB0D9]/20 overflow-hidden flex items-center justify-center">
              <div className="h-full bg-[#2EB0D9] animate-shine w-full absolute"></div>
              <span className="relative z-10 text-[10px] text-black font-bold px-2">טוען עדכונים מהשרת...</span>
-          </div>
-      )}
-
-      {/* Cloud Success Toast */}
-      {cloudSyncSuccess && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[150] bg-green-600 text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 animate-fade-in-up">
-              <CheckCircle2 size={16} />
-              <span className="text-sm font-bold">הנתונים סונכרנו בהצלחה מהענן</span>
           </div>
       )}
 
