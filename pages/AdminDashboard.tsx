@@ -7,7 +7,7 @@ import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -21,32 +21,28 @@ const FALLBACK_SUPABASE_URL = 'https://kqjmwwjafypkswkkbncc.supabase.co';
 const FALLBACK_SUPABASE_KEY = 'sb_publishable_ftgAGUontmVJ-BfgzfQJsA_n7npD__t';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout, version }) => {
-  // SPLIT TABS: Added 'sliders' as distinct from 'news'
   const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'news' | 'sliders' | 'forms' | 'team' | 'payments'>('articles');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); 
   const [isSavingToCloud, setIsSavingToCloud] = useState(false); 
   const [isLoadingFromCloud, setIsLoadingFromCloud] = useState(false); 
-  // timelineSubTab removed - we use top level tabs now
+  
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [imagePickerContext, setImagePickerContext] = useState<{ type: 'article' | 'slide' | 'team' | 'timeline', initialQuery: string } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [newArticleTopic, setNewArticleTopic] = useState('');
+  
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [editingForm, setEditingForm] = useState<FormDefinition | null>(null);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [editingSlide, setEditingSlide] = useState<SliderSlide | null>(null);
   const [editingTimelineItem, setEditingTimelineItem] = useState<TimelineItem | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
-  const [showSupabaseHelp, setShowSupabaseHelp] = useState(false);
-  const [showGoogleHelp, setShowGoogleHelp] = useState(false);
 
   const isSupabaseConfigured = state.config.integrations.supabaseUrl && state.config.integrations.supabaseKey;
   const isGoogleSheetsConfigured = state.config.integrations.googleSheetsUrl && state.config.integrations.googleSheetsUrl.includes("script.google.com");
   const isCloudConnected = isSupabaseConfigured || isGoogleSheetsConfigured;
 
-  // UPDATED: Use Fallback keys if user keys are missing, ensuring upload button always has a config
   const supabaseConfig = { 
       url: state.config.integrations.supabaseUrl || FALLBACK_SUPABASE_URL, 
       key: state.config.integrations.supabaseKey || FALLBACK_SUPABASE_KEY
@@ -114,9 +110,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
     }
   };
 
-  const handleExportData = () => { const dataStr = JSON.stringify(state); const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr); const linkElement = document.createElement('a'); linkElement.setAttribute('href', dataUri); linkElement.setAttribute('download', 'melaw_data.json'); linkElement.click(); };
-  const handleImportData = (e: any) => { const file = e.target.files?.[0]; if(!file)return; const reader = new FileReader(); reader.onload = (ev) => { try { const p = JSON.parse(ev.target?.result as string); updateState({...p, isAdminLoggedIn:true}); alert("נטען!"); } catch { alert("שגיאה"); }}; reader.readAsText(file); };
-  
   const handleGenerateArticle = async () => { 
       if (!newArticleTopic) return;
       const apiKey = state.config.integrations.geminiApiKey;
@@ -149,44 +142,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       setShowImagePicker(false);
   };
   const openImagePicker = (type: any, initialQuery: string) => { setImagePickerContext({ type, initialQuery }); setShowImagePicker(true); };
+  
+  // Forms & Fields Helpers
   const handleSaveForm = () => { if(editingForm && editingForm.title) { const exists = state.forms.find(f => f.id === editingForm.id); updateState({ forms: exists ? state.forms.map(f => f.id === editingForm.id ? editingForm : f) : [...state.forms, editingForm] }); setEditingForm(null); }};
   const addFieldToForm = (type: FieldType) => { if(editingForm) setEditingForm({ ...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type, label: 'שדה חדש', required: false, options: type === 'select' ? ['אפשרות 1'] : undefined }] }); };
   const updateFormField = (index: number, updates: Partial<FormField>) => { if(editingForm) { const f = [...editingForm.fields]; f[index] = { ...f[index], ...updates }; setEditingForm({ ...editingForm, fields: f }); }};
   const removeFormField = (index: number) => { if(editingForm) setEditingForm({ ...editingForm, fields: editingForm.fields.filter((_, i) => i !== index) }); };
+  const toggleFormCategory = (cat: Category) => { if (!editingForm) return; const current = editingForm.categories || []; if (current.includes(cat)) { setEditingForm({ ...editingForm, categories: current.filter(c => c !== cat) }); } else { setEditingForm({ ...editingForm, categories: [...current, cat] }); } };
+
+  // Other Savers
   const handleSaveMember = () => { if(editingMember) { const exists = state.teamMembers.find(m => m.id === editingMember.id); updateState({ teamMembers: exists ? state.teamMembers.map(m => m.id === editingMember.id ? editingMember : m) : [...state.teamMembers, editingMember] }); setEditingMember(null); }};
   const handleSaveSlide = () => { if(editingSlide) { const exists = state.slides.find(s => s.id === editingSlide.id); updateState({ slides: exists ? state.slides.map(s => s.id === editingSlide.id ? editingSlide : s) : [...state.slides, editingSlide] }); setEditingSlide(null); }};
   const handleSaveTimelineItem = () => { if(editingTimelineItem) { const exists = state.timelines.find(t => t.id === editingTimelineItem.id); updateState({ timelines: exists ? state.timelines.map(t => t.id === editingTimelineItem.id ? editingTimelineItem : t) : [...state.timelines, editingTimelineItem] }); setEditingTimelineItem(null); }};
-  const handleSaveProduct = () => { 
-      if(editingProduct) { 
-          const currentProducts = state.products || []; 
-          const exists = currentProducts.find(p => p.id === editingProduct.id); 
-          updateState({ products: exists ? currentProducts.map(p => p.id === editingProduct.id ? editingProduct : p) : [...currentProducts, editingProduct] }); 
-          setEditingProduct(null); 
-      }
-  };
+  const handleSaveProduct = () => { if(editingProduct) { const currentProducts = state.products || []; const exists = currentProducts.find(p => p.id === editingProduct.id); updateState({ products: exists ? currentProducts.map(p => p.id === editingProduct.id ? editingProduct : p) : [...currentProducts, editingProduct] }); setEditingProduct(null); }};
+  const toggleProductCategory = (cat: Category) => { if (!editingProduct) return; const current = editingProduct.categories || []; if (current.includes(cat)) { setEditingProduct({ ...editingProduct, categories: current.filter(c => c !== cat) }); } else { setEditingProduct({ ...editingProduct, categories: [...current, cat] }); } };
+  
   const updateIntegration = (key: keyof typeof state.config.integrations, value: string) => { updateState({ config: { ...state.config, integrations: { ...state.config.integrations, [key]: value } } }); };
   const handleFontUpload = (e: any) => { const f = e.target.files?.[0]; if(f) { const r = new FileReader(); r.onload = (ev) => updateState({ config: { ...state.config, customFontData: ev.target?.result as string }}); r.readAsDataURL(f); }};
   const handleResetFont = () => updateState({ config: { ...state.config, customFontData: undefined }});
-
-  const toggleFormCategory = (cat: Category) => {
-      if (!editingForm) return;
-      const current = editingForm.categories || [];
-      if (current.includes(cat)) {
-          setEditingForm({ ...editingForm, categories: current.filter(c => c !== cat) });
-      } else {
-          setEditingForm({ ...editingForm, categories: [...current, cat] });
-      }
-  };
-
-  const toggleProductCategory = (cat: Category) => {
-      if (!editingProduct) return;
-      const current = editingProduct.categories || [];
-      if (current.includes(cat)) {
-          setEditingProduct({ ...editingProduct, categories: current.filter(c => c !== cat) });
-      } else {
-          setEditingProduct({ ...editingProduct, categories: [...current, cat] });
-      }
-  };
 
   const filteredArticles = state.articles.filter(a => selectedCategory === 'ALL' || a.categories.includes(selectedCategory)).sort((a,b) => (a.order || 99) - (b.order || 99));
   const filteredTimelines = state.timelines.filter(t => selectedCategory === 'ALL' || t.category.includes(selectedCategory)).sort((a,b) => (a.order || 99) - (b.order || 99));
@@ -237,7 +210,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* --- SLIDERS TAB (NEW) --- */}
+        {/* --- SLIDERS TAB --- */}
         {activeTab === 'sliders' && (
             <div className="space-y-6 animate-fade-in">
                 <h3 className="text-xl font-bold text-white mb-4">ניהול סליידרים ראשיים</h3>
@@ -252,7 +225,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                 </div>
                             </div>
                             <div className="flex items-center gap-4">
-                                <span className="text-xs text-slate-500 border border-slate-700 px-2 py-1 rounded">Order: {slide.order || 99}</span>
+                                <div className="text-xs text-slate-500 text-right">
+                                    <div>{slide.linkTo ? `מקושר: ${slide.linkTo.substring(0,15)}...` : 'ללא קישור מיוחד'}</div>
+                                    <div className="border border-slate-700 px-2 py-0.5 rounded inline-block mt-1">Order: {slide.order || 99}</div>
+                                </div>
                                 <button onClick={() => setEditingSlide(slide)} className="bg-slate-800 p-2 rounded hover:bg-[#2EB0D9] hover:text-white transition-colors"><Edit size={16}/></button>
                             </div>
                         </div>
@@ -261,7 +237,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* --- NEWS & UPDATES TAB (NEW SPLIT) --- */}
+        {/* --- NEWS & UPDATES TAB --- */}
         {activeTab === 'news' && (
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-between items-center mb-6">
@@ -290,7 +266,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* ... (PAYMENTS, FORMS - Same as before) ... */}
+        {/* --- PAYMENTS TAB --- */}
         {activeTab === 'payments' && (
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-between items-center mb-6">
@@ -364,7 +340,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
-        {/* Forms Tab */}
+        {/* --- FORMS TAB --- */}
         {activeTab === 'forms' && (
              <div className="space-y-6 animate-fade-in">
                  <div className="flex justify-end"><Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', categories: [Category.POA], fields: [], submitEmail: '', pdfTemplate: 'NONE', order: 99 })}><Plus size={16}/> טופס חדש</Button></div>
@@ -399,4 +375,265 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                              <div key={i} className="flex flex-col gap-2 bg-slate-800 p-3 rounded border border-slate-700">
                                                  <div className="flex gap-2 items-center"><span className="text-[10px] uppercase bg-black/30 px-1 rounded text-slate-400 w-12 text-center">{field.type}</span><input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="bg-slate-900 border border-slate-700 text-white p-1 rounded flex-1 text-xs" placeholder="שם השדה"/><button onClick={()=>removeFormField(i)} className="text-red-400 hover:bg-slate-900 p-1 rounded"><Trash size={14}/></button></div>
                                                  <div className="flex gap-2 items-center"><label className="text-[10px] text-slate-500 whitespace-nowrap">מאמר עזרה:</label><select value={field.helpArticleId || ''} onChange={e => updateFormField(i, { helpArticleId: e.target.value })} className="bg-slate-900 border border-slate-700 text-white p-1 rounded flex-1 text-xs"><option value="">-- ללא עזרה --</option>{state.articles.map(article => (<option key={article.id} value={article.id}>{article.title}</option>))}</select></div>
-                                                 {field
+                                                 {field.type === 'select' && (<input value={field.options?.join(',')} onChange={e => updateFormField(i, { options: e.target.value.split(',') })} className="bg-slate-900 border border-slate-700 text-white p-1 rounded w-full text-xs" placeholder="אפשרויות (מופרדות בפסיק)"/>)}
+                                             </div>
+                                         ))}
+                                     </div>
+                                 </div>
+                             </div>
+                             <div className="flex gap-2 mt-4 pt-4 border-t border-slate-800"><Button onClick={handleSaveForm}>שמור</Button><Button variant="outline" onClick={()=>setEditingForm(null)}>ביטול</Button></div>
+                         </div>
+                     </div>
+                 )}
+             </div>
+        )}
+
+        {/* --- TEAM TAB --- */}
+        {activeTab === 'team' && (
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-end"><Button onClick={() => setEditingMember({ id: Date.now().toString(), fullName: '', role: '', specialization: '', email: '', phone: '', bio: '', imageUrl: 'https://picsum.photos/400/400', order: 99 })}><Plus size={16}/> איש צוות</Button></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{state.teamMembers.sort((a,b)=>(a.order||99)-(b.order||99)).map(m => (<div key={m.id} className="bg-slate-900 p-4 rounded border border-slate-800 flex gap-4"><img src={m.imageUrl} className="w-16 h-16 rounded-full"/><div className="flex-1"><div className="flex justify-between"><div className="font-bold text-white">{m.fullName}</div><span className="text-xs text-slate-500">#{m.order || 99}</span></div><div className="text-xs text-slate-400">{m.role}</div></div><button onClick={()=>setEditingMember(m)}><Edit size={16}/></button><button onClick={()=>updateState({teamMembers: state.teamMembers.filter(x=>x.id!==m.id)})} className="text-red-400"><Trash size={16}/></button></div>))}</div>
+                {editingMember && <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto"><h3 className="font-bold text-white mb-4">עריכת איש צוות</h3>
+                <div className="flex gap-2">
+                    <div className="flex-1"><label className="text-xs text-slate-500">שם מלא</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.fullName} onChange={e=>setEditingMember({...editingMember, fullName: e.target.value})}/></div>
+                    <div className="w-24"><label className="text-xs text-slate-500">סדר</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.order || 99} onChange={e=>setEditingMember({...editingMember, order: Number(e.target.value)})}/></div>
+                </div>
+                <div className="flex gap-2"><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.role} onChange={e=>setEditingMember({...editingMember, role: e.target.value})}/><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.specialization} onChange={e=>setEditingMember({...editingMember, specialization: e.target.value})}/></div><textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.bio} onChange={e=>setEditingMember({...editingMember, bio: e.target.value})}/><div className="flex gap-2"><input className="flex-1 p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.imageUrl} onChange={e=>setEditingMember({...editingMember, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                
+                <ImageUploadButton 
+                    onImageSelected={(url) => setEditingMember({...editingMember, imageUrl: url})} 
+                    googleSheetsUrl={state.config.integrations.googleSheetsUrl} 
+                    supabaseConfig={supabaseConfig} 
+                />
+                
+                <Button onClick={()=>openImagePicker('team', editingMember.fullName)}><Search size={16}/></Button></div><div className="flex gap-2"><Button onClick={handleSaveMember}>שמור</Button><Button variant="outline" onClick={()=>setEditingMember(null)}>ביטול</Button></div></div></div>}
+            </div>
+        )}
+
+        {/* --- INTEGRATIONS TAB --- */}
+        {activeTab === 'integrations' && (
+             <div className="space-y-6 animate-fade-in">
+                <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800 max-w-4xl">
+                     <h3 className="text-xl font-bold flex items-center gap-2 text-white mb-6"><LinkIcon/> חיבורים חיצוניים</h3>
+                     <div className="space-y-6">
+                         {/* Supabase */}
+                         <div className="p-4 border border-slate-700 rounded-lg bg-slate-950">
+                             <div className="flex justify-between items-center mb-4"><h4 className="font-bold text-[#2EB0D9] flex items-center gap-2"><Database size={18}/> Supabase (Database & Storage)</h4></div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 <div><label className="text-xs text-slate-500 block mb-1">Project URL</label><input type="text" className="w-full p-2 bg-slate-900 border border-slate-800 rounded text-slate-300 text-xs" value={state.config.integrations.supabaseUrl} onChange={e => updateIntegration('supabaseUrl', e.target.value)} placeholder="https://xyz.supabase.co" /></div>
+                                 <div><label className="text-xs text-slate-500 block mb-1">Anon Key</label><input type="password" className="w-full p-2 bg-slate-900 border border-slate-800 rounded text-slate-300 text-xs" value={state.config.integrations.supabaseKey} onChange={e => updateIntegration('supabaseKey', e.target.value)} /></div>
+                             </div>
+                         </div>
+                         
+                         {/* AI & Images */}
+                         <div className="p-4 border border-slate-700 rounded-lg bg-slate-950">
+                             <h4 className="font-bold text-[#2EB0D9] mb-4 flex items-center gap-2"><Sparkles size={18}/> AI & Images</h4>
+                             <div className="space-y-4">
+                                 <div><label className="text-xs text-slate-500 block mb-1">Google Gemini API Key</label><input type="password" className="w-full p-2 bg-slate-900 border border-slate-800 rounded text-slate-300 text-xs" value={state.config.integrations.geminiApiKey} onChange={e => updateIntegration('geminiApiKey', e.target.value)} /></div>
+                                 <div><label className="text-xs text-slate-500 block mb-1">Unsplash Access Key (Optional)</label><input type="password" className="w-full p-2 bg-slate-900 border border-slate-800 rounded text-slate-300 text-xs" value={state.config.integrations.unsplashAccessKey} onChange={e => updateIntegration('unsplashAccessKey', e.target.value)} /></div>
+                             </div>
+                         </div>
+
+                         {/* Google Sheets */}
+                         <div className="p-4 border border-slate-700 rounded-lg bg-slate-950">
+                             <h4 className="font-bold text-[#2EB0D9] mb-4 flex items-center gap-2"><FileText size={18}/> Google Sheets (Legacy)</h4>
+                             <div><label className="text-xs text-slate-500 block mb-1">Apps Script URL</label><input type="text" className="w-full p-2 bg-slate-900 border border-slate-800 rounded text-slate-300 text-xs" value={state.config.integrations.googleSheetsUrl} onChange={e => updateIntegration('googleSheetsUrl', e.target.value)} placeholder="https://script.google.com/..." /></div>
+                         </div>
+                     </div>
+                </div>
+            </div>
+        )}
+
+        {/* --- CONFIG TAB --- */}
+        {activeTab === 'config' && (
+             <div className="space-y-6 animate-fade-in">
+                <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800 max-w-4xl">
+                    <h3 className="text-xl font-bold flex items-center gap-2 text-white mb-6"><Monitor/> הגדרות כלליות ופרטי התקשרות</h3>
+                    <div className="space-y-6">
+                        {/* Custom Font */}
+                        <div className="border-b border-slate-800 pb-6 mb-6">
+                            <h4 className="font-bold text-lg mb-4 text-[#2EB0D9] flex items-center gap-2"><Type size={18}/> פונט לוגו מותאם אישית</h4>
+                            <div className="bg-slate-950 p-4 rounded-lg border border-slate-700">
+                                <input type="file" accept=".ttf,.otf" className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#2EB0D9] file:text-white file:cursor-pointer hover:file:bg-[#259cc0]" onChange={handleFontUpload} />
+                                {state.config.customFontData && <button onClick={handleResetFont} className="text-red-400 hover:text-red-300 text-xs mt-2">מחק פונט</button>}
+                            </div>
+                        </div>
+
+                        {/* Contact Info - Extended */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-slate-800 pb-6">
+                            <div><label className="block text-xs font-bold mb-1 text-slate-400">כתובת המשרד</label><input className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" value={state.config.address} onChange={e => updateState({ config: { ...state.config, address: e.target.value }})} /></div>
+                            <div><label className="block text-xs font-bold mb-1 text-slate-400">טלפון ראשי</label><input className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" value={state.config.phone} onChange={e => updateState({ config: { ...state.config, phone: e.target.value }})} /></div>
+                            <div><label className="block text-xs font-bold mb-1 text-slate-400">אימייל ראשי</label><input className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" value={state.config.contactEmail} onChange={e => updateState({ config: { ...state.config, contactEmail: e.target.value }})} /></div>
+                            <div><label className="block text-xs font-bold mb-1 text-slate-400">מספר פקס</label><input className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" value={state.config.fax || ''} onChange={e => updateState({ config: { ...state.config, fax: e.target.value }})} placeholder="אופציונלי" /></div>
+                            <div><label className="block text-xs font-bold mb-1 text-slate-400">מספר WhatsApp</label><input className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" value={state.config.whatsapp || ''} onChange={e => updateState({ config: { ...state.config, whatsapp: e.target.value }})} placeholder="לדוגמה: 972500000000" /></div>
+                            <div><label className="block text-sm font-bold mb-2 text-slate-400">קטגוריה ראשית בטעינה</label><select value={state.config.defaultCategory || Category.STORE} onChange={(e) => updateState({ config: { ...state.config, defaultCategory: e.target.value as Category }})} className="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-white">{Object.values(Category).map(cat => (<option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>))}</select></div>
+                        </div>
+
+                        {/* Admin Security */}
+                        <div className="border border-slate-800 bg-slate-950 p-4 rounded-lg space-y-4">
+                            <h4 className="font-bold text-[#2EB0D9] flex items-center gap-2"><Shield size={16}/> אבטחת ניהול</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label className="block text-xs font-bold mb-1 text-slate-400">סיסמת ניהול</label><input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white" value={state.config.adminPassword || 'admin'} onChange={e => updateState({ config: { ...state.config, adminPassword: e.target.value }})} /></div>
+                                <div><label className="block text-xs font-bold mb-1 text-slate-400">רמז לסיסמה</label><input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white" value={state.config.passwordHint || ''} onChange={e => updateState({ config: { ...state.config, passwordHint: e.target.value }})} placeholder="לדוגמה: ת.ז שלי" /></div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 mb-2"><input type="text" className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-800 text-white" value={state.config.logoUrl} onChange={e => updateState({ config: { ...state.config, logoUrl: e.target.value }})} placeholder="קישור ללוגו (URL)" /><ImageUploadButton onImageSelected={(url) => updateState({ config: { ...state.config, logoUrl: url }})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} /></div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+      </main>
+
+      <ImagePickerModal isOpen={showImagePicker} onClose={() => setShowImagePicker(false)} onSelect={handleImageSelect} initialQuery={imagePickerContext?.initialQuery} unsplashAccessKey={state.config.integrations.unsplashAccessKey} />
+      
+      {/* ... Article Editor ... */}
+      {editingArticle && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-slate-900 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-slate-700 shadow-2xl p-6">
+                <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-white">עריכת מאמר</h3><button onClick={() => setEditingArticle(null)}><X className="text-slate-400"/></button></div>
+                <div className="space-y-4">
+                    <div className="flex gap-2">
+                        <input className="flex-1 p-3 bg-slate-800 border border-slate-700 rounded text-white" value={editingArticle.title} onChange={e => setEditingArticle({...editingArticle, title: e.target.value})} placeholder="כותרת"/>
+                        <input type="number" className="w-24 p-3 bg-slate-800 border border-slate-700 rounded text-white" value={editingArticle.order || 99} onChange={e => setEditingArticle({...editingArticle, order: Number(e.target.value)})} placeholder="סדר"/>
+                    </div>
+                    <textarea className="w-full p-3 bg-slate-800 border border-slate-700 rounded text-white h-24" value={editingArticle.abstract} onChange={e => setEditingArticle({...editingArticle, abstract: e.target.value})} placeholder="תקציר"/>
+                    <div className="flex gap-2">
+                        <input className="flex-1 p-3 bg-slate-800 border border-slate-700 rounded text-white" value={editingArticle.imageUrl} onChange={e => setEditingArticle({...editingArticle, imageUrl: e.target.value})} placeholder="URL תמונה"/>
+                        <ImageUploadButton onImageSelected={(url) => setEditingArticle({...editingArticle, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                        <Button onClick={()=>openImagePicker('article', editingArticle.title)}><Search size={16}/></Button>
+                    </div>
+                    <div className="space-y-4 pt-4 border-t border-slate-800">{editingArticle.tabs.map((tab, idx) => (<div key={idx}><input className="w-full bg-transparent font-bold mb-1 border-b border-slate-800 text-white" value={tab.title} onChange={(e) => {const t = [...editingArticle.tabs]; t[idx].title = e.target.value; setEditingArticle({...editingArticle, tabs: t});}}/><textarea className="w-full bg-slate-950 p-2 rounded text-slate-300 text-sm h-24 border border-slate-800" value={tab.content} onChange={(e) => {const t = [...editingArticle.tabs]; t[idx].content = e.target.value; setEditingArticle({...editingArticle, tabs: t});}}/></div>))}</div>
+                    <div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setEditingArticle(null)}>ביטול</Button><Button onClick={handleUpdateArticle}>שמור</Button></div>
+                </div>
+            </div>
+        </div>
+      )}
+      
+      {/* Slide Editor Modal */}
+      {editingSlide && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-md space-y-4">
+                <h3 className="font-bold text-white">עריכת סליידר</h3>
+                <input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.title} onChange={e=>setEditingSlide({...editingSlide, title: e.target.value})} placeholder="כותרת ראשית"/>
+                <input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.subtitle} onChange={e=>setEditingSlide({...editingSlide, subtitle: e.target.value})} placeholder="כותרת משנה"/>
+                
+                {/* Custom Link Logic */}
+                <div className="bg-slate-950 p-2 border border-slate-800 rounded">
+                    <label className="text-xs text-[#2EB0D9] block mb-1 font-bold">יעד לקישור הכפתור (אופציונלי)</label>
+                    <input 
+                        className="w-full p-2 bg-slate-900 text-white rounded border border-slate-700 text-sm" 
+                        value={editingSlide.linkTo || ''} 
+                        onChange={e=>setEditingSlide({...editingSlide, linkTo: e.target.value})} 
+                        placeholder="לדוגמה: WILLS, form:123, או https://..."
+                    />
+                    <div className="text-[10px] text-slate-500 mt-1">
+                        השאר ריק כדי להשתמש בקטגוריה. כתוב <span className="text-yellow-500">form:[ID]</span> לטופס, או כתובת מלאה לאתר חיצוני.
+                    </div>
+                </div>
+
+                <div className="flex gap-2">
+                    <div className="flex-1"><label className="text-xs text-slate-500">כתובת תמונה</label><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.imageUrl} onChange={e=>setEditingSlide({...editingSlide, imageUrl: e.target.value})}/></div>
+                    <div className="w-24"><label className="text-xs text-slate-500">סדר</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded" value={editingSlide.order || 99} onChange={e=>setEditingSlide({...editingSlide, order: Number(e.target.value)})}/></div>
+                </div>
+                <div className="flex gap-2">
+                    <ImageUploadButton onImageSelected={(url) => setEditingSlide({...editingSlide, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                    <Button onClick={()=>openImagePicker('slide', editingSlide.title)}><Search size={16}/></Button>
+                </div>
+                <div className="flex gap-2"><Button onClick={handleSaveSlide}>שמור</Button><Button variant="outline" onClick={()=>setEditingSlide(null)}>ביטול</Button></div>
+            </div>
+        </div>
+      )}
+      
+      {/* Timeline Item Editor Modal */}
+      {editingTimelineItem && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+                <h3 className="font-bold text-white">עריכת עדכון חדשות / כלי דיגיטלי</h3>
+                <input className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.title} onChange={e=>setEditingTimelineItem({...editingTimelineItem, title: e.target.value})} placeholder="כותרת"/>
+                <textarea className="w-full p-2 bg-slate-800 text-white rounded h-24" value={editingTimelineItem.description} onChange={e=>setEditingTimelineItem({...editingTimelineItem, description: e.target.value})} placeholder="תוכן ראשי (תקציר)"/>
+                
+                {/* NEW: FORM LINKER */}
+                <div className="bg-slate-950 p-3 rounded border border-slate-800">
+                    <label className="block text-xs font-bold text-[#2EB0D9] mb-2 flex items-center gap-1"><ClipboardList size={12}/> קשר לטופס דיגיטלי (אופציונלי)</label>
+                    <select 
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded text-white text-sm"
+                        value={editingTimelineItem.linkTo || ''}
+                        onChange={(e) => setEditingTimelineItem({ ...editingTimelineItem, linkTo: e.target.value })}
+                    >
+                        <option value="">-- ללא קישור לטופס (מידע בלבד) --</option>
+                        <option value="wills-generator">מחולל הצוואות הדיגיטלי (מובנה)</option>
+                        {state.forms.map(f => (
+                            <option key={f.id} value={`form-${f.id}`}>טופס: {f.title}</option>
+                        ))}
+                    </select>
+                    <p className="text-[10px] text-slate-500 mt-1">בחירה באפשרות זו תהפוך את העדכון לכפתור המוביל ישירות לטופס הנבחר.</p>
+                </div>
+
+                <div className="flex gap-2">
+                    <div className="flex-1"><label className="text-xs text-slate-500">תמונה (אופציונלי)</label><input className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.imageUrl} onChange={e=>setEditingTimelineItem({...editingTimelineItem, imageUrl: e.target.value})}/></div>
+                    <div className="w-24"><label className="text-xs text-slate-500">סדר</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded" value={editingTimelineItem.order || 99} onChange={e=>setEditingTimelineItem({...editingTimelineItem, order: Number(e.target.value)})}/></div>
+                </div>
+                <div className="flex gap-2">
+                    <ImageUploadButton onImageSelected={(url) => setEditingTimelineItem({...editingTimelineItem, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                    <Button onClick={()=>openImagePicker('timeline', editingTimelineItem.title)}><Search size={16}/></Button>
+                </div>
+
+                {/* Tabs Editor for Timeline */}
+                <div className="border-t border-slate-800 pt-4 mt-4">
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs text-slate-500 font-bold">תוכן מורחב (טאבים)</label>
+                        <button 
+                            onClick={() => setEditingTimelineItem({ ...editingTimelineItem, tabs: [...(editingTimelineItem.tabs || []), { title: 'חדש', content: '' }] })}
+                            className="text-xs text-[#2EB0D9] hover:underline"
+                        >
+                            + הוסף טאב
+                        </button>
+                    </div>
+                    <div className="space-y-3">
+                        {(editingTimelineItem.tabs || []).map((tab, idx) => (
+                            <div key={idx} className="bg-slate-950 p-2 rounded border border-slate-800">
+                                <div className="flex justify-between mb-1">
+                                    <input 
+                                        className="bg-transparent font-bold text-sm text-white w-full" 
+                                        value={tab.title} 
+                                        onChange={(e) => {
+                                            const newTabs = [...(editingTimelineItem.tabs || [])];
+                                            newTabs[idx].title = e.target.value;
+                                            setEditingTimelineItem({...editingTimelineItem, tabs: newTabs});
+                                        }}
+                                        placeholder="כותרת הטאב"
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            const newTabs = (editingTimelineItem.tabs || []).filter((_, i) => i !== idx);
+                                            setEditingTimelineItem({...editingTimelineItem, tabs: newTabs});
+                                        }}
+                                        className="text-red-400 hover:text-red-300"
+                                    >
+                                        <Trash size={14}/>
+                                    </button>
+                                </div>
+                                <textarea 
+                                    className="w-full bg-slate-900 p-2 rounded text-slate-300 text-xs h-20 border border-slate-800" 
+                                    value={tab.content} 
+                                    onChange={(e) => {
+                                        const newTabs = [...(editingTimelineItem.tabs || [])];
+                                        newTabs[idx].content = e.target.value;
+                                        setEditingTimelineItem({...editingTimelineItem, tabs: newTabs});
+                                    }}
+                                    placeholder="תוכן הטאב..."
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex gap-2"><Button onClick={handleSaveTimelineItem}>שמור</Button><Button variant="outline" onClick={()=>setEditingTimelineItem(null)}>ביטול</Button></div>
+            </div>
+        </div>
+      )}
+    </div>
+  );
+};

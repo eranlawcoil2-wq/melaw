@@ -6,7 +6,7 @@ import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
 import { ShareMenu } from '../components/ShareMenu.tsx'; 
 import { emailService, storeService } from '../services/api.ts'; 
-import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle } from 'lucide-react';
+import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle, Printer, MessageCircle } from 'lucide-react';
 
 const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = "", delay = 0 }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -113,6 +113,25 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         setActiveArticleTab(0); // reuse tab state for timeline
     }
   };
+
+  const handleSliderClick = (slide: any) => {
+    if (slide.linkTo) {
+        if (slide.linkTo.startsWith('form:')) {
+            const formId = slide.linkTo.split(':')[1];
+            setActiveDynamicFormId(formId);
+            setDynamicFormValues({});
+            setTimeout(() => { dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100);
+        } else if (slide.linkTo.startsWith('http')) {
+            window.open(slide.linkTo, '_blank');
+        } else if (Object.values(Category).includes(slide.linkTo)) {
+            onCategoryChange(slide.linkTo);
+        } else {
+             onCategoryChange(slide.category); // Default fallback
+        }
+    } else {
+        onCategoryChange(slide.category);
+    }
+  };
   
   const handleProductClick = (product: any) => {
       if (product.paymentLink) {
@@ -167,7 +186,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
   const hasWillsGenerator = state.currentCategory === Category.WILLS;
   const hasDynamicForms = currentCategoryForms.length > 0;
-  const showFormsButton = (hasDynamicForms || hasWillsGenerator) && !isContactPage && !isStorePage && !isHomePage;
+  // REMOVED AUTOMATIC FORM BUTTON - User requested removal
+  // const showFormsButton = (hasDynamicForms || hasWillsGenerator) && !isContactPage && !isStorePage && !isHomePage;
 
   const openHelpArticle = (articleId: string) => {
       const article = state.articles.find(a => a.id === articleId);
@@ -390,13 +410,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             <span className="inline-block px-4 py-1 bg-[#2EB0D9]/90 text-xs font-bold uppercase tracking-widest rounded-full mb-1 text-white shadow-lg">{slide.category === Category.HOME ? 'המשרד המוביל בישראל' : CATEGORY_LABELS[slide.category]}</span>
                             <h2 className="text-3xl md:text-5xl font-black leading-tight drop-shadow-2xl text-white">{slide.title}</h2>
                             <p className="hidden md:block text-lg text-slate-300 md:w-3/4 border-r-4 border-[#2EB0D9] pr-4 leading-relaxed font-light">{slide.subtitle}</p>
-                            {state.currentCategory !== Category.HOME && state.currentCategory !== Category.STORE && (
-                                <div className="pt-4 flex gap-3">
-                                    <Button onClick={() => onCategoryChange(slide.category)} variant="secondary" size="md" className="shine-effect">{slide.buttonText || 'קבע פגישת ייעוץ'}</Button>
-                                    {showFormsButton && (<Button onClick={() => setShowFormsListModal(true)} variant="outline" className="text-white border-white/30 hover:bg-white/10 hover:border-white"><ClipboardList size={18} className="ml-2"/> טפסים ושאלונים</Button>)}
-                                </div>
-                            )}
-                            {isHomePage && slide.category === Category.HOME && slide.title.includes('החנות') && (<div className="pt-4"><Button onClick={() => onCategoryChange(Category.STORE)} variant="secondary" size="md" className="shine-effect">למעבר לחנות המשפטית</Button></div>)}
+                            
+                            {/* NEW: CUSTOM SLIDER LINK LOGIC */}
+                            <div className="pt-4 flex gap-3">
+                                <Button onClick={() => handleSliderClick(slide)} variant="secondary" size="md" className="shine-effect">{slide.buttonText || 'קרא עוד'}</Button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -434,7 +452,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                          ))}
                                      </div>
                                      <h4 className={`font-bold text-base md:text-lg mb-1 line-clamp-1 ${theme.textTitle}`}>{product.title}</h4>
-                                     <p className="text-[10px] text-slate-500 line-clamp-2 mb-2">{product.description}</p>
+                                     <p className="text-slate-400 text-xs mb-2 line-clamp-2">{product.description}</p>
                                      <div className={`text-lg font-black mb-3 ${theme.textMuted} flex-1 flex items-center justify-center`}>₪{product.price}</div>
                                      <Button onClick={() => handleProductClick(product)} className="w-full shine-effect text-xs py-1.5 h-8" variant="secondary">רכוש כעת</Button>
                                  </div>
@@ -543,10 +561,52 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </div>
         )}
 
-        {/* GLOBAL FOOTER (HIDDEN ON CONTACT PAGE) */}
+        {/* GLOBAL FOOTER */}
         {showGlobalFooter && (
             <footer className="bg-black text-slate-400 pt-20 pb-10 relative z-10 border-t border-slate-900">
-                <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 items-start text-right" dir="rtl"><div className="col-span-1 flex flex-col items-start"><h2 className="text-2xl font-black text-white mb-6 leading-tight" style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}><span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO</h2><p className="mb-6 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p>{onAdminClick && <button onClick={onAdminClick} className="p-2 border border-slate-800 rounded-full"><Settings size={16}/></button>}</div><div className="col-span-1 flex flex-col items-start"><h4 className="text-white font-bold mb-6 text-lg border-r-4 border-[#2EB0D9] pr-4">פרטי התקשרות</h4><ul className="space-y-4 w-full"><li className="flex items-start gap-4"><MapPin size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.address}</span></li><li className="flex items-center gap-4"><Phone size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400" dir="ltr">{state.config.phone}</span></li><li className="flex items-center gap-4"><Mail size={22} className="text-[#2EB0D9]"/> <span className="text-slate-400">{state.config.contactEmail}</span></li></ul></div><div className="col-span-1"><div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800"><iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.6, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe></div></div></div>
+                <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 items-start text-right" dir="rtl">
+                    <div className="col-span-1 flex flex-col items-start">
+                        <h2 className="text-2xl font-black text-white mb-6 leading-tight" style={{ fontFamily: "'MyLogoFont', Cambria, serif" }}><span className="text-[#2EB0D9]">MOR ERAN KAGAN</span><br/>& CO</h2>
+                        <p className="mb-6 text-sm leading-relaxed max-w-xs text-slate-500">משרד עורכי דין מוביל המעניק ליווי משפטי מקיף, מקצועי ואישי.</p>
+                        {onAdminClick && <button onClick={onAdminClick} className="p-2 border border-slate-800 rounded-full"><Settings size={16}/></button>}
+                    </div>
+                    
+                    <div className="col-span-1 flex flex-col items-start">
+                        <h4 className="text-white font-bold mb-6 text-lg border-r-4 border-[#2EB0D9] pr-4">פרטי התקשרות</h4>
+                        <ul className="space-y-4 w-full">
+                            <li className="flex items-start gap-4 hover:text-white transition-colors">
+                                <MapPin size={22} className="text-[#2EB0D9]"/> 
+                                <a href={`https://waze.com/ul?q=${encodeURIComponent(state.config.address)}`} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">{state.config.address}</a>
+                            </li>
+                            <li className="flex items-center gap-4 hover:text-white transition-colors">
+                                <Phone size={22} className="text-[#2EB0D9]"/> 
+                                <a href={`tel:${state.config.phone}`} className="text-slate-400 hover:text-white transition-colors" dir="ltr">{state.config.phone}</a>
+                            </li>
+                            <li className="flex items-center gap-4 hover:text-white transition-colors">
+                                <Mail size={22} className="text-[#2EB0D9]"/> 
+                                <a href={`mailto:${state.config.contactEmail}`} className="text-slate-400 hover:text-white transition-colors">{state.config.contactEmail}</a>
+                            </li>
+                            
+                            {/* FAX & WHATSAPP FROM CONFIG */}
+                            {state.config.fax && (
+                                <li className="flex items-center gap-4">
+                                    <Printer size={22} className="text-[#2EB0D9]"/> 
+                                    <span className="text-slate-400">{state.config.fax}</span>
+                                </li>
+                            )}
+                            {state.config.whatsapp && (
+                                <li className="flex items-center gap-4 hover:text-white transition-colors">
+                                    <MessageCircle size={22} className="text-[#2EB0D9]"/> 
+                                    <a href={`https://wa.me/${state.config.whatsapp}`} target="_blank" className="text-slate-400 hover:text-white transition-colors" dir="ltr">{state.config.whatsapp}</a>
+                                </li>
+                            )}
+                        </ul>
+                    </div>
+                    
+                    <div className="col-span-1">
+                        <div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-slate-800"><iframe width="100%" height="100%" frameBorder="0" style={{ border: 0, opacity: 0.6, filter: 'invert(90%) hue-rotate(180deg)' }} src={`https://maps.google.com/maps?q=${encodeURIComponent(state.config.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}></iframe></div>
+                    </div>
+                </div>
                 <div className="container mx-auto px-4 pt-8 border-t border-slate-900 text-center text-sm text-slate-600 flex flex-col items-center gap-2">
                     <p>&copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO.</p>
                     <button onClick={() => setShowLegalDisclaimer(true)} className="text-xs text-slate-500 hover:text-[#2EB0D9] underline transition-colors">תנאי שימוש והצהרת פרטיות</button>

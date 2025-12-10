@@ -24,7 +24,7 @@ export interface SliderSlide {
   subtitle: string;
   category: Category;
   buttonText?: string;
-  buttonLink?: string;
+  linkTo?: string; // Updated: Generic link field (e.g., "form:123", "cat:WILLS", "url:https://...")
   order?: number; 
 }
 
@@ -125,6 +125,8 @@ export interface SiteConfig {
   willsEmail: string;
   poaEmail: string;
   phone: string;
+  fax?: string; // New
+  whatsapp?: string; // New
   address: string;
   theme: 'dark' | 'light';
   adminPassword?: string; 
@@ -172,7 +174,7 @@ export interface AppState {
   menuItems: MenuItem[];
   forms: FormDefinition[];
   teamMembers: TeamMember[];
-  products: Product[]; 
+  products: Product[];
+  lastUpdated: string;
   isAdminLoggedIn: boolean;
-  lastUpdated?: string; 
 }
