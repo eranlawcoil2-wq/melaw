@@ -7,7 +7,7 @@ import { dbService } from './services/supabase.ts';
 import { Loader2 } from 'lucide-react';
 
 // --- VERSION CONTROL ---
-const APP_VERSION = 'v1.4';
+const APP_VERSION = 'v1.5';
 
 // --- INITIAL DEFAULT DATA (Fallback) ---
 const initialArticles: Article[] = [
@@ -181,7 +181,7 @@ const defaultState: AppState = {
     teamMembers: initialTeamMembers,
 };
 
-// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v1.4
+// UPDATED KEY TO FORCE REFRESH FOR ALL USERS (CACHE BUSTING) - v1.5
 const STORAGE_KEY = `melaw_site_data_${APP_VERSION}`;
 
 const App: React.FC = () => {

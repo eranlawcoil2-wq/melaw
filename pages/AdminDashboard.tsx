@@ -6,7 +6,7 @@ import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -115,22 +115,19 @@ function getOrCreateSheet(name) {
 
 // --- SUPABASE SETUP INSTRUCTIONS ---
 const SUPABASE_SQL_INSTRUCTIONS = `
--- 1. פתח את SQL Editor ב-Supabase והרץ את הקוד הבא:
+-- צעד 1: צור טבלה להגדרות
 create table site_config (
   id bigint primary key generated always as identity,
   data jsonb not null,
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
 
+-- צעד 2: צור רשומה ראשונית ריקה
 insert into site_config (data) values ('{}');
 
+-- צעד 3: אפשר גישה לכולם
 alter table site_config enable row level security;
 create policy "Enable access to all users" on site_config for all using (true) with check (true);
-
--- 2. פתח את תפריט Storage בצד שמאל.
--- 3. צור Bucket חדש בשם: images
--- 4. חובה: סמן את האפשרות "Public Bucket".
--- 5. שמור.
 `;
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout, version }) => {
@@ -148,7 +145,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [editingSlide, setEditingSlide] = useState<SliderSlide | null>(null);
   const [editingTimelineItem, setEditingTimelineItem] = useState<TimelineItem | null>(null);
+  
+  // Instruction Toggles
   const [showSupabaseHelp, setShowSupabaseHelp] = useState(false);
+  const [showGoogleHelp, setShowGoogleHelp] = useState(false);
 
   const isSupabaseConfigured = state.config.integrations.supabaseUrl && state.config.integrations.supabaseKey;
   const isGoogleSheetsConfigured = state.config.integrations.googleSheetsUrl && state.config.integrations.googleSheetsUrl.includes("script.google.com");
@@ -242,25 +242,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     <div className="absolute top-0 left-0 w-1 h-full bg-[#2EB0D9]"></div>
                     <div className="flex justify-between items-start mb-4">
                         <h3 className="text-xl font-bold text-white flex items-center gap-2"><Database className="text-[#2EB0D9]"/> Supabase (מומלץ)</h3>
-                        <button onClick={() => setShowSupabaseHelp(!showSupabaseHelp)} className="text-xs flex items-center gap-1 text-[#2EB0D9] hover:underline"><HelpCircle size={14}/> {showSupabaseHelp ? 'הסתר הוראות' : 'הצג הוראות התקנה'}</button>
+                        <button onClick={() => setShowSupabaseHelp(!showSupabaseHelp)} className="text-xs flex items-center gap-1 text-[#2EB0D9] hover:underline bg-slate-950 p-2 rounded border border-slate-700">
+                             {showSupabaseHelp ? <ChevronUp size={14}/> : <ChevronDown size={14}/>} 
+                             {showSupabaseHelp ? 'הסתר הוראות' : 'הצג הוראות התקנה'}
+                        </button>
                     </div>
                     
                     {showSupabaseHelp && (
-                        <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-300 text-xs font-mono whitespace-pre-wrap mb-4 select-all">
-                            {SUPABASE_SQL_INSTRUCTIONS}
+                        <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-300 text-sm mb-4 space-y-4">
+                            <div>
+                                <strong className="text-white block mb-1">שלב 1: פתיחת פרויקט</strong>
+                                1. היכנס לאתר <a href="https://supabase.com" target="_blank" className="text-[#2EB0D9] underline">supabase.com</a> וצור פרויקט חדש.<br/>
+                                2. לאחר שהפרויקט מוכן, לך ל-Settings (גלגל שיניים למטה) -> API.<br/>
+                                3. העתק את ה-URL ואת ה-<code>anon</code> key והדבק אותם בשדות למטה.
+                            </div>
+                            <div>
+                                <strong className="text-white block mb-1">שלב 2: יצירת מסד נתונים (SQL)</strong>
+                                1. בחר ב-SQL Editor בתפריט השמאלי.<br/>
+                                2. הדבק את הקוד הבא ולחץ Run:
+                                <pre className="bg-black p-2 rounded text-xs text-green-400 mt-1 select-all font-mono whitespace-pre-wrap">{SUPABASE_SQL_INSTRUCTIONS}</pre>
+                            </div>
+                            <div>
+                                <strong className="text-white block mb-1">שלב 3: הגדרת אחסון תמונות (Storage)</strong>
+                                1. בחר ב-Storage (אייקון דלי/תיקיה) בתפריט השמאלי.<br/>
+                                2. לחץ על <b>New Bucket</b>.<br/>
+                                3. שם ה-Bucket חייב להיות: <code>images</code> (באותיות קטנות).<br/>
+                                4. <b>חשוב מאוד:</b> סמן את המתג <b>Public Bucket</b>.<br/>
+                                5. לחץ Save.
+                            </div>
                         </div>
                     )}
 
                     <p className="text-slate-400 mb-4 text-sm">מאפשר עדכון האתר בזמן אמת והעלאת תמונות.</p>
                     <div className="space-y-4 bg-slate-950 p-4 rounded border border-slate-800">
                         <div><label className="block text-xs font-bold text-slate-300 mb-1">Project URL</label><input type="text" className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white focus:border-[#2EB0D9] outline-none" value={state.config.integrations.supabaseUrl} onChange={e => updateIntegration('supabaseUrl', e.target.value)} /></div>
-                        <div><label className="block text-xs font-bold text-slate-300 mb-1">API Key</label><input type="password" className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white focus:border-[#2EB0D9] outline-none" value={state.config.integrations.supabaseKey} onChange={e => updateIntegration('supabaseKey', e.target.value)} /></div>
+                        <div><label className="block text-xs font-bold text-slate-300 mb-1">API Key (anon / public)</label><input type="password" className="w-full p-2 border border-slate-700 rounded bg-slate-900 text-white focus:border-[#2EB0D9] outline-none" value={state.config.integrations.supabaseKey} onChange={e => updateIntegration('supabaseKey', e.target.value)} /></div>
                     </div>
                 </div>
 
                 {/* GOOGLE LEGACY + SCRIPT DISPLAY */}
                 <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 opacity-90">
-                    <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2"><Cloud/> Google Script (עבור טפסים ו-PDF)</h3>
+                    <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2"><Cloud/> Google Script (עבור טפסים ו-PDF)</h3>
+                        <button onClick={() => setShowGoogleHelp(!showGoogleHelp)} className="text-xs flex items-center gap-1 text-[#2EB0D9] hover:underline bg-slate-950 p-2 rounded border border-slate-700">
+                             {showGoogleHelp ? <ChevronUp size={14}/> : <ChevronDown size={14}/>} 
+                             {showGoogleHelp ? 'הסתר הוראות' : 'הצג הוראות התקנה'}
+                        </button>
+                    </div>
+
+                    {showGoogleHelp && (
+                         <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-300 text-sm mb-4 space-y-4">
+                            <div>
+                                1. פתח גיליון Google Sheet חדש.<br/>
+                                2. בתפריט העליון, בחר <b>Extensions</b> -> <b>Apps Script</b>.<br/>
+                                3. מחק את כל הקוד שיש שם, והדבק את הקוד שמופיע בתיבה השחורה למטה.<br/>
+                                4. לחץ על כפתור <b>Deploy</b> (כחול למעלה) -> <b>New deployment</b>.<br/>
+                                5. בחר סוג: <b>Web App</b>.<br/>
+                                6. <b>חשוב מאוד:</b> בשדה <i>Who has access</i> בחר <b>Anyone</b>.<br/>
+                                7. לחץ Deploy, אשר הרשאות, והעתק את ה-URL שקיבלת (Web App URL).<br/>
+                                8. הדבק את ה-URL בשדה למטה.
+                            </div>
+                        </div>
+                    )}
+
                     <div className="space-y-4 bg-slate-950 p-4 rounded border border-slate-800 mb-4">
                         <label className="block text-sm font-bold text-slate-300">Web App URL</label>
                         <input type="text" className="w-full p-3 border border-slate-700 rounded-lg bg-slate-900 text-white placeholder-slate-600 focus:border-[#2EB0D9] outline-none" placeholder="https://script.google.com/..." value={state.config.integrations.googleSheetsUrl} onChange={e => updateIntegration('googleSheetsUrl', e.target.value)} />
@@ -370,7 +414,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
                         {/* General Fields */}
                         <input type="text" className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white mb-2" value={state.config.officeName} onChange={e => updateState({ config: { ...state.config, officeName: e.target.value }})} placeholder="שם המשרד" />
-                        <input type="text" className="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-white mb-2" value={state.config.logoUrl} onChange={e => updateState({ config: { ...state.config, logoUrl: e.target.value }})} placeholder="לוגו URL" />
+                        
+                        {/* UPDATED LOGO URL WITH UPLOAD BUTTON */}
+                        <div className="flex gap-2 mb-2">
+                            <input type="text" className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-800 text-white" value={state.config.logoUrl} onChange={e => updateState({ config: { ...state.config, logoUrl: e.target.value }})} placeholder="לוגו URL (או העלה תמונה)" />
+                            <ImageUploadButton onImageSelected={(url) => updateState({ config: { ...state.config, logoUrl: url }})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} />
+                        </div>
                         
                         <div className="flex justify-end pt-4">
                             <button 
