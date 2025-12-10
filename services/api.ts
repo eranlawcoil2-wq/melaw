@@ -100,8 +100,17 @@ export const emailService = {
         // --- 1. PRIORITY: GOOGLE SHEETS (Server Side Processing) ---
         if (config?.googleSheetsUrl && config.googleSheetsUrl.includes('script.google.com')) {
             try {
-                // Determine Client Email (usually in field 'email', 'אימייל', 'contactEmail')
-                const clientEmail = data['email'] || data['אימייל'] || data['contactEmail'] || data['דוא"ל'];
+                // Improved Client Email Detection
+                let clientEmail = data['email'] || data['אימייל'] || data['contactEmail'] || data['דוא"ל'];
+                
+                // If not found in standard keys, try to find any key that looks like email
+                if (!clientEmail) {
+                    const emailKey = Object.keys(data).find(k => k.toLowerCase().includes('mail') && typeof data[k] === 'string' && data[k].includes('@'));
+                    if (emailKey) clientEmail = data[emailKey];
+                }
+
+                // Logging for debug
+                console.log(`Sending Form. Title: ${formTitle}, Client Copy Requested: ${sendClientCopy}, Client Email Found: ${clientEmail || 'NONE'}`);
 
                 const payload = {
                     action: 'submitForm',       
@@ -114,8 +123,6 @@ export const emailService = {
                     sendClientCopy: sendClientCopy, // Tell script whether to CC client
                     ...data 
                 };
-
-                console.log("Sending to Google Script:", payload);
 
                 // שימוש ב-no-cors כדי למנוע חסימת דפדפן.
                 await fetch(config.googleSheetsUrl, {
@@ -158,13 +165,14 @@ export const emailService = {
             'טלפון': data.contactPhone,
             'אימייל': data.contactEmail,
             'נכסים': data.assets ? data.assets.map(a => `${a.type}: ${a.description}`).join(' | ') : 'ללא',
+            // Add technical keys for search
+            'email': data.contactEmail 
         };
 
         // Always send to office email defined in config (willsEmail) or fallback
         const officeEmail = config.willsEmail || config.contactEmail || 'office@melaw.co.il';
         
-        // For wills, we generally want to send a copy to client if they provided email, or make it configurable. 
-        // For now, let's assume wills generator always sends copy to client as it's a "Generator"
+        // For wills, explicitly force client copy to TRUE
         return this.sendForm('Wills Generator', flatData, config.integrations, 'WILL', true, officeEmail);
     }
 };
