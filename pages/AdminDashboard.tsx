@@ -7,7 +7,7 @@ import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin, Eye, EyeOff } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -19,6 +19,64 @@ interface AdminDashboardProps {
 // --- PUBLIC KEYS FALLBACK (For Image Uploads) ---
 const FALLBACK_SUPABASE_URL = 'https://kqjmwwjafypkswkkbncc.supabase.co'; 
 const FALLBACK_SUPABASE_KEY = 'sb_publishable_ftgAGUontmVJ-BfgzfQJsA_n7npD__t';
+
+const GOOGLE_SCRIPT_CODE = `function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var jsonString = e.postData.contents;
+    var data = JSON.parse(jsonString);
+    var action = data.action;
+
+    // --- CASE 1: FORM SUBMISSION (WILLS, ETC.) ---
+    if (action === 'submitForm') {
+      var sheetName = data.targetSheet || 'DATA';
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) {
+        sheet = ss.insertSheet(sheetName);
+        sheet.appendRow(['Timestamp', 'Form Name', 'Data']);
+      }
+
+      var timestamp = new Date();
+      var rowData = [timestamp, data.formName];
+      for (var key in data) {
+        if (key !== 'action' && key !== 'targetSheet' && key !== 'templateSheet' && key !== 'formName' && key !== 'submittedAt') {
+           rowData.push(key + ": " + data[key]);
+        }
+      }
+      sheet.appendRow(rowData);
+      return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // --- CASE 2: SAVE STATE ---
+    if (action === 'saveState') {
+       var configSheet = ss.getSheetByName('SiteConfig');
+       if (!configSheet) configSheet = ss.insertSheet('SiteConfig');
+       configSheet.clear();
+       configSheet.getRange(1, 1).setValue(JSON.stringify(data.data));
+       return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // --- CASE 3: UPLOAD IMAGE (LEGACY) ---
+    if (action === 'uploadImage') {
+        var folderName = "MeLaw Images";
+        var folders = DriveApp.getFoldersByName(folderName);
+        var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+        var contentType = data.data.mimeType || 'image/jpeg';
+        var blob = Utilities.newBlob(Utilities.base64Decode(data.data.imageData), contentType, data.data.fileName);
+        var file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        return ContentService.createTextOutput(JSON.stringify({status: 'success', url: file.getDownloadUrl()})).setMimeType(ContentService.MimeType.JSON);
+    }
+
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({status: 'error', error: e.toString()})).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}`;
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout, version }) => {
   const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'news' | 'sliders' | 'forms' | 'team' | 'payments'>('articles');
@@ -38,6 +96,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const [editingSlide, setEditingSlide] = useState<SliderSlide | null>(null);
   const [editingTimelineItem, setEditingTimelineItem] = useState<TimelineItem | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  
+  const [showGoogleCode, setShowGoogleCode] = useState(false);
 
   const isSupabaseConfigured = state.config.integrations.supabaseUrl && state.config.integrations.supabaseKey;
   const isGoogleSheetsConfigured = state.config.integrations.googleSheetsUrl && state.config.integrations.googleSheetsUrl.includes("script.google.com");
@@ -471,8 +531,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                 <ol className="list-decimal list-inside space-y-1">
                                     <li>פתח גיליון Google Sheet חדש</li>
                                     <li>בתפריט: <strong>Extensions</strong> -&gt; <strong>Apps Script</strong></li>
-                                    <li>מחק את כל הקוד והדבק את הקוד שסופק לך ע"י המתכנת</li>
-                                    <li>לחץ <strong>Deploy</strong> -&gt; <strong>New Deployment</strong></li>
+                                    <li>
+                                        <div className="flex justify-between items-center mt-2 bg-slate-950 p-2 rounded border border-slate-700">
+                                            <span>העתק והדבק את הקוד הבא:</span>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => setShowGoogleCode(!showGoogleCode)} className="text-[#2EB0D9] text-xs hover:underline flex items-center gap-1">{showGoogleCode ? <EyeOff size={12}/> : <Eye size={12}/>} {showGoogleCode ? 'הסתר קוד' : 'הצג קוד'}</button>
+                                                <button 
+                                                    onClick={() => { navigator.clipboard.writeText(GOOGLE_SCRIPT_CODE); alert("הקוד הועתק!"); }}
+                                                    className="bg-slate-800 text-white px-2 py-1 rounded text-xs border border-slate-600 hover:bg-slate-700 flex items-center gap-1"
+                                                >
+                                                    <Copy size={12}/> העתק קוד
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {showGoogleCode && (
+                                            <pre className="mt-2 bg-black p-3 rounded text-[10px] text-green-400 overflow-x-auto border border-slate-700 custom-scrollbar select-all" dir="ltr" style={{maxHeight: '300px'}}>
+                                                {GOOGLE_SCRIPT_CODE}
+                                            </pre>
+                                        )}
+                                    </li>
+                                    <li className="mt-2">לחץ <strong>Deploy</strong> -&gt; <strong>New Deployment</strong></li>
                                     <li>בחר סוג: <strong>Web App</strong></li>
                                     <li>הגדר <strong>Execute as: Me</strong></li>
                                     <li>הגדר <strong>Who has access: Anyone</strong> (חשוב!)</li>
