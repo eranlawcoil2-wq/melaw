@@ -89,57 +89,122 @@ export const emailService = {
             return;
         }
 
-        const keys = Object.keys(data).filter(k => k !== 'submissionId' && k !== 'email' && typeof data[k] !== 'object');
-        
+        const isWill = title === 'Wills Generator' || data['formName'] === 'Wills Generator' || data['templateSheet'] === 'WILL';
+        const dateStr = new Date().toLocaleDateString('he-IL');
+
         let htmlContent = `
             <!DOCTYPE html>
             <html lang="he" dir="rtl">
             <head>
                 <meta charset="utf-8">
-                <title>${title} - הדפסה</title>
+                <title>${title} - מסמך רשמי</title>
                 <style>
-                    body { font-family: 'Arial', sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6; }
-                    h1 { color: #2EB0D9; border-bottom: 2px solid #2EB0D9; padding-bottom: 10px; margin-bottom: 30px; }
-                    .header-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 30px; font-size: 0.9em; color: #555; }
-                    .field-row { display: flex; border-bottom: 1px solid #eee; padding: 12px 0; }
-                    .field-label { font-weight: bold; width: 35%; color: #333; }
-                    .field-value { width: 65%; color: #000; }
-                    .footer { margin-top: 50px; text-align: center; font-size: 0.8em; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                    body { font-family: 'David', 'Times New Roman', serif; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.8; color: #000; }
+                    .btn-print { background: #2EB0D9; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; font-weight: bold; font-family: Arial, sans-serif; text-decoration: none; display: inline-block; margin-bottom: 20px;}
                     @media print {
-                        body { padding: 0; }
                         .no-print { display: none; }
+                        body { padding: 0; margin: 2cm; }
                     }
+                    h1 { text-align: center; text-decoration: underline; margin-bottom: 40px; font-size: 28px; }
+                    h2 { font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; text-decoration: underline; }
+                    p { margin-bottom: 10px; text-align: justify; }
+                    .signature-box { margin-top: 60px; display: flex; justify-content: space-between; }
+                    .sig-line { border-top: 1px solid black; width: 200px; text-align: center; padding-top: 5px; }
+                    .footer { text-align: center; font-size: 10px; margin-top: 50px; color: #666; font-family: Arial; }
                 </style>
             </head>
             <body>
-                <div class="no-print" style="text-align: left; margin-bottom: 20px;">
-                    <button onclick="window.print()" style="background: #2EB0D9; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; font-weight: bold;">🖨️ הדפס / שמור כ-PDF</button>
+                <div class="no-print">
+                    <button onclick="window.print()" class="btn-print">🖨️ הדפס / שמור כ-PDF</button>
+                    <div style="font-family: Arial; font-size: 12px; color: #666; margin-bottom: 20px;">
+                        שים לב: מסמך זה נוצר באופן אוטומטי על בסיס הנתונים שהזנת. מומלץ לעבור עליו לפני החתימה.
+                    </div>
                 </div>
-
-                <h1>${title}</h1>
-                
-                <div class="header-info">
-                    <strong>מספר אסמכתא:</strong> ${data.submissionId || 'N/A'}<br>
-                    <strong>תאריך הפקה:</strong> ${new Date().toLocaleString('he-IL')}
-                </div>
-
-                <div class="content">
         `;
 
-        keys.forEach(key => {
+        if (isWill) {
+            // --- תבנית צוואה משפטית ---
+            const name = data['שם מלא'] || data['fullName'] || '____________';
+            const spouse = data['שם בן/בת הזוג'] || data['spouseName'];
+            const children = data['שמות הילדים'] || data['childrenNames'];
+            const childrenText = Array.isArray(children) ? children.join(', ') : (children || '_____________');
+            const assets = data['נכסים'] || 'כל רכושי מכל מין וסוג שהוא';
+
             htmlContent += `
-                <div class="field-row">
-                    <div class="field-label">${key}</div>
-                    <div class="field-value">${data[key]}</div>
+                <h1>צוואה</h1>
+                
+                <p>היום, ${dateStr}, אני החתום מטה, <strong>${name}</strong>, כשהנני בדעה צלולה, מרצוני הטוב והחופשי, ללא כל אונס, כפייה או השפעה בלתי הוגנת, מצווה בזה לאמור:</p>
+
+                <h2>1. כללי</h2>
+                <p>1.1. זוהי צוואתי האחרונה והיא מבטלת כל צוואה אחרת שנעשתה על ידי לפני כן.</p>
+                <p>1.2. הנני מצהיר/ה כי מרכז חיי הינו בישראל.</p>
+
+                <h2>2. המשפחה</h2>
+                <p>2.1. הנני נשוי/ה ל${spouse || '____________'}.</p>
+                <p>2.2. ילדיי הם: ${childrenText}.</p>
+
+                <h2>3. חלוקת הרכוש</h2>
+                <p>3.1. את כל רכושי, מכל מין וסוג שהוא, לרבות מקרקעין, כספים, זכויות ומיטלטלין (${assets}), הנני מצווה לחלק באופן הבא:</p>
+                <p><strong>בחלקים שווים בין ילדיי הנזכרים לעיל.</strong></p>
+                <p>3.2. במידה ומי מילדיי לא יהיה בין החיים במועד פטירתי, חלקו יעבור לצאצאיו בחלקים שווים.</p>
+
+                <h2>4. שונות</h2>
+                <p>4.1. הנני ממנה בזה את ______________ לשמש כמנהל/ת עזבוני לביצוע צוואה זו.</p>
+
+                <div class="signature-box">
+                    <div>
+                        <p>ולראיה באתי על החתום:</p>
+                        <br><br>
+                        <div class="sig-line">חתימת המצווה</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 50px; border-top: 1px dashed #ccc; padding-top: 20px;">
+                    <h3>אישור עדים</h3>
+                    <p>אנו החתומים מטה, מאשרים כי ביום ${dateStr}, המצווה <strong>${name}</strong> חתם/ה על צוואה זו בפנינו, לאחר שהצהיר/ה כי זו צוואתו/ה וכי הוא/היא עושה אותה מרצון חופשי.</p>
+                    
+                    <div class="signature-box">
+                        <div style="text-align: center;">
+                            <br>____________________<br>
+                            שם העד/ה הראשון<br>
+                            ת.ז. _____________
+                        </div>
+                        <div style="text-align: center;">
+                            <br>____________________<br>
+                            שם העד/ה השני<br>
+                            ת.ז. _____________
+                        </div>
+                    </div>
                 </div>
             `;
-        });
+        } else {
+            // --- תבנית טבלה רגילה (לשאר הטפסים) ---
+            const keys = Object.keys(data).filter(k => k !== 'submissionId' && k !== 'email' && k !== 'templateSheet' && k !== 'targetSheet' && k !== 'action' && k !== 'formName' && typeof data[k] !== 'object');
+            
+            htmlContent += `
+                <h1>${title}</h1>
+                <div style="background: #f0f0f0; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
+                    <strong>מספר אסמכתא:</strong> ${data.submissionId || 'N/A'}<br>
+                    <strong>תאריך:</strong> ${dateStr}
+                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+            `;
+            
+            keys.forEach(key => {
+                htmlContent += `
+                    <tr style="border-bottom: 1px solid #ddd;">
+                        <td style="padding: 10px; font-weight: bold; width: 30%; background: #f9f9f9;">${key}</td>
+                        <td style="padding: 10px;">${data[key]}</td>
+                    </tr>
+                `;
+            });
+            
+            htmlContent += `</table>`;
+        }
 
         htmlContent += `
-                </div>
-                
                 <div class="footer">
-                    מסמך זה הופק באופן אוטומטי ע"י מערכת MeLaw Digital Office.<br>
+                    מסמך זה הופק באמצעות מערכת MeLaw Digital Office.<br>
                     © כל הזכויות שמורות.
                 </div>
             </body>
@@ -170,12 +235,14 @@ export const emailService = {
                     if (emailKey) clientEmail = data[emailKey];
                 }
 
-                // Logging for debug
-                console.log(`Sending Form. Title: ${formTitle}, Client Copy Requested: ${sendClientCopy}, Client Email Found: ${clientEmail || 'NONE'}`);
+                // Correct target sheet based on screenshot
+                let targetSheet = 'DATA';
+                if (pdfTemplate === 'WILL') targetSheet = 'WILLDATA'; // From screenshot tabs
+                if (pdfTemplate === 'POA') targetSheet = 'POA';
 
                 const payload = {
                     action: 'submitForm',       
-                    targetSheet: 'DATA',        
+                    targetSheet: targetSheet,        
                     templateSheet: pdfTemplate === 'WILL' ? 'WILL' : (pdfTemplate === 'POA' ? 'POA' : undefined), 
                     formName: formTitle,
                     submittedAt: new Date().toLocaleString('he-IL'),
