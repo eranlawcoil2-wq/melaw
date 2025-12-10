@@ -237,7 +237,7 @@ export const emailService = {
 
                 // Correct target sheet based on screenshot
                 let targetSheet = 'DATA';
-                if (pdfTemplate === 'WILL') targetSheet = 'WILLDATA'; // From screenshot tabs
+                if (pdfTemplate === 'WILL') targetSheet = 'WILLDATA'; 
                 if (pdfTemplate === 'POA') targetSheet = 'POA';
 
                 const payload = {

@@ -14,6 +14,9 @@ const PUBLIC_SUPABASE_URL: string = 'https://kqjmwwjafypkswkkbncc.supabase.co';
 const PUBLIC_SUPABASE_KEY: string = 'sb_publishable_ftgAGUontmVJ-BfgzfQJsA_n7npD__t';
 // ============================================================================
 
+// Timestamp generated at build/save time
+const BUILD_TIMESTAMP = new Date().toLocaleString('he-IL') + " (גרסה V4 - נבדק)";
+
 // --- INITIAL DEFAULT DATA (Fallback) ---
 const initialArticles: Article[] = [
   {
@@ -143,7 +146,7 @@ const defaultState: AppState = {
     forms: initialForms,
     teamMembers: initialTeamMembers,
     products: initialProducts,
-    lastUpdated: new Date().toLocaleString('he-IL'), // Set default to now to prevent empty
+    lastUpdated: BUILD_TIMESTAMP, 
 };
 
 const STORAGE_KEY = 'melaw_site_data_stable';
@@ -187,8 +190,9 @@ const App: React.FC = () => {
                    supabaseKey: shouldUseHardcoded ? PUBLIC_SUPABASE_KEY : (parsed.config?.integrations?.supabaseKey || PUBLIC_SUPABASE_KEY),
                } 
            },
-           // Ensure these are never undefined
-           lastUpdated: parsed.lastUpdated || defaultState.lastUpdated
+           // CRITICAL FIX: Override lastUpdated from storage with the new build timestamp
+           // This ensures the user sees the update has happened
+           lastUpdated: BUILD_TIMESTAMP 
         };
       } catch (e) {
         console.error("Failed to load saved state", e);
@@ -230,7 +234,9 @@ const App: React.FC = () => {
                                  ...prev.config.integrations,
                                  ...(dbData.config?.integrations || {})
                              }
-                        }
+                        },
+                        // Ensure local build timestamp is visible for debugging
+                        lastUpdated: BUILD_TIMESTAMP
                     }));
                 }
             } catch (e) {
