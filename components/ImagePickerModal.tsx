@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Search, X, Loader2, Image as ImageIcon, AlertTriangle } from 'lucide-react';
+import { Search, X, Loader2, Image as ImageIcon, AlertTriangle, Sparkles } from 'lucide-react';
 import { Button } from './Button.tsx';
 
 interface ImagePickerModalProps {
@@ -117,9 +118,9 @@ export const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
                         </Button>
                     </div>
                     {!unsplashAccessKey && (
-                        <div className="mt-2 text-xs text-yellow-500 flex items-center gap-1 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
-                            <AlertTriangle size={12} />
-                            <span>שים לב: לא הוגדר מפתח Unsplash. מוצגות תמונות דמה (Lorem Picsum). להוספת מפתח עבור ללשונית "אינטגרציות".</span>
+                        <div className="mt-2 text-xs text-blue-400 flex items-center gap-1 bg-blue-500/10 p-2 rounded border border-blue-500/20">
+                            <Sparkles size={12} />
+                            <span>מצב דמו פעיל: החיפוש עובד ומציג תמונות אילוסטרציה (Mock) גם ללא מפתח Unsplash.</span>
                         </div>
                     )}
                 </div>

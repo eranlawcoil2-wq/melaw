@@ -16,6 +16,10 @@ interface AdminDashboardProps {
   version?: string;
 }
 
+// --- PUBLIC KEYS FALLBACK (For Image Uploads) ---
+const FALLBACK_SUPABASE_URL = 'https://kqjmwwjafypkswkkbncc.supabase.co'; 
+const FALLBACK_SUPABASE_KEY = 'sb_publishable_ftgAGUontmVJ-BfgzfQJsA_n7npD__t';
+
 const GOOGLE_SCRIPT_TEMPLATE = `
 // --- MeLaw Backend Script ---
 // הדבק את כל הקוד הזה ב-Google Apps Script
@@ -115,7 +119,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const isGoogleSheetsConfigured = state.config.integrations.googleSheetsUrl && state.config.integrations.googleSheetsUrl.includes("script.google.com");
   const isCloudConnected = isSupabaseConfigured || isGoogleSheetsConfigured;
 
-  const supabaseConfig = { url: state.config.integrations.supabaseUrl, key: state.config.integrations.supabaseKey };
+  // UPDATED: Use Fallback keys if user keys are missing, ensuring upload button always has a config
+  const supabaseConfig = { 
+      url: state.config.integrations.supabaseUrl || FALLBACK_SUPABASE_URL, 
+      key: state.config.integrations.supabaseKey || FALLBACK_SUPABASE_KEY
+  };
 
   const handleSaveToCloud = async () => {
       if (!isCloudConnected) {
