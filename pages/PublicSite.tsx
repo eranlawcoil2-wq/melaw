@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember, TimelineItem, CATEGORY_LABELS } from '../types.ts';
+import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember, TimelineItem, CATEGORY_LABELS, CalculatorDefinition } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
 import { emailService } from '../services/api.ts'; 
-import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle, Printer, MessageCircle } from 'lucide-react';
+import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle, Printer, MessageCircle, Calculator, ChevronDown } from 'lucide-react';
 
 const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = "", delay = 0 }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -38,6 +38,195 @@ const SectionTitle: React.FC<{ title: string; isDark: boolean }> = ({ title, isD
     </div>
 );
 
+// --- TAX CALCULATOR COMPONENT ---
+interface TaxCalculatorProps {
+    calculator: CalculatorDefinition;
+    theme: any;
+    onClose: () => void;
+}
+
+const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, onClose }) => {
+    const [selectedScenarioId, setSelectedScenarioId] = useState(calculator.scenarios[0]?.id || '');
+    const [price, setPrice] = useState<string>('');
+    const [result, setResult] = useState<{ total: number, steps: { threshold: number, rate: number, tax: number, amountInBracket: number, isLast: boolean, dealValue: number }[] } | null>(null);
+
+    const scenario = calculator.scenarios.find(s => s.id === selectedScenarioId);
+
+    const formatNumberWithCommas = (value: string) => {
+        const cleanVal = value.replace(/,/g, '');
+        if (!cleanVal) return '';
+        return parseInt(cleanVal).toLocaleString('en-US');
+    };
+
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.replace(/[^0-9]/g, ''); // Allow only numbers
+        setPrice(formatNumberWithCommas(val));
+        setResult(null);
+    };
+
+    const formatCurrency = (num: number) => {
+        return new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(num);
+    };
+
+    const calculate = () => {
+        if (!scenario || !price) return;
+        const amount = parseFloat(price.replace(/,/g, ''));
+        if (isNaN(amount) || amount <= 0) return;
+
+        let remaining = amount;
+        let previousThreshold = 0;
+        let totalTax = 0;
+        const steps = [];
+
+        // Sort brackets just in case
+        const sortedBrackets = [...scenario.brackets].sort((a,b) => a.threshold - b.threshold);
+
+        for (const bracket of sortedBrackets) {
+            if (remaining <= 0) break;
+
+            const span = bracket.threshold - previousThreshold;
+            const taxableInBracket = Math.min(remaining, span);
+            
+            if (taxableInBracket > 0) {
+                const tax = taxableInBracket * (bracket.rate / 100);
+                totalTax += tax;
+                
+                remaining -= taxableInBracket;
+                const isLast = remaining <= 0;
+
+                steps.push({
+                    threshold: bracket.threshold,
+                    rate: bracket.rate,
+                    amountInBracket: taxableInBracket,
+                    tax: tax,
+                    isLast: isLast,
+                    dealValue: amount
+                });
+                
+                previousThreshold = bracket.threshold;
+            }
+        }
+        
+        setResult({ total: totalTax, steps });
+    };
+
+    return (
+        <div className={`mb-20 container mx-auto px-4 rounded-2xl shadow-2xl animate-fade-in-up border-x border-b overflow-hidden relative ${theme.cardBg} border-t-0`}>
+            {/* GRADIENT HEADER BACKGROUND */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#2EB0D9] to-[#0EA5E9]"></div>
+            <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-br from-[#2EB0D9]/10 via-[#2EB0D9]/5 to-transparent pointer-events-none"></div>
+            
+            <div className="p-8 md:p-12 relative z-10">
+                <div className="max-w-4xl mx-auto">
+                    <div className="flex justify-between items-start mb-8 border-b border-[#2EB0D9]/20 pb-6">
+                        <div>
+                            <h3 className={`text-3xl md:text-4xl font-black mb-2 flex items-center gap-3 ${theme.textTitle}`}>
+                                <div className="bg-[#2EB0D9]/20 p-2 rounded-lg text-[#2EB0D9]"><Calculator size={32}/></div> 
+                                {calculator.title}
+                            </h3>
+                            <p className="text-slate-400 text-lg">מחשבון משפטי מקצועי לחישוב מדרגות מס בזמן אמת</p>
+                        </div>
+                        <button onClick={onClose} className="p-2 bg-black/10 hover:bg-black/20 rounded-full transition-colors"><X size={24} className={theme.textMuted}/></button>
+                    </div>
+
+                    <div className={`p-8 rounded-2xl border shadow-inner space-y-8 ${theme.bgMain} ${theme.border}`}>
+                        
+                        {/* INPUTS */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <label className={`block text-sm font-bold mb-3 ${theme.textMuted}`}>סוג העסקה</label>
+                                <div className="relative">
+                                    <select 
+                                        className={`w-full p-4 pr-10 border rounded-xl appearance-none font-bold text-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition-shadow ${theme.inputBg}`}
+                                        value={selectedScenarioId}
+                                        onChange={(e) => { setSelectedScenarioId(e.target.value); setResult(null); }}
+                                    >
+                                        {calculator.scenarios.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                                    </select>
+                                    <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500"/>
+                                </div>
+                            </div>
+                            <div>
+                                <label className={`block text-sm font-bold mb-3 ${theme.textMuted}`}>שווי הנכס (בש"ח)</label>
+                                <div className="relative">
+                                    <input 
+                                        type="text"
+                                        inputMode="numeric"
+                                        className={`w-full p-4 border rounded-xl font-mono text-xl font-bold focus:ring-2 focus:ring-[#2EB0D9] outline-none transition-shadow ${theme.inputBg}`}
+                                        value={price}
+                                        onChange={handlePriceChange}
+                                        placeholder="0"
+                                        onKeyDown={(e) => e.key === 'Enter' && calculate()}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <Button onClick={calculate} size="lg" className="w-full py-5 text-xl font-black tracking-wide shine-effect shadow-xl shadow-[#2EB0D9]/20">
+                            <Calculator className="ml-2"/> בצע חישוב
+                        </Button>
+
+                        {/* RESULTS */}
+                        {result && (
+                            <div className="mt-8 animate-fade-in-up">
+                                <div className="bg-gradient-to-r from-[#2EB0D9]/20 to-[#0EA5E9]/10 border border-[#2EB0D9]/30 rounded-2xl p-8 mb-8 text-center relative overflow-hidden">
+                                    <div className="relative z-10">
+                                        <span className="text-sm font-bold block mb-2 text-[#2EB0D9] uppercase tracking-widest">סה"כ מס לתשלום</span>
+                                        <span className="text-5xl md:text-6xl font-black text-white drop-shadow-lg">{formatCurrency(result.total)}</span>
+                                    </div>
+                                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                                </div>
+
+                                <div className="overflow-x-auto rounded-xl border border-slate-700/50">
+                                    <table className={`w-full text-sm border-collapse ${theme.textMain}`}>
+                                        <thead className="bg-slate-900/50">
+                                            <tr className={`border-b ${theme.border}`}>
+                                                <th className="p-4 text-right font-bold text-slate-400">מדרגה</th>
+                                                <th className="p-4 text-center font-bold text-slate-400">שיעור מס</th>
+                                                <th className="p-4 text-center font-bold text-slate-400">סכום במדרגה</th>
+                                                <th className="p-4 text-left font-bold text-slate-400">מס לתשלום</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {result.steps.map((step, idx) => {
+                                                let bracketLabel = '';
+                                                if (step.isLast) {
+                                                    bracketLabel = `עד ${formatCurrency(step.dealValue)}`;
+                                                } else {
+                                                    bracketLabel = step.threshold > 999999999 
+                                                        ? 'מעל הסכום המרבי' 
+                                                        : `עד ${formatCurrency(step.threshold)}`;
+                                                }
+
+                                                return (
+                                                    <tr key={idx} className={`border-b border-slate-800/50 hover:bg-white/5 transition-colors`}>
+                                                        <td className="p-4 font-mono text-slate-400 border-l border-slate-800/50">
+                                                            {bracketLabel}
+                                                        </td>
+                                                        <td className="p-4 text-center font-bold text-[#2EB0D9] border-l border-slate-800/50">{step.rate}%</td>
+                                                        <td className="p-4 text-center border-l border-slate-800/50">{formatCurrency(step.amountInBracket)}</td>
+                                                        <td className="p-4 text-left font-bold">{formatCurrency(step.tax)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div className="mt-6 text-xs text-slate-500 text-center flex items-center justify-center gap-2">
+                                    <AlertOctagon size={12}/>
+                                    <span>החישוב הינו להערכה בלבד ואינו מהווה תחליף לייעוץ משפטי או שומה סופית של רשות המיסים.</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 interface PublicSiteProps {
   state: AppState;
   onCategoryChange: (cat: Category) => void;
@@ -61,6 +250,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const [activeArticleTab, setActiveArticleTab] = useState(0); 
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
   const [activeDynamicFormId, setActiveDynamicFormId] = useState<string | null>(null);
+  const [activeCalculatorId, setActiveCalculatorId] = useState<string | null>(null); // NEW
   const [dynamicFormValues, setDynamicFormValues] = useState<Record<string, any>>({});
   const [isSubmittingDynamic, setIsSubmittingDynamic] = useState(false);
   const [showFormsListModal, setShowFormsListModal] = useState(false);
@@ -83,14 +273,27 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   };
 
   const dynamicFormRef = useRef<HTMLDivElement>(null);
+  const calculatorRef = useRef<HTMLDivElement>(null);
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const teamScrollRef = useRef<HTMLDivElement>(null);
   const articlesScrollRef = useRef<HTMLDivElement>(null);
   const articleContentTopRef = useRef<HTMLDivElement>(null);
 
-  const currentSlides = state.slides.filter(s => s.category === state.currentCategory || s.category === Category.HOME).sort((a, b) => (a.order || 99) - (b.order || 99));
+  // UPDATED: Slider Filtering Logic (Array inclusion)
+  const currentSlides = state.slides.filter(s => {
+      // Support legacy 'category' if 'categories' is missing
+      if (!s.categories && (s as any).category) return (s as any).category === state.currentCategory || (s as any).category === Category.HOME;
+      
+      // New array logic
+      if (state.currentCategory === Category.HOME) return s.categories?.includes(Category.HOME);
+      return s.categories?.includes(state.currentCategory) || s.categories?.includes(Category.HOME); // Show HOME slides everywhere + specific slides
+  }).sort((a, b) => (a.order || 99) - (b.order || 99));
+
   const currentArticles = state.articles.filter(a => state.currentCategory === Category.HOME || state.currentCategory === Category.STORE ? true : a.categories.includes(state.currentCategory)).sort((a, b) => (a.order || 99) - (b.order || 99));
   const currentCategoryForms = state.forms.filter(f => f.categories && f.categories.includes(state.currentCategory)).sort((a, b) => (a.order || 99) - (b.order || 99));
+  // Filter Calculators
+  const currentCategoryCalculators = (state.calculators || []).filter(c => c.categories && c.categories.includes(state.currentCategory));
+  
   const teamMembers = state.teamMembers.sort((a, b) => (a.order || 99) - (b.order || 99));
   
   const currentTimelines = state.timelines.filter(t => {
@@ -118,6 +321,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       }
   }, [selectedArticle]);
 
+  // If there's only one calculator for this category and user just arrived, maybe show it?
+  // Let's stick to showing it if user clicks a timeline or if it's set as active manually.
+
   const handleTimelineClick = (item: TimelineItem) => {
     if (item.linkTo === 'wills-generator') {
         setShowWillsModal(true); 
@@ -144,10 +350,12 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         } else if (Object.values(Category).includes(slide.linkTo)) {
             onCategoryChange(slide.linkTo);
         } else {
-             onCategoryChange(slide.category);
+             // If linked to category but we are on home, go there
+             if (slide.categories && slide.categories.length > 0) onCategoryChange(slide.categories[0]);
         }
     } else {
-        onCategoryChange(slide.category);
+        // Default action
+        if (slide.categories && slide.categories.length > 0) onCategoryChange(slide.categories[0]);
     }
   };
   
@@ -194,6 +402,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   };
 
   const currentDynamicForm = state.forms.find(f => f.id === activeDynamicFormId);
+  const currentCalculator = state.calculators?.find(c => c.id === activeCalculatorId);
+
   const activeTabContent = selectedArticle?.tabs?.[activeArticleTab]?.content || "";
   const relatedArticles = selectedArticle ? state.articles.filter(a => a.id !== selectedArticle.id && a.categories.some(c => selectedArticle.categories.includes(c))).slice(0, 4) : [];
 
@@ -232,8 +442,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
       <main className="flex-1 pt-20 relative z-10">
         
-        {/* SLIDER */}
-        {(isHomePage || isStorePage) && currentSlides.length > 0 && (
+        {/* SLIDER - SHOW ON ALL PAGES IF SLIDES EXIST */}
+        {currentSlides.length > 0 && (
         <section className="relative h-[45vh] md:h-[55vh] overflow-hidden bg-black group">
           {currentSlides.map((slide, index) => (
              <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === activeSlide ? 'opacity-100' : 'opacity-0'}`}>
@@ -241,7 +451,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent flex items-center pb-20">
                     <div className="container mx-auto px-6 md:px-12">
                         <div className="max-w-4xl text-white space-y-4 animate-fade-in-up">
-                            <span className="inline-block px-4 py-1 bg-[#2EB0D9]/90 text-xs font-bold uppercase tracking-widest rounded-full mb-1 text-white shadow-lg">{slide.category === Category.HOME ? 'המשרד המוביל בישראל' : CATEGORY_LABELS[slide.category]}</span>
+                            <span className="inline-block px-4 py-1 bg-[#2EB0D9]/90 text-xs font-bold uppercase tracking-widest rounded-full mb-1 text-white shadow-lg">{slide.categories?.includes(Category.HOME) ? 'המשרד המוביל בישראל' : (CATEGORY_LABELS[state.currentCategory] || CATEGORY_LABELS[Category.HOME])}</span>
                             <h2 className="text-3xl md:text-5xl font-black leading-tight drop-shadow-2xl text-white">{slide.title}</h2>
                             <p className="hidden md:block text-lg text-slate-300 md:w-3/4 border-r-4 border-[#2EB0D9] pr-4 leading-relaxed font-light">{slide.subtitle}</p>
                             <div className="pt-4 flex gap-3"><Button onClick={() => handleSliderClick(slide)} variant="secondary" size="md" className="shine-effect">{slide.buttonText || 'קרא עוד'}</Button></div>
@@ -250,7 +460,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 </div>
              </div>
           ))}
-          <div className="absolute bottom-24 left-0 right-0 flex justify-center gap-3 z-20">{currentSlides.map((_, idx) => (<button key={idx} onClick={() => setActiveSlide(idx)} className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeSlide ? 'bg-[#2EB0D9] w-12' : 'bg-white/30 w-3 hover:bg-white'}`} />))}</div>
+          {currentSlides.length > 1 && (
+            <div className="absolute bottom-24 left-0 right-0 flex justify-center gap-3 z-20">{currentSlides.map((_, idx) => (<button key={idx} onClick={() => setActiveSlide(idx)} className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeSlide ? 'bg-[#2EB0D9] w-12' : 'bg-white/30 w-3 hover:bg-white'}`} />))}</div>
+          )}
         </section>
         )}
 
@@ -295,12 +507,38 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
 
-        {/* TIMELINE */}
+        {/* TIMELINE & TOOLS */}
         {showTimelineSection && (
             <Reveal className={`py-20 relative border-b ${isDark ? 'border-slate-800/50' : 'border-slate-100'}`} delay={200}>
                <div className="container mx-auto px-4 mb-8 flex justify-between items-end"><SectionTitle title="עדכונים ושירותים דיגיטליים" isDark={isDark} /><div className="hidden md:flex gap-2"><button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button><button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button></div></div>
-               <div className="container mx-auto px-4"><div ref={timelineScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x">{currentTimelines.map((item, index) => { const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-')); const brandGradients = ['from-[#2EB0D9] to-[#1F8CAD]', 'from-[#2EB0D9] to-[#0EA5E9]', 'from-[#06B6D4] to-[#2EB0D9]', 'from-[#22D3EE] to-[#0090B0]']; const selectedGradient = brandGradients[index % brandGradients.length]; const bgClass = isGenerator ? `bg-gradient-to-br ${selectedGradient} text-white shadow-xl shadow-cyan-500/20 transform hover:-translate-y-2` : `${theme.cardBg} ${theme.cardHover} transition-all duration-300 transform hover:-translate-y-2`; const textClass = isGenerator ? 'text-white' : theme.textTitle; const descClass = isGenerator ? 'text-white/90' : theme.textMuted; return (<div key={item.id} onClick={() => handleTimelineClick(item)} className={`flex-shrink-0 w-[140px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[200px] md:h-[240px] border border-transparent ${bgClass}`}><div className="p-4 md:p-6 flex flex-col h-full relative"><div className={`absolute top-4 left-4 p-2 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>{isGenerator ? <FileText size={16} className="text-white"/> : (item.imageUrl ? <Newspaper size={16}/> : <ArrowLeft size={16}/>)}</div><div className="mt-8"><h4 className={`text-sm md:text-xl font-black mb-2 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4><p className={`text-[10px] md:text-xs leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p></div><div className="mt-auto pt-2 flex items-center justify-between"><span className={`text-[10px] md:text-xs font-bold flex items-center gap-1 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>{isGenerator ? 'התחל עכשיו' : 'קרא עוד'} <ArrowLeft size={12}/></span></div></div></div>);})}</div></div>
+               <div className="container mx-auto px-4"><div ref={timelineScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x">
+                   {currentTimelines.map((item, index) => { const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-')); const brandGradients = ['from-[#2EB0D9] to-[#1F8CAD]', 'from-[#2EB0D9] to-[#0EA5E9]', 'from-[#06B6D4] to-[#2EB0D9]', 'from-[#22D3EE] to-[#0090B0]']; const selectedGradient = brandGradients[index % brandGradients.length]; const bgClass = isGenerator ? `bg-gradient-to-br ${selectedGradient} text-white shadow-xl shadow-cyan-500/20 transform hover:-translate-y-2` : `${theme.cardBg} ${theme.cardHover} transition-all duration-300 transform hover:-translate-y-2`; const textClass = isGenerator ? 'text-white' : theme.textTitle; const descClass = isGenerator ? 'text-white/90' : theme.textMuted; return (<div key={item.id} onClick={() => handleTimelineClick(item)} className={`flex-shrink-0 w-[140px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[200px] md:h-[240px] border border-transparent ${bgClass}`}><div className="p-4 md:p-6 flex flex-col h-full relative"><div className={`absolute top-4 left-4 p-2 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>{isGenerator ? <FileText size={16} className="text-white"/> : (item.imageUrl ? <Newspaper size={16}/> : <ArrowLeft size={16}/>)}</div><div className="mt-8"><h4 className={`text-sm md:text-xl font-black mb-2 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4><p className={`text-[10px] md:text-xs leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p></div><div className="mt-auto pt-2 flex items-center justify-between"><span className={`text-[10px] md:text-xs font-bold flex items-center gap-1 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>{isGenerator ? 'התחל עכשיו' : 'קרא עוד'} <ArrowLeft size={12}/></span></div></div></div>);})}
+               </div></div>
             </Reveal>
+        )}
+        
+        {/* SHOW CALCULATOR BUTTONS INLINE (If available in this category) */}
+        {currentCategoryCalculators.length > 0 && !currentCalculator && (
+             <div className="container mx-auto px-4 mb-20 animate-fade-in-up">
+                 <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                    {currentCategoryCalculators.map(calc => (
+                        <button key={calc.id} onClick={() => { setActiveCalculatorId(calc.id); setTimeout(() => calculatorRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }} className={`flex items-center gap-3 p-4 pr-6 rounded-xl border transition-all hover:scale-105 shadow-lg group ${theme.cardBg} ${theme.cardHover}`}>
+                            <div className="bg-[#2EB0D9]/10 p-2 rounded-full text-[#2EB0D9] group-hover:bg-[#2EB0D9] group-hover:text-white transition-colors"><Calculator size={24}/></div>
+                            <div className="text-right">
+                                <span className={`block font-bold text-lg ${theme.textTitle}`}>{calc.title}</span>
+                                <span className="text-xs text-slate-500">לחץ לחישוב מהיר</span>
+                            </div>
+                        </button>
+                    ))}
+                 </div>
+             </div>
+        )}
+
+        {/* ACTIVE CALCULATOR */}
+        {currentCalculator && (
+            <div ref={calculatorRef}>
+                <TaxCalculatorWidget calculator={currentCalculator} theme={theme} onClose={() => setActiveCalculatorId(null)} />
+            </div>
         )}
 
         {/* DYNAMIC FORM */}

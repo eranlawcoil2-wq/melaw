@@ -22,7 +22,7 @@ export interface SliderSlide {
   imageUrl: string;
   title: string;
   subtitle: string;
-  category: Category;
+  categories: Category[]; // CHANGED: From single category to array
   buttonText?: string;
   linkTo?: string; 
   order?: number; 
@@ -154,6 +154,28 @@ export interface FormDefinition {
     order?: number; 
 }
 
+// --- NEW CALCULATOR TYPES ---
+export interface TaxBracket {
+    id: string;
+    threshold: number; // The "Up to" amount
+    rate: number; // The percentage (e.g. 3.5)
+}
+
+export interface TaxScenario {
+    id: string;
+    title: string; // e.g. "Single Apartment", "Additional Apartment"
+    brackets: TaxBracket[]; // Sorted by threshold
+}
+
+export interface CalculatorDefinition {
+    id: string;
+    title: string;
+    categories: Category[];
+    scenarios: TaxScenario[];
+    order?: number;
+}
+// ----------------------------
+
 export interface AppState {
   currentCategory: Category;
   config: SiteConfig;
@@ -162,6 +184,7 @@ export interface AppState {
   articles: Article[];
   menuItems: MenuItem[];
   forms: FormDefinition[];
+  calculators: CalculatorDefinition[]; // ADDED
   teamMembers: TeamMember[];
   products: Product[];
   lastUpdated: string;

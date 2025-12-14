@@ -50,10 +50,11 @@ export const dbService = {
        timelines: state.timelines,
        slides: state.slides,
        forms: state.forms,
+       calculators: state.calculators, // Added
        teamMembers: state.teamMembers,
        menuItems: state.menuItems,
        config: state.config,
-       lastUpdated: state.lastUpdated // Ensure this is saved
+       lastUpdated: state.lastUpdated
     };
 
     try {
@@ -67,8 +68,6 @@ export const dbService = {
               alert("שגיאה: הטבלה 'site_config' אינה קיימת ב-Supabase. נא ליצור את הטבלה תחילה.");
               return false;
           }
-          // Proceed to try insert anyway if it's another error, or fail? 
-          // Let's assume if select fails, we might still want to try insert or report fail.
       }
 
       if (existing && existing.length > 0) {

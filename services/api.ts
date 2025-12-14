@@ -13,10 +13,11 @@ export const cloudService = {
                     timelines: state.timelines,
                     slides: state.slides,
                     forms: state.forms,
+                    calculators: state.calculators, // Added
                     teamMembers: state.teamMembers,
                     menuItems: state.menuItems,
                     config: state.config,
-                    lastUpdated: state.lastUpdated // Ensure sync
+                    lastUpdated: state.lastUpdated
                 }
             };
 

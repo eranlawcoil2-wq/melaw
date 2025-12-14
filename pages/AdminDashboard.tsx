@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide, Product, CATEGORY_LABELS } from '../types.ts';
+import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide, Product, CATEGORY_LABELS, CalculatorDefinition, TaxScenario, TaxBracket } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
 import { ImagePickerModal } from '../components/ImagePickerModal.tsx'; 
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin, Eye, EyeOff, CreditCard, Palette, Home, CheckCircle } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin, Eye, EyeOff, CreditCard, Palette, Home, CheckCircle, Calculator } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -170,7 +170,7 @@ function exportSheetToPdf(spreadsheetId, sheetId, filename) {
 }`;
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'news' | 'sliders' | 'forms' | 'team' | 'payments'>('articles');
+  const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'news' | 'sliders' | 'forms' | 'calculators' | 'team' | 'payments'>('articles');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); 
   const [isSavingToCloud, setIsSavingToCloud] = useState(false); 
   const [isLoadingFromCloud, setIsLoadingFromCloud] = useState(false); 
@@ -183,6 +183,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [editingForm, setEditingForm] = useState<FormDefinition | null>(null);
+  const [editingCalculator, setEditingCalculator] = useState<CalculatorDefinition | null>(null); // NEW
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [editingSlide, setEditingSlide] = useState<SliderSlide | null>(null);
   const [editingTimelineItem, setEditingTimelineItem] = useState<TimelineItem | null>(null);
@@ -239,6 +240,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         }
 
         if (newData) {
+             // Handle Slider Migration logic here as well
+             if (newData.slides) {
+                 newData.slides = newData.slides.map((s: any) => {
+                     if (!s.categories && s.category) return { ...s, categories: [s.category] };
+                     return s;
+                 });
+             }
+
              updateState({
                  ...newData,
                  config: {
@@ -294,14 +303,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   };
   const openImagePicker = (type: any, initialQuery: string) => { setImagePickerContext({ type, initialQuery }); setShowImagePicker(true); };
   
+  // Forms logic
   const handleSaveForm = () => { if(editingForm && editingForm.title) { const exists = state.forms.find(f => f.id === editingForm.id); updateState({ forms: exists ? state.forms.map(f => f.id === editingForm.id ? editingForm : f) : [...state.forms, editingForm] }); setEditingForm(null); }};
   const addFieldToForm = (type: FieldType) => { if(editingForm) setEditingForm({ ...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type, label: 'שדה חדש', required: false, options: type === 'select' ? ['אפשרות 1'] : undefined }] }); };
   const updateFormField = (index: number, updates: Partial<FormField>) => { if(editingForm) { const f = [...editingForm.fields]; f[index] = { ...f[index], ...updates }; setEditingForm({ ...editingForm, fields: f }); }};
   const removeFormField = (index: number) => { if(editingForm) setEditingForm({ ...editingForm, fields: editingForm.fields.filter((_, i) => i !== index) }); };
   const toggleFormCategory = (cat: Category) => { if (!editingForm) return; const current = editingForm.categories || []; if (current.includes(cat)) { setEditingForm({ ...editingForm, categories: current.filter(c => c !== cat) }); } else { setEditingForm({ ...editingForm, categories: [...current, cat] }); } };
 
+  // Calculator Logic
+  const handleSaveCalculator = () => { if(editingCalculator && editingCalculator.title) { const calculators = state.calculators || []; const exists = calculators.find(c => c.id === editingCalculator.id); updateState({ calculators: exists ? calculators.map(c => c.id === editingCalculator.id ? editingCalculator : c) : [...calculators, editingCalculator] }); setEditingCalculator(null); }};
+  const toggleCalculatorCategory = (cat: Category) => { if (!editingCalculator) return; const current = editingCalculator.categories || []; if (current.includes(cat)) { setEditingCalculator({ ...editingCalculator, categories: current.filter(c => c !== cat) }); } else { setEditingCalculator({ ...editingCalculator, categories: [...current, cat] }); } };
+  const addScenario = () => { if(editingCalculator) { setEditingCalculator({ ...editingCalculator, scenarios: [...editingCalculator.scenarios, { id: Date.now().toString(), title: 'תרחיש חדש', brackets: [] }] }); }};
+  const updateScenario = (index: number, updates: Partial<TaxScenario>) => { if(editingCalculator) { const s = [...editingCalculator.scenarios]; s[index] = { ...s[index], ...updates }; setEditingCalculator({ ...editingCalculator, scenarios: s }); }};
+  const removeScenario = (index: number) => { if(editingCalculator) setEditingCalculator({ ...editingCalculator, scenarios: editingCalculator.scenarios.filter((_, i) => i !== index) }); };
+  const addBracket = (scenarioIndex: number) => { if(editingCalculator) { const s = [...editingCalculator.scenarios]; s[scenarioIndex].brackets.push({ id: Date.now().toString(), threshold: 0, rate: 0 }); setEditingCalculator({ ...editingCalculator, scenarios: s }); }};
+  const updateBracket = (scenarioIndex: number, bracketIndex: number, updates: Partial<TaxBracket>) => { if(editingCalculator) { const s = [...editingCalculator.scenarios]; const b = [...s[scenarioIndex].brackets]; b[bracketIndex] = { ...b[bracketIndex], ...updates }; s[scenarioIndex].brackets = b; setEditingCalculator({ ...editingCalculator, scenarios: s }); }};
+  const removeBracket = (scenarioIndex: number, bracketIndex: number) => { if(editingCalculator) { const s = [...editingCalculator.scenarios]; s[scenarioIndex].brackets = s[scenarioIndex].brackets.filter((_, i) => i !== bracketIndex); setEditingCalculator({ ...editingCalculator, scenarios: s }); }};
+
   const handleSaveMember = () => { if(editingMember) { const exists = state.teamMembers.find(m => m.id === editingMember.id); updateState({ teamMembers: exists ? state.teamMembers.map(m => m.id === editingMember.id ? editingMember : m) : [...state.teamMembers, editingMember] }); setEditingMember(null); }};
+  
+  // SLIDER LOGIC
   const handleSaveSlide = () => { if(editingSlide) { const exists = state.slides.find(s => s.id === editingSlide.id); updateState({ slides: exists ? state.slides.map(s => s.id === editingSlide.id ? editingSlide : s) : [...state.slides, editingSlide] }); setEditingSlide(null); }};
+  const toggleSlideCategory = (cat: Category) => { if (!editingSlide) return; const current = editingSlide.categories || []; if (current.includes(cat)) { setEditingSlide({ ...editingSlide, categories: current.filter(c => c !== cat) }); } else { setEditingSlide({ ...editingSlide, categories: [...current, cat] }); } };
+
   const handleSaveTimelineItem = () => { if(editingTimelineItem) { const exists = state.timelines.find(t => t.id === editingTimelineItem.id); updateState({ timelines: exists ? state.timelines.map(t => t.id === editingTimelineItem.id ? editingTimelineItem : t) : [...state.timelines, editingTimelineItem] }); setEditingTimelineItem(null); }};
   const handleSaveProduct = () => { if(editingProduct) { const currentProducts = state.products || []; const exists = currentProducts.find(p => p.id === editingProduct.id); updateState({ products: exists ? currentProducts.map(p => p.id === editingProduct.id ? editingProduct : p) : [...currentProducts, editingProduct] }); setEditingProduct(null); }};
   const toggleProductCategory = (cat: Category) => { if (!editingProduct) return; const current = editingProduct.categories || []; if (current.includes(cat)) { setEditingProduct({ ...editingProduct, categories: current.filter(c => c !== cat) }); } else { setEditingProduct({ ...editingProduct, categories: [...current, cat] }); } };
@@ -335,6 +359,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
           <button onClick={() => { setActiveTab('sliders'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'sliders' ? 'bg-[#2EB0D9] text-white font-bold' : 'text-slate-400 hover:bg-slate-800'}`}><GalleryHorizontal size={20} /> סליידרים (ראשי)</button>
           <button onClick={() => { setActiveTab('news'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'news' ? 'bg-[#2EB0D9] text-white font-bold' : 'text-slate-400 hover:bg-slate-800'}`}><Newspaper size={20} /> עדכונים וחדשות</button>
           <button onClick={() => { setActiveTab('forms'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'forms' ? 'bg-[#2EB0D9] text-white font-bold' : 'text-slate-400 hover:bg-slate-800'}`}><ClipboardList size={20} /> טפסים</button>
+          <button onClick={() => { setActiveTab('calculators'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'calculators' ? 'bg-[#2EB0D9] text-white font-bold' : 'text-slate-400 hover:bg-slate-800'}`}><Calculator size={20} /> מחשבונים</button>
           <button onClick={() => { setActiveTab('team'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'team' ? 'bg-[#2EB0D9] text-white font-bold' : 'text-slate-400 hover:bg-slate-800'}`}><Users size={20} /> צוות</button>
           <button onClick={() => { setActiveTab('payments'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'payments' ? 'bg-[#2EB0D9] text-white font-bold' : 'text-slate-400 hover:bg-slate-800'}`}><ShoppingCart size={20} /> חנות ותשלומים</button>
           <div className="border-t border-slate-800 my-2"></div>
@@ -347,6 +372,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       <main className="flex-1 md:mr-64 p-4 md:p-8 overflow-y-auto min-h-screen">
         <div className="md:hidden flex justify-between items-center mb-6 bg-slate-900 p-4 rounded-xl border border-slate-800 sticky top-0 z-30 shadow-lg"><h3 className="font-bold text-white">תפריט ניהול</h3><button onClick={() => setMobileMenuOpen(true)} className="p-2 bg-slate-800 rounded text-[#2EB0D9] border border-slate-700"><Menu size={24} /></button></div>
 
+        {/* Sliders Tab */}
+        {activeTab === 'sliders' && (
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-end"><Button onClick={() => setEditingSlide({ id: Date.now().toString(), imageUrl: '', title: 'כותרת חדשה', subtitle: 'תת כותרת', categories: [Category.HOME], order: 99 })}><Plus size={18} className="ml-2"/> סלייד חדש</Button></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{state.slides.sort((a,b)=>(a.order||99)-(b.order||99)).map(slide => (<div key={slide.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg group"><div className="h-48 relative"><img src={slide.imageUrl} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-black/50 flex flex-col justify-end p-4"><h4 className="font-bold text-white text-lg">{slide.title}</h4><div className="flex gap-1 mt-1 flex-wrap">{slide.categories?.map(c => <span key={c} className="text-xs bg-[#2EB0D9] text-white px-2 py-0.5 rounded">{CATEGORY_LABELS[c]}</span>)}</div></div></div><div className="p-4 flex justify-between items-center bg-slate-950 border-t border-slate-800"><div className="text-xs text-slate-500">סדר: {slide.order || 99}</div><div className="flex gap-2"><button onClick={() => setEditingSlide(slide)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded text-white"><Edit size={16}/></button><button onClick={() => updateState({ slides: state.slides.filter(s => s.id !== slide.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded text-white"><Trash size={16}/></button></div></div></div>))}</div>
+            </div>
+        )}
+
         {/* Articles Tab */}
         {activeTab === 'articles' && (
             <div className="space-y-8 animate-fade-in">
@@ -354,6 +387,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{filteredArticles.map(article => (<div key={article.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group"><div className="h-40 relative"><img src={article.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div><div className="p-4"><div className="flex justify-between items-start mb-2"><h4 className="font-bold line-clamp-1 text-white flex-1">{article.title}</h4><span className="text-xs text-slate-500 border border-slate-700 px-1 rounded">#{article.order || 99}</span></div><div className="flex justify-end gap-2"><button onClick={() => setEditingArticle(article)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white"><Edit size={16}/></button><button onClick={() => updateState({ articles: state.articles.filter(a => a.id !== article.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white"><Trash size={16}/></button></div></div></div>))}</div>
             </div>
         )}
+        
+        {/* ... Other Tabs (News, Team, Payments) remain unchanged ... */}
         
         {/* Forms Tab */}
         {activeTab === 'forms' && (
@@ -363,12 +398,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
+        {/* Calculators Tab */}
+        {activeTab === 'calculators' && (
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-end"><Button onClick={() => setEditingCalculator({ id: Date.now().toString(), title: 'מחשבון מס חדש', categories: [Category.REAL_ESTATE], scenarios: [] })}><Plus size={18} className="ml-2"/> מחשבון חדש</Button></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {(state.calculators || []).map(calc => (
+                        <div key={calc.id} className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg flex flex-col gap-4">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h4 className="font-bold text-white text-xl flex items-center gap-2"><Calculator size={20} className="text-[#2EB0D9]"/> {calc.title}</h4>
+                                    <div className="flex flex-wrap gap-1 mt-2">{calc.categories?.map(c => <span key={c} className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 border border-slate-700">{CATEGORY_LABELS[c]}</span>)}</div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setEditingCalculator(calc)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white transition-colors"><Edit size={16}/></button>
+                                    <button onClick={() => updateState({ calculators: (state.calculators || []).filter(c => c.id !== calc.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white transition-colors"><Trash size={16}/></button>
+                                </div>
+                            </div>
+                            <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 mt-2">
+                                <h5 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">תרחישים מוגדרים</h5>
+                                {calc.scenarios.length > 0 ? (
+                                    <ul className="space-y-1">
+                                        {calc.scenarios.map(sc => (
+                                            <li key={sc.id} className="text-sm text-slate-300 flex justify-between">
+                                                <span>{sc.title}</span>
+                                                <span className="text-slate-500">{sc.brackets.length} מדרגות</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : <p className="text-sm text-slate-600 italic">לא הוגדרו תרחישים.</p>}
+                            </div>
+                        </div>
+                    ))}
+                    {(state.calculators || []).length === 0 && <p className="text-slate-500 col-span-2 text-center py-10">לא קיימים מחשבונים במערכת.</p>}
+                </div>
+            </div>
+        )}
+
         {/* Config Tab */}
         {activeTab === 'config' && (
              <div className="space-y-6 animate-fade-in">
                 <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800 max-w-4xl">
                     <h3 className="text-xl font-bold flex items-center gap-2 text-white mb-6"><Monitor/> הגדרות כלליות ופרטי התקשרות</h3>
                     <div className="space-y-6">
+                        {/* Config fields... */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-slate-800 pb-6">
                             <div><label className="block text-xs font-bold mb-1 text-slate-400">כתובת המשרד</label><input className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" value={state.config.address} onChange={e => updateState({ config: { ...state.config, address: e.target.value }})} /></div>
                             <div><label className="block text-xs font-bold mb-1 text-slate-400">טלפון ראשי</label><input className="w-full p-2 border border-slate-700 rounded bg-slate-950 text-white" value={state.config.phone} onChange={e => updateState({ config: { ...state.config, phone: e.target.value }})} /></div>
@@ -394,6 +467,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 <div className="bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-800 max-w-4xl">
                      <h3 className="text-xl font-bold flex items-center gap-2 text-white mb-6"><LinkIcon/> חיבורים חיצוניים</h3>
                      <div className="space-y-6">
+                         {/* Integration settings... */}
                          <div className="p-4 border border-slate-700 rounded-lg bg-slate-950">
                              <h4 className="font-bold text-[#2EB0D9] mb-4 flex items-center gap-2"><FileText size={18}/> Google Sheets (לקליטת טפסים ו-PDF)</h4>
                              
@@ -453,7 +527,162 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
       <ImagePickerModal isOpen={showImagePicker} onClose={() => setShowImagePicker(false)} onSelect={handleImageSelect} initialQuery={imagePickerContext?.initialQuery} unsplashAccessKey={state.config.integrations.unsplashAccessKey} />
       
-      {/* ... Modals (Form, Article, Team, etc.) ... */}
+      {/* --- MODALS --- */}
+      
+      {/* SLIDER EDIT MODAL - MULTI SELECT */}
+      {editingSlide && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-3xl flex flex-col max-h-[90vh]">
+                <h3 className="font-bold text-white mb-4 text-xl">עריכת סלייד</h3>
+                <div className="flex-1 overflow-y-auto space-y-4 px-2">
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">כותרת ראשית</label>
+                            <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.title} onChange={e=>setEditingSlide({...editingSlide, title: e.target.value})} />
+                        </div>
+                        <div className="w-24">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">סדר</label>
+                            <input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.order || 99} onChange={e=>setEditingSlide({...editingSlide, order: Number(e.target.value)})} />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 mb-1">כותרת משנה</label>
+                        <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.subtitle} onChange={e=>setEditingSlide({...editingSlide, subtitle: e.target.value})} />
+                    </div>
+                    
+                    {/* Multi-Category Selection */}
+                    <div className="bg-slate-950 p-3 rounded border border-slate-800">
+                         <label className="block text-xs font-bold text-slate-400 mb-2">איפה להציג? (ניתן לבחור כמה)</label>
+                         <div className="flex flex-wrap gap-2">
+                             {Object.values(Category).map(cat => (
+                                 <button 
+                                    key={cat} 
+                                    onClick={() => toggleSlideCategory(cat)} 
+                                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${
+                                        editingSlide.categories?.includes(cat) 
+                                        ? 'bg-[#2EB0D9] text-white border-[#2EB0D9] shadow-md shadow-[#2EB0D9]/20' 
+                                        : 'bg-slate-900 text-slate-500 border-slate-700 hover:border-slate-500'
+                                    }`}
+                                 >
+                                     {CATEGORY_LABELS[cat]} 
+                                     {editingSlide.categories?.includes(cat) && <Check size={12}/>}
+                                 </button>
+                             ))}
+                         </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">קישור לתמונה</label>
+                            <div className="flex gap-2">
+                                <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.imageUrl} onChange={e=>setEditingSlide({...editingSlide, imageUrl: e.target.value})} />
+                                <Button size="sm" onClick={() => openImagePicker('slide', 'legal')}><Search size={14}/></Button>
+                                <ImageUploadButton onImageSelected={(url) => setEditingSlide({...editingSlide, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} className="h-8 w-10 px-0"/>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Preview */}
+                    {editingSlide.imageUrl && (
+                        <div className="h-32 w-full rounded overflow-hidden relative border border-slate-700 mt-2">
+                            <img src={editingSlide.imageUrl} className="w-full h-full object-cover opacity-60" />
+                            <div className="absolute inset-0 flex items-center justify-center"><span className="text-white font-bold text-shadow">תצוגה מקדימה</span></div>
+                        </div>
+                    )}
+
+                    <div className="flex gap-4">
+                        <div className="flex-1"><label className="block text-xs font-bold text-slate-400 mb-1">טקסט כפתור</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.buttonText || ''} onChange={e=>setEditingSlide({...editingSlide, buttonText: e.target.value})} placeholder="למשל: קרא עוד"/></div>
+                        <div className="flex-1"><label className="block text-xs font-bold text-slate-400 mb-1">קישור כפתור (אופציונלי)</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingSlide.linkTo || ''} onChange={e=>setEditingSlide({...editingSlide, linkTo: e.target.value})} placeholder="URL או ID של טופס"/></div>
+                    </div>
+                </div>
+                <div className="flex gap-2 mt-4 pt-4 border-t border-slate-800">
+                    <Button onClick={handleSaveSlide}>שמור שינויים</Button>
+                    <Button variant="outline" onClick={()=>setEditingSlide(null)}>ביטול</Button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* CALCULATOR EDIT MODAL */}
+      {editingCalculator && (
+         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+             <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-4xl h-[90vh] flex flex-col">
+                 <h3 className="font-bold text-white mb-4 text-xl flex items-center gap-2"><Calculator className="text-[#2EB0D9]"/> עריכת מחשבון מס</h3>
+                 
+                 <div className="flex-1 overflow-y-auto space-y-6 px-2">
+                     
+                     {/* Calc Settings */}
+                     <div className="flex gap-4 border-b border-slate-800 pb-4">
+                         <div className="flex-1">
+                             <label className="block text-xs font-bold text-slate-400 mb-1">כותרת המחשבון</label>
+                             <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingCalculator.title} onChange={e=>setEditingCalculator({...editingCalculator, title: e.target.value})} placeholder="למשל: מחשבון מס רכישה"/>
+                         </div>
+                     </div>
+
+                     <div className="bg-slate-950 p-3 rounded border border-slate-800">
+                         <label className="block text-xs font-bold text-slate-400 mb-2">היכן יופיע המחשבון?</label>
+                         <div className="flex flex-wrap gap-2">{Object.values(Category).map(cat => (<button key={cat} onClick={() => toggleCalculatorCategory(cat)} className={`text-xs px-2 py-1 rounded border transition-colors ${editingCalculator.categories?.includes(cat) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9]' : 'bg-slate-900 text-slate-500 border-slate-700'}`}>{CATEGORY_LABELS[cat]} {editingCalculator.categories?.includes(cat) && <Check size={10} className="inline ml-1"/>}</button>))}</div>
+                     </div>
+
+                     {/* Scenarios Logic */}
+                     <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h4 className="font-bold text-lg text-white">סוגי עסקה (תרחישים)</h4>
+                            <Button onClick={addScenario} size="sm" variant="outline"><Plus size={14} className="ml-1"/> הוסף תרחיש</Button>
+                        </div>
+                        
+                        {editingCalculator.scenarios.map((scenario, sIndex) => (
+                            <div key={scenario.id} className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+                                <div className="bg-slate-950 p-3 border-b border-slate-700 flex justify-between items-center">
+                                    <div className="flex-1">
+                                        <label className="text-[10px] text-slate-500 block">שם התרחיש</label>
+                                        <input className="bg-transparent border-none text-white font-bold w-full focus:ring-0 px-0" value={scenario.title} onChange={e => updateScenario(sIndex, { title: e.target.value })} placeholder="למשל: דירה יחידה"/>
+                                    </div>
+                                    <button onClick={() => removeScenario(sIndex)} className="text-red-400 hover:bg-red-900/20 p-2 rounded"><Trash size={16}/></button>
+                                </div>
+                                
+                                <div className="p-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-xs text-slate-400">מדרגות מס (סדר עולה)</span>
+                                        <button onClick={() => addBracket(sIndex)} className="text-xs text-[#2EB0D9] hover:underline">+ הוסף מדרגה</button>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        {scenario.brackets.length === 0 && <p className="text-center text-xs text-slate-500 py-4">אין מדרגות מס. הוסף מדרגה כדי להתחיל.</p>}
+                                        
+                                        {scenario.brackets.map((bracket, bIndex) => (
+                                            <div key={bracket.id} className="flex gap-2 items-center bg-slate-900 p-2 rounded border border-slate-800">
+                                                <div className="w-8 text-center text-xs text-slate-500 font-mono">{bIndex + 1}.</div>
+                                                <div className="flex-1">
+                                                    <label className="text-[9px] text-slate-500 block">עד סכום (₪)</label>
+                                                    <input type="number" className="w-full bg-slate-800 text-white text-xs p-1 rounded border border-slate-700" value={bracket.threshold} onChange={e => updateBracket(sIndex, bIndex, { threshold: Number(e.target.value) })} />
+                                                </div>
+                                                <div className="w-24">
+                                                    <label className="text-[9px] text-slate-500 block">שיעור מס (%)</label>
+                                                    <input type="number" step="0.1" className="w-full bg-slate-800 text-white text-xs p-1 rounded border border-slate-700" value={bracket.rate} onChange={e => updateBracket(sIndex, bIndex, { rate: Number(e.target.value) })} />
+                                                </div>
+                                                <button onClick={() => removeBracket(sIndex, bIndex)} className="text-slate-500 hover:text-red-400 p-1"><X size={14}/></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-2 bg-slate-900/50 p-2 rounded">
+                                        * טיפ: המדרגה האחרונה צריכה להיות עם סכום גבוה מאוד (למשל 99999999) כדי לייצג "כל סכום שמעל".
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                     </div>
+
+                 </div>
+                 <div className="flex gap-2 mt-4 pt-4 border-t border-slate-800">
+                     <Button onClick={handleSaveCalculator}>שמור מחשבון</Button>
+                     <Button variant="outline" onClick={()=>setEditingCalculator(null)}>ביטול</Button>
+                 </div>
+             </div>
+         </div>
+      )}
+
+      {/* Forms Editor remains unchanged */}
       {editingForm && (
          <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
              <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-3xl h-[90vh] flex flex-col">

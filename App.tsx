@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { PublicSite } from './pages/PublicSite.tsx';
 import { AdminDashboard } from './pages/AdminDashboard.tsx';
-import { AppState, Category, WillsFormData, FormDefinition, TeamMember, Article, SliderSlide, TimelineItem, MenuItem, Product } from './types.ts';
+import { AppState, Category, WillsFormData, FormDefinition, TeamMember, Article, SliderSlide, TimelineItem, MenuItem, Product, CalculatorDefinition } from './types.ts';
 import { cloudService } from './services/api.ts';
 import { dbService } from './services/supabase.ts';
 import { Loader2, CheckCircle2 } from 'lucide-react';
@@ -15,7 +15,7 @@ const PUBLIC_SUPABASE_KEY: string = 'sb_publishable_ftgAGUontmVJ-BfgzfQJsA_n7npD
 // ============================================================================
 
 // Timestamp generated at build/save time
-const BUILD_TIMESTAMP = new Date().toLocaleString('he-IL') + " (גרסה V4 - נבדק)";
+const BUILD_TIMESTAMP = new Date().toLocaleString('he-IL') + " (גרסה V4.2 - סליידרים משודרגים)";
 
 // --- INITIAL DEFAULT DATA (Fallback) ---
 const initialArticles: Article[] = [
@@ -62,8 +62,8 @@ const initialTimelines: TimelineItem[] = [
 ];
 
 const initialSlides: SliderSlide[] = [
-    { id: 'store-promo', imageUrl: 'https://picsum.photos/id/449/1920/1080', title: 'החנות המשפטית', subtitle: 'חוזים, מסמכים ומוצרים משפטיים להורדה מיידית', category: Category.HOME, order: 0, buttonText: 'למעבר לחנות' },
-    { id: '1', imageUrl: 'https://picsum.photos/id/196/1920/1080', title: 'מצוינות משפטית ללא פשרות', subtitle: 'ליווי אישי ומקצועי ברגעים החשובים של החיים', category: Category.HOME, order: 1 }
+    { id: 'store-promo', imageUrl: 'https://picsum.photos/id/449/1920/1080', title: 'החנות המשפטית', subtitle: 'חוזים, מסמכים ומוצרים משפטיים להורדה מיידית', categories: [Category.HOME], order: 0, buttonText: 'למעבר לחנות' },
+    { id: '1', imageUrl: 'https://picsum.photos/id/196/1920/1080', title: 'מצוינות משפטית ללא פשרות', subtitle: 'ליווי אישי ומקצועי ברגעים החשובים של החיים', categories: [Category.HOME, Category.WILLS, Category.REAL_ESTATE, Category.POA], order: 1 }
 ];
 
 const initialMenuItems: MenuItem[] = [
@@ -88,6 +88,37 @@ const initialForms: FormDefinition[] = [
             { id: 'f4', type: 'select', label: 'סוג מינוי מבוקש', options: ['רכוש', 'גוף', 'שניהם'], required: true }
         ],
         pdfTemplate: 'POA',
+        order: 1
+    }
+];
+
+// --- INITIAL CALCULATORS (Israeli Tax Data) ---
+const initialCalculators: CalculatorDefinition[] = [
+    {
+        id: 'tax-calc-2024',
+        title: 'מחשבון מס רכישה (2024)',
+        categories: [Category.REAL_ESTATE, Category.HOME],
+        scenarios: [
+            {
+                id: 'sc1',
+                title: 'דירה יחידה (תושב ישראל)',
+                brackets: [
+                    { id: 'b1', threshold: 1978745, rate: 0 },
+                    { id: 'b2', threshold: 2347080, rate: 3.5 },
+                    { id: 'b3', threshold: 6055070, rate: 5 },
+                    { id: 'b4', threshold: 20183565, rate: 8 },
+                    { id: 'b5', threshold: 99999999999, rate: 10 }
+                ]
+            },
+            {
+                id: 'sc2',
+                title: 'דירה נוספת (משקיע)',
+                brackets: [
+                    { id: 'b1', threshold: 6055070, rate: 8 },
+                    { id: 'b2', threshold: 99999999999, rate: 10 }
+                ]
+            }
+        ],
         order: 1
     }
 ];
@@ -144,6 +175,7 @@ const defaultState: AppState = {
     articles: initialArticles,
     menuItems: initialMenuItems,
     forms: initialForms,
+    calculators: initialCalculators, // Initialize
     teamMembers: initialTeamMembers,
     products: initialProducts,
     lastUpdated: BUILD_TIMESTAMP, 
@@ -161,9 +193,20 @@ const App: React.FC = () => {
       try {
         const parsed = JSON.parse(saved);
         
+        // Data Migration: Ensure slides have 'categories' array
+        if (parsed.slides) {
+            parsed.slides = parsed.slides.map((s: any) => {
+                if (!s.categories && s.category) {
+                    return { ...s, categories: [s.category] };
+                }
+                return s;
+            });
+        }
+
         // Safety check for critical arrays
         if (!parsed.slides) parsed.slides = initialSlides;
         if (!parsed.articles) parsed.articles = initialArticles;
+        if (!parsed.calculators) parsed.calculators = initialCalculators; 
 
         // Force cleanup of leaked keys if present
         const knownLeakedKey = 'AIzaSyBQkmjb1vw20e90bCMBK0eWC9pA6e05Le0';
@@ -190,8 +233,6 @@ const App: React.FC = () => {
                    supabaseKey: shouldUseHardcoded ? PUBLIC_SUPABASE_KEY : (parsed.config?.integrations?.supabaseKey || PUBLIC_SUPABASE_KEY),
                } 
            },
-           // CRITICAL FIX: Override lastUpdated from storage with the new build timestamp
-           // This ensures the user sees the update has happened
            lastUpdated: BUILD_TIMESTAMP 
         };
       } catch (e) {
@@ -223,6 +264,14 @@ const App: React.FC = () => {
                 const dbData = await dbService.loadState(supabaseUrl, supabaseKey);
                 if (dbData) {
                     console.log("Synced from Supabase!");
+                    // Handle migration during sync as well
+                    if (dbData.slides) {
+                        dbData.slides = dbData.slides.map((s: any) => {
+                            if (!s.categories && s.category) return { ...s, categories: [s.category] };
+                            return s;
+                        });
+                    }
+
                     setAppState(prev => ({
                         ...prev,
                         ...dbData,
