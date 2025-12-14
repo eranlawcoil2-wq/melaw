@@ -293,6 +293,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   };
 
   const handleUpdateArticle = () => { if(editingArticle) { updateState({ articles: state.articles.map(a => a.id === editingArticle.id ? editingArticle : a) }); setEditingArticle(null); }};
+  
+  // ARTICLE TABS LOGIC
+  const addArticleTab = () => { if(editingArticle) setEditingArticle({...editingArticle, tabs: [...editingArticle.tabs, { title: 'כותרת חדשה', content: '' }]}); };
+  const updateArticleTab = (index: number, field: 'title' | 'content', val: string) => { 
+      if(editingArticle) { 
+          const newTabs = [...editingArticle.tabs]; 
+          newTabs[index] = { ...newTabs[index], [field]: val }; 
+          setEditingArticle({...editingArticle, tabs: newTabs}); 
+      }
+  };
+  const removeArticleTab = (index: number) => { if(editingArticle) setEditingArticle({...editingArticle, tabs: editingArticle.tabs.filter((_, i) => i !== index)}); };
+  const toggleArticleCategory = (cat: Category) => { if (!editingArticle) return; const current = editingArticle.categories || []; if (current.includes(cat)) { setEditingArticle({ ...editingArticle, categories: current.filter(c => c !== cat) }); } else { setEditingArticle({ ...editingArticle, categories: [...current, cat] }); } };
+
   const handleImageSelect = (url: string) => {
       if (!imagePickerContext) return;
       if (imagePickerContext.type === 'article' && editingArticle) setEditingArticle({ ...editingArticle, imageUrl: url });
@@ -326,7 +339,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const handleSaveSlide = () => { if(editingSlide) { const exists = state.slides.find(s => s.id === editingSlide.id); updateState({ slides: exists ? state.slides.map(s => s.id === editingSlide.id ? editingSlide : s) : [...state.slides, editingSlide] }); setEditingSlide(null); }};
   const toggleSlideCategory = (cat: Category) => { if (!editingSlide) return; const current = editingSlide.categories || []; if (current.includes(cat)) { setEditingSlide({ ...editingSlide, categories: current.filter(c => c !== cat) }); } else { setEditingSlide({ ...editingSlide, categories: [...current, cat] }); } };
 
+  // TIMELINE LOGIC
   const handleSaveTimelineItem = () => { if(editingTimelineItem) { const exists = state.timelines.find(t => t.id === editingTimelineItem.id); updateState({ timelines: exists ? state.timelines.map(t => t.id === editingTimelineItem.id ? editingTimelineItem : t) : [...state.timelines, editingTimelineItem] }); setEditingTimelineItem(null); }};
+  const toggleTimelineCategory = (cat: Category) => { if (!editingTimelineItem) return; const current = editingTimelineItem.category || []; if (current.includes(cat)) { setEditingTimelineItem({ ...editingTimelineItem, category: current.filter(c => c !== cat) }); } else { setEditingTimelineItem({ ...editingTimelineItem, category: [...current, cat] }); } };
+
   const handleSaveProduct = () => { if(editingProduct) { const currentProducts = state.products || []; const exists = currentProducts.find(p => p.id === editingProduct.id); updateState({ products: exists ? currentProducts.map(p => p.id === editingProduct.id ? editingProduct : p) : [...currentProducts, editingProduct] }); setEditingProduct(null); }};
   const toggleProductCategory = (cat: Category) => { if (!editingProduct) return; const current = editingProduct.categories || []; if (current.includes(cat)) { setEditingProduct({ ...editingProduct, categories: current.filter(c => c !== cat) }); } else { setEditingProduct({ ...editingProduct, categories: [...current, cat] }); } };
   
@@ -388,7 +404,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
         
-        {/* ... Other Tabs (News, Team, Payments) remain unchanged ... */}
+        {/* News & Updates Tab */}
+        {activeTab === 'news' && (
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-end"><Button onClick={() => setEditingTimelineItem({ id: Date.now().toString(), title: 'עדכון חדש', description: '', imageUrl: '', category: [Category.HOME], order: 99 })}><Plus size={18} className="ml-2"/> עדכון חדש</Button></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {state.timelines.sort((a,b)=>(a.order||99)-(b.order||99)).map(item => (
+                        <div key={item.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col h-full">
+                            <div className="h-40 relative bg-slate-800">
+                                {item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-600"><Newspaper size={40}/></div>}
+                                <div className="absolute top-2 right-2 flex flex-wrap gap-1 justify-end">{item.category?.map(c => <span key={c} className="text-[10px] bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded">{CATEGORY_LABELS[c]}</span>)}</div>
+                            </div>
+                            <div className="p-4 flex-1 flex flex-col">
+                                <h4 className="font-bold text-white text-lg mb-2 line-clamp-2">{item.title}</h4>
+                                <p className="text-slate-400 text-sm line-clamp-3 mb-4 flex-1">{item.description}</p>
+                                <div className="flex justify-between items-center pt-2 border-t border-slate-800">
+                                    <div className="text-xs text-slate-500">סדר: {item.order || 99}</div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setEditingTimelineItem(item)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white transition-colors"><Edit size={16}/></button>
+                                        <button onClick={() => updateState({ timelines: state.timelines.filter(t => t.id !== item.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white transition-colors"><Trash size={16}/></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
         
         {/* Forms Tab */}
         {activeTab === 'forms' && (
@@ -415,6 +457,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                                     <button onClick={() => updateState({ calculators: (state.calculators || []).filter(c => c.id !== calc.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white transition-colors"><Trash size={16}/></button>
                                 </div>
                             </div>
+                            <div className="text-xs text-slate-500">סדר הופעה: {calc.order || 99}</div>
                             <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 mt-2">
                                 <h5 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">תרחישים מוגדרים</h5>
                                 {calc.scenarios.length > 0 ? (
@@ -617,6 +660,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                              <label className="block text-xs font-bold text-slate-400 mb-1">כותרת המחשבון</label>
                              <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingCalculator.title} onChange={e=>setEditingCalculator({...editingCalculator, title: e.target.value})} placeholder="למשל: מחשבון מס רכישה"/>
                          </div>
+                         <div className="w-32">
+                             <label className="block text-xs font-bold text-slate-400 mb-1">סדר הופעה</label>
+                             <input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingCalculator.order || 99} onChange={e=>setEditingCalculator({...editingCalculator, order: Number(e.target.value)})} />
+                         </div>
                      </div>
 
                      <div className="bg-slate-950 p-3 rounded border border-slate-800">
@@ -682,6 +729,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
          </div>
       )}
 
+      {/* TIMELINE (NEWS) EDITOR MODAL */}
+      {editingTimelineItem && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-3xl flex flex-col max-h-[90vh]">
+                <h3 className="font-bold text-white mb-4 text-xl">עריכת עדכון / חדשה</h3>
+                <div className="flex-1 overflow-y-auto space-y-4 px-2">
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">כותרת</label>
+                            <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingTimelineItem.title} onChange={e=>setEditingTimelineItem({...editingTimelineItem, title: e.target.value})} />
+                        </div>
+                        <div className="w-24">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">סדר</label>
+                            <input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingTimelineItem.order || 99} onChange={e=>setEditingTimelineItem({...editingTimelineItem, order: Number(e.target.value)})} />
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 mb-1">תיאור קצר (יופיע בכרטיסייה)</label>
+                        <textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 h-24" value={editingTimelineItem.description} onChange={e=>setEditingTimelineItem({...editingTimelineItem, description: e.target.value})} />
+                    </div>
+
+                    {/* Multi-Category Selection for Timeline */}
+                    <div className="bg-slate-950 p-3 rounded border border-slate-800">
+                         <label className="block text-xs font-bold text-slate-400 mb-2">קטגוריות</label>
+                         <div className="flex flex-wrap gap-2">
+                             {Object.values(Category).map(cat => (
+                                 <button 
+                                    key={cat} 
+                                    onClick={() => toggleTimelineCategory(cat)} 
+                                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${
+                                        editingTimelineItem.category?.includes(cat) 
+                                        ? 'bg-[#2EB0D9] text-white border-[#2EB0D9] shadow-md shadow-[#2EB0D9]/20' 
+                                        : 'bg-slate-900 text-slate-500 border-slate-700 hover:border-slate-500'
+                                    }`}
+                                 >
+                                     {CATEGORY_LABELS[cat]} 
+                                     {editingTimelineItem.category?.includes(cat) && <Check size={12}/>}
+                                 </button>
+                             ))}
+                         </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">קישור לתמונה</label>
+                            <div className="flex gap-2">
+                                <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingTimelineItem.imageUrl} onChange={e=>setEditingTimelineItem({...editingTimelineItem, imageUrl: e.target.value})} />
+                                <Button size="sm" onClick={() => openImagePicker('timeline', editingTimelineItem.title)}><Search size={14}/></Button>
+                                <ImageUploadButton onImageSelected={(url) => setEditingTimelineItem({...editingTimelineItem, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} className="h-8 w-10 px-0"/>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">קישור מיוחד (ID של טופס או URL חיצוני)</label>
+                            <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingTimelineItem.linkTo || ''} onChange={e=>setEditingTimelineItem({...editingTimelineItem, linkTo: e.target.value})} placeholder="form-XXX או https://..." />
+                        </div>
+                    </div>
+                </div>
+                <div className="flex gap-2 mt-4 pt-4 border-t border-slate-800">
+                    <Button onClick={handleSaveTimelineItem}>שמור שינויים</Button>
+                    <Button variant="outline" onClick={()=>setEditingTimelineItem(null)}>ביטול</Button>
+                </div>
+            </div>
+        </div>
+      )}
+
       {/* Forms Editor remains unchanged */}
       {editingForm && (
          <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
@@ -725,14 +841,93 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
          </div>
       )}
 
-      {/* Keep other modals unchanged to save space, assuming they are correct */}
+      {/* ARTICLE EDITOR MODAL */}
       {editingArticle && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
-            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-4xl space-y-4 max-h-[90vh] overflow-y-auto">
-                <h3 className="font-bold text-white mb-4">עריכת מאמר</h3>
-                <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingArticle.title} onChange={e=>setEditingArticle({...editingArticle, title: e.target.value})} placeholder="כותרת"/>
-                {/* ...Rest of Article Editor... */}
-                <div className="flex gap-2 pt-4 border-t border-slate-800">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-4xl max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-bold text-white text-xl">עריכת מאמר</h3>
+                    <button onClick={()=>setEditingArticle(null)} className="text-slate-400 hover:text-white"><X/></button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto space-y-6 px-2">
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">כותרת המאמר</label>
+                            <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingArticle.title} onChange={e=>setEditingArticle({...editingArticle, title: e.target.value})} placeholder="כותרת"/>
+                        </div>
+                        <div className="w-24">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">סדר</label>
+                            <input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingArticle.order || 99} onChange={e=>setEditingArticle({...editingArticle, order: Number(e.target.value)})}/>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 mb-1">תקציר (Abstract)</label>
+                        <textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 h-24" value={editingArticle.abstract} onChange={e=>setEditingArticle({...editingArticle, abstract: e.target.value})} />
+                    </div>
+
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">ציטוט מוביל (אופציונלי)</label>
+                            <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingArticle.quote || ''} onChange={e=>setEditingArticle({...editingArticle, quote: e.target.value})} />
+                        </div>
+                    </div>
+
+                    {/* Categories */}
+                    <div className="bg-slate-950 p-3 rounded border border-slate-800">
+                         <label className="block text-xs font-bold text-slate-400 mb-2">קטגוריות</label>
+                         <div className="flex flex-wrap gap-2">
+                             {Object.values(Category).map(cat => (
+                                 <button 
+                                    key={cat} 
+                                    onClick={() => toggleArticleCategory(cat)} 
+                                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${
+                                        editingArticle.categories?.includes(cat) 
+                                        ? 'bg-[#2EB0D9] text-white border-[#2EB0D9]' 
+                                        : 'bg-slate-900 text-slate-500 border-slate-700 hover:border-slate-500'
+                                    }`}
+                                 >
+                                     {CATEGORY_LABELS[cat]} 
+                                     {editingArticle.categories?.includes(cat) && <Check size={12}/>}
+                                 </button>
+                             ))}
+                         </div>
+                    </div>
+
+                    {/* Image */}
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">תמונה ראשית</label>
+                            <div className="flex gap-2">
+                                <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingArticle.imageUrl} onChange={e=>setEditingArticle({...editingArticle, imageUrl: e.target.value})} />
+                                <Button size="sm" onClick={() => openImagePicker('article', editingArticle.title)}><Search size={14}/></Button>
+                                <ImageUploadButton onImageSelected={(url) => setEditingArticle({...editingArticle, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} className="h-8 w-10 px-0"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tabs / Content */}
+                    <div className="border-t border-slate-800 pt-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="font-bold text-white">תוכן המאמר (לשוניות)</h4>
+                            <Button size="sm" onClick={addArticleTab}><Plus size={14}/> הוסף לשונית</Button>
+                        </div>
+                        <div className="space-y-4">
+                            {editingArticle.tabs.map((tab, idx) => (
+                                <div key={idx} className="bg-slate-800 p-4 rounded border border-slate-700">
+                                    <div className="flex justify-between mb-2">
+                                        <input className="bg-transparent font-bold text-white border-b border-slate-600 focus:border-[#2EB0D9] outline-none w-1/2" value={tab.title} onChange={e => updateArticleTab(idx, 'title', e.target.value)} placeholder="כותרת הלשונית" />
+                                        <button onClick={() => removeArticleTab(idx)} className="text-red-400 hover:text-red-300"><Trash size={16}/></button>
+                                    </div>
+                                    <textarea className="w-full h-40 bg-slate-900 text-slate-200 p-2 rounded border border-slate-800 text-sm leading-relaxed" value={tab.content} onChange={e => updateArticleTab(idx, 'content', e.target.value)} placeholder="תוכן הלשונית..." />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t border-slate-800 mt-auto">
                     <Button onClick={handleUpdateArticle}>שמור שינויים</Button>
                     <Button variant="outline" onClick={()=>setEditingArticle(null)}>ביטול</Button>
                 </div>

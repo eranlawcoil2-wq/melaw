@@ -300,7 +300,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       if (!t.category || t.category.length === 0) return state.currentCategory === Category.HOME;
       if (state.currentCategory === Category.HOME || state.currentCategory === Category.STORE) return true;
       return t.category.includes(state.currentCategory);
-  }).sort((a, b) => (a.order || 99) - (b.order || 99));
+  });
 
   const storeProducts = (state.products || []).filter(p => {
       if (p.categories) {
@@ -309,10 +309,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       return state.currentCategory === Category.STORE || (p as any).category === state.currentCategory;
   }).sort((a, b) => (a.order || 99) - (b.order || 99));
 
-  // --- MERGE CALCULATORS INTO TIMELINE ITEMS ---
+  // --- MERGE CALCULATORS INTO TIMELINE ITEMS AND SORT ---
   // This allows calculators to be displayed nicely in the horizontal scroll list with the specific 'generator' styling
   const mixedTimelineItems = [
-      ...currentTimelines.map(item => ({ ...item, type: 'timeline' })),
+      ...currentTimelines.map(item => ({ ...item, type: 'timeline', sortOrder: item.order || 99 })),
       ...currentCategoryCalculators.map(calc => ({
           id: calc.id,
           title: calc.title,
@@ -320,11 +320,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           imageUrl: '', // Calculators use icon
           category: [],
           type: 'calculator', // Marker
-          linkTo: '' 
+          linkTo: '',
+          sortOrder: calc.order || 99 // Use the order from calculator definition
       }))
   ].sort((a,b) => {
-      // Prioritize Generators/Calculators slightly or just keep simple sort
-      return 0; 
+      return a.sortOrder - b.sortOrder;
   });
 
   useEffect(() => {
