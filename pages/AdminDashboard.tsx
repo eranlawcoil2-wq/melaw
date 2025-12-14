@@ -399,7 +399,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {/* Articles Tab */}
         {activeTab === 'articles' && (
             <div className="space-y-8 animate-fade-in">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl"><div className="flex flex-col md:flex-row gap-4"><input type="text" className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9]" placeholder="נושא למאמר..." value={newArticleTopic} onChange={(e) => setNewArticleTopic(e.target.value)} /><Button onClick={handleGenerateArticle} disabled={isGenerating} className="min-w-[150px]">{isGenerating ? <Loader2 className="animate-spin ml-2"/> : 'צור (AI)'}</Button></div></div>
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+                    <div className="flex flex-col gap-4">
+                        <label className="text-sm font-bold text-slate-400">נושא המאמר (ניתן לכתוב תיאור מפורט והנחיות ל-AI)</label>
+                        <textarea 
+                            className="flex-1 p-4 border border-slate-700 rounded-lg bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9] h-32 leading-relaxed" 
+                            placeholder="כתוב כאן על מה המאמר צריך לדבר. למשל: 'כתוב מאמר על ירושה ללא צוואה, תדגיש את הבעיות שיכולות להיווצר בין אחים ותן דוגמאות לפתרונות...'" 
+                            value={newArticleTopic} 
+                            onChange={(e) => setNewArticleTopic(e.target.value)} 
+                        />
+                        <div className="flex justify-end">
+                            <Button onClick={handleGenerateArticle} disabled={isGenerating} className="min-w-[200px] h-12 text-lg">
+                                {isGenerating ? <Loader2 className="animate-spin ml-2"/> : <><Sparkles size={18} className="ml-2"/> צור מאמר עם AI</>}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{filteredArticles.map(article => (<div key={article.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group"><div className="h-40 relative"><img src={article.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div><div className="p-4"><div className="flex justify-between items-start mb-2"><h4 className="font-bold line-clamp-1 text-white flex-1">{article.title}</h4><span className="text-xs text-slate-500 border border-slate-700 px-1 rounded">#{article.order || 99}</span></div><div className="flex justify-end gap-2"><button onClick={() => setEditingArticle(article)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white"><Edit size={16}/></button><button onClick={() => updateState({ articles: state.articles.filter(a => a.id !== article.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white"><Trash size={16}/></button></div></div></div>))}</div>
             </div>
         )}

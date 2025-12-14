@@ -38,71 +38,65 @@ export const generateArticleContent = async (topic: string, category: Category |
       throw new Error("שגיאה באתחול מנוע ה-AI.");
   }
 
-  // --- UPDATED PROMPT FOR DEEPER CONTENT ---
+  // --- STRICT JSON PROMPT FOR ROBUSTNESS ---
   const prompt = `
-      אתה שותף בכיר, ותיק ומוערך במשרד עורכי דין מוביל בישראל.
-      המטרה שלך היא לכתוב מאמר משפטי מקיף, מעמיק, חד ומדויק בנושא: "${topic}".
+      You are a senior partner at a top Israeli law firm.
+      Task: Write a comprehensive legal article in HEBREW about: "${topic}".
       
-      הנחיות קריטיות לכתיבה:
-      1. **עומק ותוכן**: המאמר חייב לספק ערך אמיתי ומשמעותי לקורא. אל תכתוב סיסמאות שטחיות. הסבר את הרציונל מאחורי החוק, את הניואנסים ואת המשמעויות.
-      2. **דוגמאות כלליות בלבד**: אין להמציא פסקי דין, אין לצטט מספרי הליכים ואין להמציא שמות של שופטים. במקום זאת, השתמש ב"דוגמאות מהחיים" או "תרחישים נפוצים" (למשל: "תארו לעצמכם מצב בו...") כדי להמחיש את הסוגיה המשפטית.
-      3. **שפה וסגנון**: עברית גבוהה, רהוטה ומקצועית, אך ברורה ומובנת גם לאדם שאינו משפטן.
-      4. **מבנה התשובה**: עליך להחזיר JSON בלבד, במבנה המפורט למטה. הקפד על תוכן ארוך ומפורט בתוך הלשוניות (Tabs).
+      CRITICAL INSTRUCTIONS:
+      1. RETURN RAW JSON ONLY. NO MARKDOWN. NO CODE BLOCKS.
+      2. The output MUST follow the exact schema below.
+      3. The "content" fields must be long, detailed, and professional (at least 200 words per tab).
+      4. Use professional legal Hebrew (עברית משפטית תקנית).
 
-      Structure (JSON Only):
+      JSON Schema:
       {
-        "title": "כותרת משכנעת, חדה ומקצועית למאמר",
-        "abstract": "תקציר מורחב של 3-5 משפטים (Abstract). עליו לגרות את הקורא לקרוא את המאמר ולהסביר את חשיבות הנושא.",
-        "quote": "ציטוט חזק, פתגם משפטי או אמרה שנונה הקשורה לנושא.",
+        "title": "A catchy and professional title in Hebrew",
+        "abstract": "A 3-5 sentence summary (abstract) in Hebrew",
+        "quote": "A strong legal quote or saying in Hebrew related to the topic",
         "tabs": [
            { 
-             "title": "המסגרת המשפטית", 
-             "content": "זהו החלק העיוני. הסבר בהרחבה (לפחות 300 מילים) את המצב המשפטי, החוקים הרלוונטיים (ללא ציטוט סעיפים יבשים אלא הסבר מהותם), והזכויות/חובות הנובעות מהם. הסבר את ה'למה' ולא רק את ה'מה'." 
+             "title": "The Legal Framework (המסגרת המשפטית)", 
+             "content": "Detailed explanation of the law, rationale, and rights/duties. Do not just list sections, explain the meaning." 
            },
            { 
-             "title": "דוגמאות מהחיים", 
-             "content": "זהו החלק הממחיש. כתוב 2-3 תרחישים נפוצים או דוגמאות היפותטיות (לפחות 300 מילים) שמסבירות איך החוק בא לידי ביטוי במציאות. הדגש את הדילמות ואת הפתרונות בכל תרחיש. (אל תצטט פסקי דין אמיתיים או מומצאים)." 
+             "title": "Real Life Examples (דוגמאות מהחיים)", 
+             "content": "2-3 hypothetical scenarios illustrating the law. Focus on dilemmas and solutions." 
            },
            { 
-             "title": "המדריך המעשי", 
-             "content": "זהו החלק הפרקטי. כתוב רשימת המלצות ברורה (לפחות 200 מילים). מה צריך לעשות? ממה להיזהר? צור רשימת תיוג (Checklist) או שלבים לפעולה." 
+             "title": "Practical Guide (המדריך המעשי)", 
+             "content": "A checklist of recommendations or steps to take. What to do and what to avoid." 
            }
         ]
       }
   `;
 
   const config = {
-    responseMimeType: "application/json",
-    // We use a looser schema to prevent validation errors on the model side
-    responseSchema: {
-      type: Type.OBJECT,
-      properties: {
-        title: { type: Type.STRING },
-        abstract: { type: Type.STRING },
-        quote: { type: Type.STRING },
-        tabs: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              content: { type: Type.STRING }
-            }
-          }
-        }
-      }
-    }
+    // Switching to text MIME type with manual parsing is often more reliable for complex nested structures on Flash models
+    // than strict responseSchema which can be flaky with arrays.
+    responseMimeType: "text/plain", 
   };
 
   const parseResponse = (response: any) => {
       if (response.text) {
         let cleanText = response.text.trim();
-        // Clean up markdown formatting if present
-        cleanText = cleanText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "");
+        // Aggressively clean up markdown code blocks if the model ignores the instruction
+        cleanText = cleanText.replace(/```json/gi, "").replace(/```/g, "").trim();
+        
         try {
-            return JSON.parse(cleanText);
+            const json = JSON.parse(cleanText);
+            
+            // Validate Structure
+            if (!json.title || !json.abstract) throw new Error("Missing title or abstract");
+            if (!Array.isArray(json.tabs) || json.tabs.length === 0) {
+                // If tabs are missing, auto-generate them from any other properties
+                json.tabs = [
+                    { title: "סקירה כללית", content: json.content || json.body || json.text || "תוכן המאמר לא נוצר כראוי." }
+                ];
+            }
+            return json;
         } catch (e) {
-            console.error("JSON Parse Error", cleanText);
+            console.error("JSON Parse Error:", cleanText);
             throw new Error("המודל החזיר תשובה שאינה בפורמט תקין.");
         }
       }
@@ -111,7 +105,7 @@ export const generateArticleContent = async (topic: string, category: Category |
 
   // TRY MODELS SEQUENTIALLY
   try {
-    // Attempt 1: Gemini 2.5 Flash
+    // Attempt 1: Gemini 2.5 Flash (Latest)
     console.log("Trying gemini-2.5-flash...");
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -135,13 +129,10 @@ export const generateArticleContent = async (topic: string, category: Category |
     } catch (fallbackError: any) {
         console.error("All models failed:", fallbackError);
         
-        // Extract meaningful error message
         let msg = fallbackError.message || fallbackError.toString();
         if (msg.includes('400')) msg = "שגיאת בקשה (400). ייתכן שהמודל לא זמין באזורך.";
         if (msg.includes('403')) msg = "אין הרשאה (403). בדוק את מפתח ה-API.";
-        if (msg.includes('404')) msg = "המודל לא נמצא (404).";
         
-        // Return mock with error detail so user sees it in the UI
         return getMockResponse(msg);
     }
   }

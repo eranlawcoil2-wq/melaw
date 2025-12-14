@@ -61,7 +61,11 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value.replace(/[^0-9]/g, ''); // Allow only numbers
         setPrice(formatNumberWithCommas(val));
-        setResult(null);
+        // We do NOT clear result here based on user request to keep data visible, 
+        // but typically for a calculator, changing input invalidates result. 
+        // Keeping it consistent with "don't clear data" request might be confusing for calculator,
+        // but we will allow re-calculation without clearing the input.
+        setResult(null); 
     };
 
     const formatCurrency = (num: number) => {
@@ -628,7 +632,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                  await emailService.sendForm(currentDynamicForm.title, mappedData, state.config.integrations, currentDynamicForm.pdfTemplate, currentDynamicForm.sendClientEmail, currentDynamicForm.submitEmail || state.config.contactEmail); 
                                  if (state.config.integrations.googleSheetsUrl) alert(`נשלח בהצלחה למערכת!\nמספר אסמכתא: ${submissionId}`); else alert("נשלח בהצלחה! (מצב ללא חיבור לשרת).");
                                  setActiveDynamicFormId(null); 
-                                 setDynamicFormValues({}); 
+                                 // REMOVED: setDynamicFormValues({}); -- Data is preserved per user request
                              } catch (e) { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); } 
                          }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button>
                      </div>
@@ -693,7 +697,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                             </li>
                             <li className="flex items-start gap-4 hover:text-white transition-colors">
                                 <MapPin size={22} className="text-[#2EB0D9]"/> 
-                                <a href={`https://waze.com/ul?q=${encodeURIComponent(state.config.address)}`} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">{state.config.address}</a>
+                                <div>
+                                    <a href={`https://waze.com/ul?q=${encodeURIComponent(state.config.address)}`} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">{state.config.address}</a>
+                                    {/* WAZE BUTTON FOR MOBILE */}
+                                    <a href={`https://waze.com/ul?q=${encodeURIComponent(state.config.address)}`} target="_blank" rel="noopener noreferrer" className="md:hidden mt-2 inline-flex items-center gap-2 bg-[#2EB0D9]/20 text-[#2EB0D9] px-3 py-1 rounded-full text-xs font-bold border border-[#2EB0D9]/50 hover:bg-[#2EB0D9] hover:text-white transition-colors">
+                                        <Navigation size={12} /> נווט עם Waze
+                                    </a>
+                                </div>
                             </li>
                         </ul>
                     </div>
@@ -705,7 +715,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 <div className="container mx-auto px-4 pt-8 border-t border-slate-900 text-center text-sm text-slate-600 flex flex-col items-center gap-2">
                     <p>&copy; {new Date().getFullYear()} MOR ERAN KAGAN & CO.</p>
                     <button onClick={() => setShowLegalDisclaimer(true)} className="text-xs text-slate-500 hover:text-[#2EB0D9] underline transition-colors">תנאי שימוש והצהרת פרטיות</button>
-                    <div className="text-[10px] text-slate-800 mt-2">{version}</div>
+                    <div className="text-[10px] text-slate-600 mt-2">{dataVersion}</div>
                 </div>
             </footer>
       )}

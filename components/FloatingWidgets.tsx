@@ -40,28 +40,9 @@ export const FloatingWidgets: React.FC<FloatingWidgetsProps> = ({ dataVersion })
       toggleClass('a11y-stop-animations', newState);
   };
 
-  const handleHardReset = () => {
-      if (confirm("פעולה זו תרענן את האתר ותנקה זיכרון מקומי כדי לקבל את הגרסה האחרונה. להמשיך?")) {
-          localStorage.clear();
-          window.location.reload();
-      }
-  };
-
   return (
     <div className="fixed bottom-2 left-2 md:bottom-4 md:left-4 z-50 flex flex-col gap-2 md:gap-3 items-start">
-      {/* Last Updated Badge - Replaces Version */}
-      {dataVersion && (
-        <div className="flex flex-col gap-1 items-start mb-1">
-             <div className="flex items-center gap-1 bg-slate-800 text-[9px] md:text-[10px] text-white py-0.5 px-1.5 md:py-1 md:px-2 rounded-md shadow-lg border border-slate-700 opacity-70 hover:opacity-100 cursor-default" title="עודכן לאחרונה">
-                <CalendarDays size={10} className="text-[#2EB0D9]"/>
-                <span dir="ltr">{dataVersion}</span>
-                <button onClick={handleHardReset} className="ml-1 p-0.5 hover:bg-slate-700 rounded text-yellow-400" title="רענון מלא (נקה מטמון)">
-                    <RefreshCw size={10} />
-                </button>
-            </div>
-        </div>
-      )}
-
+      
       {/* WhatsApp */}
       <a 
         href="https://wa.me/" 
