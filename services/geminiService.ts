@@ -48,6 +48,8 @@ export const generateArticleContent = async (topic: string, category: Category |
       2. The output MUST follow the exact schema below.
       3. The "content" fields must be long, detailed, and professional (at least 200 words per tab).
       4. Use professional legal Hebrew (עברית משפטית תקנית).
+      5. **IMPORTANT**: DO NOT use any Markdown formatting inside the text. NO asterisks (**), NO hashtags (#), NO bold syntax. Write plain text only.
+      6. Write ONLY in Hebrew. Do not use English words or headers (like "Dos and Don'ts").
 
       JSON Schema:
       {
@@ -57,15 +59,15 @@ export const generateArticleContent = async (topic: string, category: Category |
         "tabs": [
            { 
              "title": "The Legal Framework (המסגרת המשפטית)", 
-             "content": "Detailed explanation of the law, rationale, and rights/duties. Do not just list sections, explain the meaning." 
+             "content": "Detailed explanation of the law, rationale, and rights/duties. Plain text only." 
            },
            { 
              "title": "Real Life Examples (דוגמאות מהחיים)", 
-             "content": "2-3 hypothetical scenarios illustrating the law. Focus on dilemmas and solutions." 
+             "content": "2-3 hypothetical scenarios illustrating the law. Focus on dilemmas and solutions. Plain text only." 
            },
            { 
              "title": "Practical Guide (המדריך המעשי)", 
-             "content": "A checklist of recommendations or steps to take. What to do and what to avoid." 
+             "content": "A list of recommendations or steps to take. What to do and what to avoid. Plain text only." 
            }
         ]
       }
@@ -77,26 +79,44 @@ export const generateArticleContent = async (topic: string, category: Category |
     responseMimeType: "text/plain", 
   };
 
+  const cleanText = (text: string) => {
+      if (!text) return "";
+      // Remove Markdown artifacts: **, ##, __
+      return text.replace(/\*\*/g, '').replace(/##/g, '').replace(/__/g, '').replace(/`/g, '');
+  };
+
   const parseResponse = (response: any) => {
       if (response.text) {
-        let cleanText = response.text.trim();
+        let rawText = response.text.trim();
         // Aggressively clean up markdown code blocks if the model ignores the instruction
-        cleanText = cleanText.replace(/```json/gi, "").replace(/```/g, "").trim();
+        rawText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
         
         try {
-            const json = JSON.parse(cleanText);
+            const json = JSON.parse(rawText);
             
-            // Validate Structure
+            // Validate Structure & Clean Content
             if (!json.title || !json.abstract) throw new Error("Missing title or abstract");
+            
+            // Clean top level fields
+            json.title = cleanText(json.title);
+            json.abstract = cleanText(json.abstract);
+            if (json.quote) json.quote = cleanText(json.quote);
+
             if (!Array.isArray(json.tabs) || json.tabs.length === 0) {
                 // If tabs are missing, auto-generate them from any other properties
                 json.tabs = [
-                    { title: "סקירה כללית", content: json.content || json.body || json.text || "תוכן המאמר לא נוצר כראוי." }
+                    { title: "סקירה כללית", content: cleanText(json.content || json.body || json.text || "תוכן המאמר לא נוצר כראוי.") }
                 ];
+            } else {
+                // Clean tabs content
+                json.tabs = json.tabs.map((tab: any) => ({
+                    title: cleanText(tab.title),
+                    content: cleanText(tab.content)
+                }));
             }
             return json;
         } catch (e) {
-            console.error("JSON Parse Error:", cleanText);
+            console.error("JSON Parse Error:", rawText);
             throw new Error("המודל החזיר תשובה שאינה בפורמט תקין.");
         }
       }
