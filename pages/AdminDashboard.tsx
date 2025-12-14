@@ -7,7 +7,7 @@ import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin, Eye, EyeOff, CreditCard, Palette, Home, CheckCircle, Calculator } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin, Eye, EyeOff, CreditCard, Palette, Home, CheckCircle, Calculator, List, ToggleRight, Hash, AtSign } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -183,7 +183,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [editingForm, setEditingForm] = useState<FormDefinition | null>(null);
-  const [editingCalculator, setEditingCalculator] = useState<CalculatorDefinition | null>(null); // NEW
+  const [editingCalculator, setEditingCalculator] = useState<CalculatorDefinition | null>(null); 
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [editingSlide, setEditingSlide] = useState<SliderSlide | null>(null);
   const [editingTimelineItem, setEditingTimelineItem] = useState<TimelineItem | null>(null);
@@ -478,6 +478,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
             </div>
         )}
 
+        {/* Team Tab */}
+        {activeTab === 'team' && (
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-end"><Button onClick={() => setEditingMember({ id: Date.now().toString(), fullName: 'חבר צוות חדש', role: 'תפקיד', specialization: '', email: '', phone: '', imageUrl: '', bio: '', order: 99 })}><Plus size={18} className="ml-2"/> הוסף חבר צוות</Button></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{state.teamMembers.sort((a,b)=>(a.order||99)-(b.order||99)).map(member => (
+                    <div key={member.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col md:flex-row gap-4 p-4 items-center md:items-start shadow-md">
+                        <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-800 flex-shrink-0 border-2 border-slate-700">
+                            <img src={member.imageUrl} className="w-full h-full object-cover" alt={member.fullName} />
+                        </div>
+                        <div className="flex-1 text-center md:text-right">
+                            <h4 className="font-bold text-white text-lg">{member.fullName}</h4>
+                            <p className="text-[#2EB0D9] text-sm font-medium">{member.role}</p>
+                            <p className="text-slate-500 text-xs mt-1">{member.specialization}</p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <button onClick={() => setEditingMember(member)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white border border-slate-700 transition-colors"><Edit size={16}/></button>
+                            <button onClick={() => updateState({ teamMembers: state.teamMembers.filter(m => m.id !== member.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white border border-slate-700 transition-colors"><Trash size={16}/></button>
+                        </div>
+                    </div>
+                ))}</div>
+            </div>
+        )}
+
+        {/* Payments Tab */}
+        {activeTab === 'payments' && (
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-end"><Button onClick={() => setEditingProduct({ id: Date.now().toString(), title: 'מוצר חדש', price: 0, categories: [Category.STORE], paymentLink: '', order: 99 })}><Plus size={18} className="ml-2"/> הוסף מוצר לחנות</Button></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {(state.products || []).sort((a,b)=>(a.order||99)-(b.order||99)).map(product => (
+                        <div key={product.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3 shadow-lg group">
+                            <div className="flex justify-between items-start">
+                                <div className="p-2 bg-slate-800 rounded text-[#2EB0D9]"><ShoppingCart size={20}/></div>
+                                <div className="text-xs text-slate-500 font-bold bg-slate-950 px-2 py-1 rounded">₪{product.price}</div>
+                            </div>
+                            <h4 className="font-bold text-white text-lg line-clamp-1">{product.title}</h4>
+                            <p className="text-slate-400 text-sm line-clamp-2 flex-1">{product.description}</p>
+                            <div className="flex gap-1 flex-wrap mt-2">
+                                {product.categories?.map(c => <span key={c} className="text-[10px] bg-slate-950 text-slate-300 px-2 py-0.5 rounded border border-slate-800">{CATEGORY_LABELS[c]}</span>)}
+                            </div>
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-800">
+                                <span className="text-[10px] text-slate-600">ID: {product.id}</span>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setEditingProduct(product)} className="p-1.5 bg-slate-800 hover:bg-[#2EB0D9] rounded text-white transition-colors"><Edit size={14}/></button>
+                                    <button onClick={() => updateState({ products: (state.products || []).filter(p => p.id !== product.id) })} className="p-1.5 bg-slate-800 hover:bg-red-500 rounded text-white transition-colors"><Trash size={14}/></button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
+
         {/* Config Tab */}
         {activeTab === 'config' && (
              <div className="space-y-6 animate-fade-in">
@@ -572,7 +624,224 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       
       {/* --- MODALS --- */}
       
-      {/* SLIDER EDIT MODAL - MULTI SELECT */}
+      {/* IMPROVED FORM BUILDER MODAL */}
+      {editingForm && (
+         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+             <div className="bg-slate-900 rounded-xl border border-slate-700 w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                 
+                 {/* Header */}
+                 <div className="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center">
+                     <h3 className="font-bold text-white text-xl flex items-center gap-2"><ClipboardList className="text-[#2EB0D9]"/> בניית טופס חדש</h3>
+                     <div className="flex gap-2">
+                         <Button onClick={handleSaveForm} size="sm" className="bg-[#2EB0D9] hover:bg-[#259cc0] text-white"><Save size={16} className="ml-2"/> שמור טופס</Button>
+                         <button onClick={()=>setEditingForm(null)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
+                     </div>
+                 </div>
+
+                 <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                     {/* Sidebar - General Settings */}
+                     <div className="w-full md:w-1/3 bg-slate-900 border-l border-slate-800 p-4 overflow-y-auto space-y-6">
+                         <div className="space-y-4">
+                             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide">הגדרות כלליות</h4>
+                             <div>
+                                 <label className="block text-xs font-bold text-slate-300 mb-1">שם הטופס (כותרת)</label>
+                                 <input className="w-full p-2 bg-slate-950 text-white rounded border border-slate-700 focus:border-[#2EB0D9] outline-none" value={editingForm.title} onChange={e=>setEditingForm({...editingForm, title: e.target.value})} placeholder="למשל: שאלון קליטת לקוח"/>
+                             </div>
+                             <div className="flex gap-2">
+                                 <div className="flex-1">
+                                     <label className="block text-xs font-bold text-slate-300 mb-1">סדר הופעה</label>
+                                     <input type="number" className="w-full p-2 bg-slate-950 text-white rounded border border-slate-700" value={editingForm.order || 99} onChange={e=>setEditingForm({...editingForm, order: Number(e.target.value)})}/>
+                                 </div>
+                             </div>
+                             <div>
+                                 <label className="block text-xs font-bold text-slate-300 mb-1">אימייל לקבלת הטופס</label>
+                                 <input className="w-full p-2 bg-slate-950 text-white rounded border border-slate-700 text-xs" value={editingForm.submitEmail || ''} onChange={e=>setEditingForm({...editingForm, submitEmail: e.target.value})} placeholder="office@melaw.co.il"/>
+                             </div>
+                             <div className="flex items-center gap-2 p-2 bg-slate-950 rounded border border-slate-800">
+                                 <input type="checkbox" id="sendClientEmail" className="accent-[#2EB0D9] w-4 h-4" checked={editingForm.sendClientEmail || false} onChange={e=>setEditingForm({...editingForm, sendClientEmail: e.target.checked})}/>
+                                 <label htmlFor="sendClientEmail" className="text-xs text-slate-300 cursor-pointer select-none">שלח העתק ללקוח באופן אוטומטי</label>
+                             </div>
+                         </div>
+
+                         <div className="space-y-2">
+                             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide">שיוך לקטגוריות</h4>
+                             <div className="flex flex-wrap gap-2">
+                                 {Object.values(Category).map(cat => (
+                                     <button key={cat} onClick={() => toggleFormCategory(cat)} className={`text-[10px] px-2 py-1 rounded border transition-colors ${editingForm.categories?.includes(cat) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9]' : 'bg-slate-950 text-slate-500 border-slate-700 hover:border-slate-500'}`}>
+                                         {CATEGORY_LABELS[cat]} {editingForm.categories?.includes(cat) && <Check size={10} className="inline ml-1"/>}
+                                     </button>
+                                 ))}
+                             </div>
+                         </div>
+
+                         <div className="space-y-4 pt-4 border-t border-slate-800">
+                             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide">הגדרות אימייל חוזר</h4>
+                             <div>
+                                 <label className="block text-xs font-bold text-slate-300 mb-1">נושא האימייל</label>
+                                 <input className="w-full p-2 bg-slate-950 text-white rounded border border-slate-700 text-xs" value={editingForm.emailSubject || ''} onChange={e=>setEditingForm({...editingForm, emailSubject: e.target.value})} placeholder="ברירת מחדל: טופס חדש..."/>
+                             </div>
+                             <div>
+                                 <label className="block text-xs font-bold text-slate-300 mb-1">תוכן הודעה (Body)</label>
+                                 <textarea className="w-full p-2 bg-slate-950 text-white rounded border border-slate-700 text-xs h-20" value={editingForm.emailBody || ''} onChange={e=>setEditingForm({...editingForm, emailBody: e.target.value})} placeholder="מלל חופשי שיופיע בגוף המייל..."/>
+                             </div>
+                         </div>
+                     </div>
+
+                     {/* Main Area - Fields Canvas */}
+                     <div className="flex-1 bg-slate-950 p-6 overflow-y-auto flex flex-col">
+                         
+                         {/* Toolbar */}
+                         <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 mb-6 flex gap-2 flex-wrap items-center shadow-lg">
+                             <span className="text-xs font-bold text-slate-500 ml-2">הוסף שדה:</span>
+                             <button onClick={()=>addFieldToForm('text')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><Type size={14}/> טקסט</button>
+                             <button onClick={()=>addFieldToForm('number')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><Hash size={14}/> מספר</button>
+                             <button onClick={()=>addFieldToForm('email')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><AtSign size={14}/> אימייל</button>
+                             <button onClick={()=>addFieldToForm('select')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><List size={14}/> רשימה</button>
+                             <button onClick={()=>addFieldToForm('boolean')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><ToggleRight size={14}/> כן/לא</button>
+                         </div>
+
+                         {/* Fields List */}
+                         <div className="space-y-4 flex-1">
+                             {editingForm.fields.length === 0 && (
+                                 <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-slate-800 rounded-lg text-slate-600">
+                                     <ClipboardList size={40} className="mb-2 opacity-50"/>
+                                     <p>הטופס ריק. הוסף שדות באמצעות הסרגל למעלה.</p>
+                                 </div>
+                             )}
+                             
+                             {editingForm.fields.map((field, i) => (
+                                 <div key={i} className="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm hover:border-slate-600 transition-colors relative group animate-fade-in-up">
+                                     <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                         <button onClick={()=>removeFormField(i)} className="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded transition-colors"><Trash size={14}/></button>
+                                     </div>
+                                     
+                                     <div className="flex gap-4 items-start mb-3">
+                                         <div className="mt-2 p-2 bg-slate-950 rounded text-slate-500 border border-slate-800">
+                                             {field.type === 'text' && <Type size={16}/>}
+                                             {field.type === 'number' && <Hash size={16}/>}
+                                             {field.type === 'email' && <AtSign size={16}/>}
+                                             {field.type === 'select' && <List size={16}/>}
+                                             {field.type === 'boolean' && <ToggleRight size={16}/>}
+                                         </div>
+                                         <div className="flex-1">
+                                             <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wide">תווית השדה (Label)</label>
+                                             <input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="w-full bg-transparent border-b border-slate-700 text-white font-bold py-1 focus:border-[#2EB0D9] outline-none placeholder-slate-600" placeholder="שם השדה כפי שיופיע למשתמש"/>
+                                         </div>
+                                     </div>
+
+                                     {/* Field Specific Config */}
+                                     <div className="bg-slate-950/50 p-3 rounded border border-slate-800/50 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                         <div className="flex items-center gap-2">
+                                             <input type="checkbox" id={`req-${i}`} checked={field.required} onChange={e => updateFormField(i, { required: e.target.checked })} className="accent-red-500 w-4 h-4 rounded"/>
+                                             <label htmlFor={`req-${i}`} className={`text-xs cursor-pointer select-none font-medium ${field.required ? 'text-red-400' : 'text-slate-500'}`}>שדה חובה</label>
+                                         </div>
+                                         
+                                         {field.type === 'email' && (
+                                             <div className="flex items-center gap-2">
+                                                 <input type="checkbox" id={`isEmail-${i}`} checked={field.isClientEmail || false} onChange={e => { const newFields = editingForm.fields.map(f => ({...f, isClientEmail: false})); newFields[i].isClientEmail = e.target.checked; setEditingForm({...editingForm, fields: newFields}); }} className="accent-green-500 w-4 h-4 rounded"/>
+                                                 <label htmlFor={`isEmail-${i}`} className={`text-xs cursor-pointer select-none font-medium ${field.isClientEmail ? 'text-green-400' : 'text-slate-500'}`}>זהו המייל של הלקוח</label>
+                                             </div>
+                                         )}
+
+                                         {field.type === 'select' && (
+                                             <div className="col-span-2">
+                                                 <label className="text-[10px] text-slate-500 block mb-1">אפשרויות בחירה (מופרדות בפסיק)</label>
+                                                 <input value={field.options?.join(',')} onChange={e => updateFormField(i, { options: e.target.value.split(',') })} className="w-full bg-slate-800 border border-slate-700 text-white p-1.5 rounded text-xs" placeholder="אפשרות 1, אפשרות 2..."/>
+                                             </div>
+                                         )}
+
+                                         <div className="col-span-2 flex gap-2 items-center">
+                                             <label className="text-[10px] text-slate-500 whitespace-nowrap flex items-center gap-1"><HelpCircle size={10}/> קישור למאמר עזרה:</label>
+                                             <select value={field.helpArticleId || ''} onChange={e => updateFormField(i, { helpArticleId: e.target.value })} className="bg-slate-800 border border-slate-700 text-white p-1 rounded flex-1 text-xs outline-none">
+                                                 <option value="">-- ללא --</option>
+                                                 {state.articles.map(article => (<option key={article.id} value={article.id}>{article.title}</option>))}
+                                             </select>
+                                         </div>
+                                     </div>
+                                 </div>
+                             ))}
+                         </div>
+                     </div>
+                 </div>
+             </div>
+         </div>
+      )}
+
+      {/* TEAM EDIT MODAL - (Re-using standard modal structure for simplicity if needed, but separate is cleaner) */}
+      {editingMember && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl overflow-y-auto max-h-[90vh]">
+                <h3 className="font-bold text-white mb-4 text-xl">עריכת חבר צוות</h3>
+                <div className="space-y-4">
+                    <div className="flex gap-4">
+                        <div className="flex-1"><label className="block text-xs text-slate-400 mb-1">שם מלא</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.fullName} onChange={e=>setEditingMember({...editingMember, fullName: e.target.value})}/></div>
+                        <div className="w-24"><label className="block text-xs text-slate-400 mb-1">סדר</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.order || 99} onChange={e=>setEditingMember({...editingMember, order: Number(e.target.value)})}/></div>
+                    </div>
+                    <div><label className="block text-xs text-slate-400 mb-1">תפקיד</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.role} onChange={e=>setEditingMember({...editingMember, role: e.target.value})}/></div>
+                    <div><label className="block text-xs text-slate-400 mb-1">התמחות</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.specialization} onChange={e=>setEditingMember({...editingMember, specialization: e.target.value})}/></div>
+                    <div className="flex gap-4">
+                        <div className="flex-1"><label className="block text-xs text-slate-400 mb-1">אימייל</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.email} onChange={e=>setEditingMember({...editingMember, email: e.target.value})}/></div>
+                        <div className="flex-1"><label className="block text-xs text-slate-400 mb-1">טלפון</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.phone} onChange={e=>setEditingMember({...editingMember, phone: e.target.value})}/></div>
+                    </div>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">תמונה</label>
+                        <div className="flex gap-2">
+                            <input className="flex-1 p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingMember.imageUrl} onChange={e=>setEditingMember({...editingMember, imageUrl: e.target.value})}/>
+                            <Button size="sm" onClick={() => openImagePicker('team', editingMember.fullName)}><Search size={14}/></Button>
+                            <ImageUploadButton onImageSelected={(url) => setEditingMember({...editingMember, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} className="h-8 w-10 px-0"/>
+                        </div>
+                    </div>
+                    <div><label className="block text-xs text-slate-400 mb-1">ביוגרפיה קצרה</label><textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 h-24" value={editingMember.bio} onChange={e=>setEditingMember({...editingMember, bio: e.target.value})}/></div>
+                </div>
+                <div className="flex gap-2 mt-6 pt-4 border-t border-slate-800">
+                    <Button onClick={handleSaveMember}>שמור</Button>
+                    <Button variant="outline" onClick={()=>setEditingMember(null)}>ביטול</Button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* PRODUCT EDIT MODAL */}
+      {editingProduct && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-2xl">
+                <h3 className="font-bold text-white mb-4 text-xl">עריכת מוצר / שירות</h3>
+                <div className="space-y-4">
+                    <div className="flex gap-4">
+                        <div className="flex-1"><label className="block text-xs text-slate-400 mb-1">שם המוצר</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.title} onChange={e=>setEditingProduct({...editingProduct, title: e.target.value})}/></div>
+                        <div className="w-24"><label className="block text-xs text-slate-400 mb-1">מחיר (₪)</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.price} onChange={e=>setEditingProduct({...editingProduct, price: Number(e.target.value)})}/></div>
+                    </div>
+                    
+                    <div className="bg-slate-950 p-3 rounded border border-slate-800">
+                         <label className="block text-xs font-bold text-slate-400 mb-2">קטגוריות</label>
+                         <div className="flex flex-wrap gap-2">
+                             {Object.values(Category).map(cat => (
+                                 <button key={cat} onClick={() => toggleProductCategory(cat)} className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${editingProduct.categories?.includes(cat) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9]' : 'bg-slate-900 text-slate-500 border-slate-700 hover:border-slate-500'}`}>
+                                     {CATEGORY_LABELS[cat]} {editingProduct.categories?.includes(cat) && <Check size={12}/>}
+                                 </button>
+                             ))}
+                         </div>
+                    </div>
+
+                    <div><label className="block text-xs text-slate-400 mb-1">תיאור קצר</label><textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 h-20" value={editingProduct.description || ''} onChange={e=>setEditingProduct({...editingProduct, description: e.target.value})}/></div>
+                    <div><label className="block text-xs text-slate-400 mb-1">לינק לתשלום (Stripe / משולם / אחר)</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.paymentLink} onChange={e=>setEditingProduct({...editingProduct, paymentLink: e.target.value})} placeholder="https://buy.stripe.com/..."/></div>
+                    <div><label className="block text-xs text-slate-400 mb-1">פריסת תשלומים (טקסט חופשי)</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.installments || ''} onChange={e=>setEditingProduct({...editingProduct, installments: e.target.value})} placeholder="למשל: עד 12 תשלומים ללא ריבית"/></div>
+                    <div className="flex gap-4 items-center">
+                        <div className="flex-1"><label className="block text-xs text-slate-400 mb-1">סדר הופעה</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.order || 99} onChange={e=>setEditingProduct({...editingProduct, order: Number(e.target.value)})}/></div>
+                        <div className="flex items-center gap-2 pt-4">
+                            <input type="checkbox" id="isPop" checked={editingProduct.isPopular || false} onChange={e=>setEditingProduct({...editingProduct, isPopular: e.target.checked})} className="accent-[#2EB0D9] w-4 h-4"/><label htmlFor="isPop" className="text-white text-sm">סמן כפופולרי</label>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex gap-2 mt-6 pt-4 border-t border-slate-800">
+                    <Button onClick={handleSaveProduct}>שמור</Button>
+                    <Button variant="outline" onClick={()=>setEditingProduct(null)}>ביטול</Button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Other modals (Slider, Calculator, Article, Timeline) remain as previously defined in the full file context */}
       {editingSlide && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
             <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-3xl flex flex-col max-h-[90vh]">
@@ -796,49 +1065,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                 </div>
             </div>
         </div>
-      )}
-
-      {/* Forms Editor remains unchanged */}
-      {editingForm && (
-         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
-             <div className="bg-slate-900 p-6 rounded border border-slate-700 w-full max-w-3xl h-[90vh] flex flex-col">
-                 <h3 className="font-bold text-white mb-4">עריכת טופס</h3>
-                 <div className="flex-1 overflow-y-auto space-y-4 px-2">
-                     <div className="flex gap-2"><div className="flex-1"><label className="block text-xs font-bold text-slate-400 mb-1">שם הטופס</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingForm.title} onChange={e=>setEditingForm({...editingForm, title: e.target.value})} placeholder="שם הטופס"/></div><div className="w-24"><label className="block text-xs font-bold text-slate-400 mb-1">סדר</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingForm.order || 99} onChange={e=>setEditingForm({...editingForm, order: Number(e.target.value)})}/></div></div>
-                     <div className="flex gap-4 items-end"><div className="flex-1"><label className="block text-xs font-bold text-slate-400 mb-1">מייל משרדי (לקבלת הטופס)</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 placeholder-slate-600" value={editingForm.submitEmail || ''} onChange={e=>setEditingForm({...editingForm, submitEmail: e.target.value})} placeholder="office@melaw.co.il"/></div><div className="flex items-center gap-2 h-10 bg-slate-950 p-2 rounded border border-slate-800"><input type="checkbox" id="sendClientEmail" className="accent-[#2EB0D9] w-4 h-4" checked={editingForm.sendClientEmail || false} onChange={e=>setEditingForm({...editingForm, sendClientEmail: e.target.checked})}/><label htmlFor="sendClientEmail" className="text-xs text-white cursor-pointer select-none">שלח העתק ללקוח?</label></div></div>
-                     <div className="bg-slate-950 p-3 rounded border border-slate-800"><label className="block text-xs font-bold text-slate-400 mb-2">היכן יופיע הטופס?</label><div className="flex flex-wrap gap-2">{Object.values(Category).map(cat => (<button key={cat} onClick={() => toggleFormCategory(cat)} className={`text-xs px-2 py-1 rounded border transition-colors ${editingForm.categories?.includes(cat) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9]' : 'bg-slate-900 text-slate-500 border-slate-700'}`}>{CATEGORY_LABELS[cat]} {editingForm.categories?.includes(cat) && <Check size={10} className="inline ml-1"/>}</button>))}</div></div>
-                     
-                     <div className="bg-slate-950 p-4 rounded border border-slate-800 space-y-3">
-                         <h4 className="text-sm font-bold text-[#2EB0D9] flex items-center gap-2"><Mail size={16}/> פרטי האימייל (ללקוח ולמשרד)</h4>
-                         <div>
-                             <label className="block text-xs font-bold text-slate-400 mb-1">נושא האימייל</label>
-                             <input className="w-full p-2 bg-slate-900 text-white rounded border border-slate-700 text-sm" value={editingForm.emailSubject || ''} onChange={e=>setEditingForm({...editingForm, emailSubject: e.target.value})} placeholder={`ברירת מחדל: טופס חדש: ${editingForm.title}`}/>
-                         </div>
-                         <div>
-                             <label className="block text-xs font-bold text-slate-400 mb-1">תוכן האימייל (טקסט קבוע שיופיע בגוף ההודעה)</label>
-                             <textarea className="w-full p-2 bg-slate-900 text-white rounded border border-slate-700 text-sm h-20" value={editingForm.emailBody || ''} onChange={e=>setEditingForm({...editingForm, emailBody: e.target.value})} placeholder="למשל: מצורף בזאת מסמך המפרט את הנתונים שהזנת בטופס..."/>
-                         </div>
-                     </div>
-
-                     <div className="border-t border-slate-800 pt-4"><div className="flex justify-between items-center mb-2"><label className="block text-xs font-bold text-slate-400">שדות הטופס</label><div className="flex gap-2"><button onClick={()=>addFieldToForm('text')} className="p-1 px-2 bg-slate-800 border border-slate-700 hover:border-[#2EB0D9] rounded text-xs text-white transition-colors">+ טקסט</button><button onClick={()=>addFieldToForm('select')} className="p-1 px-2 bg-slate-800 border border-slate-700 hover:border-[#2EB0D9] rounded text-xs text-white transition-colors">+ בחירה</button><button onClick={()=>addFieldToForm('boolean')} className="p-1 px-2 bg-slate-800 border border-slate-700 hover:border-[#2EB0D9] rounded text-xs text-white transition-colors">+ כן/לא</button><button onClick={()=>addFieldToForm('number')} className="p-1 px-2 bg-slate-800 border border-slate-700 hover:border-[#2EB0D9] rounded text-xs text-white transition-colors">+ מספר</button><button onClick={()=>addFieldToForm('email')} className="p-1 px-2 bg-slate-800 border border-slate-700 hover:border-[#2EB0D9] rounded text-xs text-white transition-colors">+ אימייל</button></div></div>
-                         <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                             {editingForm.fields.map((field,i)=>(
-                                 <div key={i} className="flex flex-col gap-2 bg-slate-800 p-3 rounded border border-slate-700">
-                                     <div className="flex gap-2 items-center"><span className="text-[10px] uppercase bg-black/30 px-1 rounded text-slate-400 w-12 text-center">{field.type}</span><input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="bg-slate-900 border border-slate-700 text-white p-1 rounded flex-1 text-xs" placeholder="שם השדה"/><button onClick={()=>removeFormField(i)} className="text-red-400 hover:bg-slate-900 p-1 rounded"><Trash size={14}/></button></div>
-                                     <div className="grid grid-cols-2 gap-4 bg-slate-950 p-2 rounded">
-                                         <div className="flex items-center gap-2 p-1 bg-slate-900 rounded border border-slate-800"><input type="checkbox" id={`req-${i}`} checked={field.required} onChange={e => updateFormField(i, { required: e.target.checked })} className="accent-red-500 w-4 h-4"/><label htmlFor={`req-${i}`} className={`text-xs cursor-pointer select-none font-bold ${field.required ? 'text-red-400' : 'text-slate-500'}`}>שדה חובה</label></div>
-                                         {field.type === 'email' && (<div className="flex items-center gap-2 p-1 bg-slate-900 rounded border border-slate-800"><input type="checkbox" id={`isEmail-${i}`} checked={field.isClientEmail || false} onChange={e => { const newFields = editingForm.fields.map(f => ({...f, isClientEmail: false})); newFields[i].isClientEmail = e.target.checked; setEditingForm({...editingForm, fields: newFields}); }} className="accent-green-500 w-4 h-4"/><label htmlFor={`isEmail-${i}`} className={`text-xs cursor-pointer select-none font-bold ${field.isClientEmail ? 'text-green-400' : 'text-slate-500'}`}>לשלוח למייל זה?</label></div>)}
-                                     </div>
-                                     <div className="flex gap-2 items-center"><label className="text-[10px] text-slate-500 whitespace-nowrap">מאמר עזרה:</label><select value={field.helpArticleId || ''} onChange={e => updateFormField(i, { helpArticleId: e.target.value })} className="bg-slate-900 border border-slate-700 text-white p-1 rounded flex-1 text-xs"><option value="">-- ללא עזרה --</option>{state.articles.map(article => (<option key={article.id} value={article.id}>{article.title}</option>))}</select></div>
-                                     {field.type === 'select' && (<input value={field.options?.join(',')} onChange={e => updateFormField(i, { options: e.target.value.split(',') })} className="bg-slate-900 border border-slate-700 text-white p-1 rounded w-full text-xs" placeholder="אפשרויות (מופרדות בפסיק)"/>)}
-                                 </div>
-                             ))}
-                         </div>
-                     </div>
-                 </div>
-                 <div className="flex gap-2 mt-4 pt-4 border-t border-slate-800"><Button onClick={handleSaveForm}>שמור</Button><Button variant="outline" onClick={()=>setEditingForm(null)}>ביטול</Button></div>
-             </div>
-         </div>
       )}
 
       {/* ARTICLE EDITOR MODAL */}
