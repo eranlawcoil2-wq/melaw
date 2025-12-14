@@ -309,6 +309,24 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       return state.currentCategory === Category.STORE || (p as any).category === state.currentCategory;
   }).sort((a, b) => (a.order || 99) - (b.order || 99));
 
+  // --- MERGE CALCULATORS INTO TIMELINE ITEMS ---
+  // This allows calculators to be displayed nicely in the horizontal scroll list with the specific 'generator' styling
+  const mixedTimelineItems = [
+      ...currentTimelines.map(item => ({ ...item, type: 'timeline' })),
+      ...currentCategoryCalculators.map(calc => ({
+          id: calc.id,
+          title: calc.title,
+          description: 'חישוב מהיר ומדויק של מדרגות המס בהתאם לשווי העסקה.',
+          imageUrl: '', // Calculators use icon
+          category: [],
+          type: 'calculator', // Marker
+          linkTo: '' 
+      }))
+  ].sort((a,b) => {
+      // Prioritize Generators/Calculators slightly or just keep simple sort
+      return 0; 
+  });
+
   useEffect(() => {
     const interval = setInterval(() => { setActiveSlide((prev) => (prev + 1) % currentSlides.length); }, 6000); 
     return () => clearInterval(interval);
@@ -324,7 +342,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   // If there's only one calculator for this category and user just arrived, maybe show it?
   // Let's stick to showing it if user clicks a timeline or if it's set as active manually.
 
-  const handleTimelineClick = (item: TimelineItem) => {
+  const handleTimelineClick = (item: any) => {
+    if (item.type === 'calculator') {
+        setActiveCalculatorId(item.id);
+        setTimeout(() => calculatorRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        return;
+    }
+
     if (item.linkTo === 'wills-generator') {
         setShowWillsModal(true); 
     } else if (item.linkTo && item.linkTo.startsWith('form-')) {
@@ -507,33 +531,43 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
 
-        {/* TIMELINE & TOOLS */}
+        {/* TIMELINE & TOOLS - NOW INCLUDES CALCULATORS */}
         {showTimelineSection && (
             <Reveal className={`py-20 relative border-b ${isDark ? 'border-slate-800/50' : 'border-slate-100'}`} delay={200}>
                <div className="container mx-auto px-4 mb-8 flex justify-between items-end"><SectionTitle title="עדכונים ושירותים דיגיטליים" isDark={isDark} /><div className="hidden md:flex gap-2"><button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button><button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button></div></div>
                <div className="container mx-auto px-4"><div ref={timelineScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x">
-                   {currentTimelines.map((item, index) => { const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-')); const brandGradients = ['from-[#2EB0D9] to-[#1F8CAD]', 'from-[#2EB0D9] to-[#0EA5E9]', 'from-[#06B6D4] to-[#2EB0D9]', 'from-[#22D3EE] to-[#0090B0]']; const selectedGradient = brandGradients[index % brandGradients.length]; const bgClass = isGenerator ? `bg-gradient-to-br ${selectedGradient} text-white shadow-xl shadow-cyan-500/20 transform hover:-translate-y-2` : `${theme.cardBg} ${theme.cardHover} transition-all duration-300 transform hover:-translate-y-2`; const textClass = isGenerator ? 'text-white' : theme.textTitle; const descClass = isGenerator ? 'text-white/90' : theme.textMuted; return (<div key={item.id} onClick={() => handleTimelineClick(item)} className={`flex-shrink-0 w-[140px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[200px] md:h-[240px] border border-transparent ${bgClass}`}><div className="p-4 md:p-6 flex flex-col h-full relative"><div className={`absolute top-4 left-4 p-2 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>{isGenerator ? <FileText size={16} className="text-white"/> : (item.imageUrl ? <Newspaper size={16}/> : <ArrowLeft size={16}/>)}</div><div className="mt-8"><h4 className={`text-sm md:text-xl font-black mb-2 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4><p className={`text-[10px] md:text-xs leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p></div><div className="mt-auto pt-2 flex items-center justify-between"><span className={`text-[10px] md:text-xs font-bold flex items-center gap-1 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>{isGenerator ? 'התחל עכשיו' : 'קרא עוד'} <ArrowLeft size={12}/></span></div></div></div>);})}
+                   {mixedTimelineItems.map((item, index) => { 
+                       // Check if item is a special generator/calculator
+                       const isGenerator = item.linkTo === 'wills-generator' || (item.linkTo && item.linkTo.startsWith('form-')) || item.type === 'calculator'; 
+                       
+                       const brandGradients = ['from-[#2EB0D9] to-[#1F8CAD]', 'from-[#2EB0D9] to-[#0EA5E9]', 'from-[#06B6D4] to-[#2EB0D9]', 'from-[#22D3EE] to-[#0090B0]']; 
+                       const selectedGradient = brandGradients[index % brandGradients.length]; 
+                       
+                       const bgClass = isGenerator ? `bg-gradient-to-br ${selectedGradient} text-white shadow-xl shadow-cyan-500/20 transform hover:-translate-y-2` : `${theme.cardBg} ${theme.cardHover} transition-all duration-300 transform hover:-translate-y-2`; 
+                       const textClass = isGenerator ? 'text-white' : theme.textTitle; 
+                       const descClass = isGenerator ? 'text-white/90' : theme.textMuted; 
+                       
+                       return (
+                       <div key={item.id} onClick={() => handleTimelineClick(item)} className={`flex-shrink-0 w-[140px] md:w-[calc(25%-18px)] rounded-2xl shadow-lg overflow-hidden cursor-pointer group snap-start flex flex-col h-[200px] md:h-[240px] border border-transparent ${bgClass}`}>
+                           <div className="p-4 md:p-6 flex flex-col h-full relative">
+                               <div className={`absolute top-4 left-4 p-2 rounded-full shadow-sm ${isGenerator ? 'bg-white/20' : `${isDark ? 'bg-slate-800' : 'bg-slate-100'} text-[#2EB0D9]`}`}>
+                                   {item.type === 'calculator' ? <Calculator size={16} className={isGenerator ? "text-white" : ""}/> : (isGenerator ? <FileText size={16} className="text-white"/> : (item.imageUrl ? <Newspaper size={16}/> : <ArrowLeft size={16}/>))}
+                               </div>
+                               <div className="mt-8">
+                                   <h4 className={`text-sm md:text-xl font-black mb-2 leading-tight ${textClass} line-clamp-2`}>{item.title}</h4>
+                                   <p className={`text-[10px] md:text-xs leading-relaxed line-clamp-3 ${descClass}`}>{item.description}</p>
+                               </div>
+                               <div className="mt-auto pt-2 flex items-center justify-between">
+                                   <span className={`text-[10px] md:text-xs font-bold flex items-center gap-1 ${isGenerator ? 'text-white' : 'text-[#2EB0D9] group-hover:translate-x-[-4px] transition-transform'}`}>{isGenerator ? 'התחל עכשיו' : 'קרא עוד'} <ArrowLeft size={12}/></span>
+                               </div>
+                           </div>
+                       </div>
+                       );
+                   })}
                </div></div>
             </Reveal>
         )}
         
-        {/* SHOW CALCULATOR BUTTONS INLINE (If available in this category) */}
-        {currentCategoryCalculators.length > 0 && !currentCalculator && (
-             <div className="container mx-auto px-4 mb-20 animate-fade-in-up">
-                 <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-                    {currentCategoryCalculators.map(calc => (
-                        <button key={calc.id} onClick={() => { setActiveCalculatorId(calc.id); setTimeout(() => calculatorRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }} className={`flex items-center gap-3 p-4 pr-6 rounded-xl border transition-all hover:scale-105 shadow-lg group ${theme.cardBg} ${theme.cardHover}`}>
-                            <div className="bg-[#2EB0D9]/10 p-2 rounded-full text-[#2EB0D9] group-hover:bg-[#2EB0D9] group-hover:text-white transition-colors"><Calculator size={24}/></div>
-                            <div className="text-right">
-                                <span className={`block font-bold text-lg ${theme.textTitle}`}>{calc.title}</span>
-                                <span className="text-xs text-slate-500">לחץ לחישוב מהיר</span>
-                            </div>
-                        </button>
-                    ))}
-                 </div>
-             </div>
-        )}
-
         {/* ACTIVE CALCULATOR */}
         {currentCalculator && (
             <div ref={calculatorRef}>
