@@ -78,6 +78,7 @@ export interface Product {
     categories: Category[]; 
     imageUrl?: string;
     isPopular?: boolean;
+    tags?: string[]; // ADDED: Tags for filtering
     order?: number; 
 }
 
@@ -151,7 +152,9 @@ export interface FormDefinition {
     submitEmail: string; 
     sendClientEmail?: boolean; 
     pdfTemplate?: 'NONE' | 'WILL' | 'POA'; 
-    order?: number; 
+    order?: number;
+    emailSubject?: string;
+    emailBody?: string;
 }
 
 // --- NEW CALCULATOR TYPES ---

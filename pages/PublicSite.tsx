@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember, TimelineItem, CATEGORY_LABELS, CalculatorDefinition } from '../types.ts';
 import { Button } from '../components/Button.tsx';
@@ -6,7 +7,7 @@ import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
 import { ShareMenu } from '../components/ShareMenu.tsx';
 import { emailService } from '../services/api.ts'; 
-import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle, Printer, MessageCircle, Calculator, ChevronDown } from 'lucide-react';
+import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle, Printer, MessageCircle, Calculator, ChevronDown, Filter } from 'lucide-react';
 
 const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = "", delay = 0 }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -52,8 +53,6 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
     const [result, setResult] = useState<{ total: number, steps: { threshold: number, rate: number, tax: number, amountInBracket: number, isLast: boolean, dealValue: number }[] } | null>(null);
 
     const scenario = calculator.scenarios.find(s => s.id === selectedScenarioId);
-
-    // Deep link URL for sharing
     const shareUrl = `${window.location.origin}${window.location.pathname}#calc:${calculator.id}`;
 
     const formatNumberWithCommas = (value: string) => {
@@ -63,7 +62,7 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
     };
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value.replace(/[^0-9]/g, ''); // Allow only numbers
+        const val = e.target.value.replace(/[^0-9]/g, ''); 
         setPrice(formatNumberWithCommas(val));
         setResult(null); 
     };
@@ -81,45 +80,29 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
         let previousThreshold = 0;
         let totalTax = 0;
         const steps = [];
-
-        // Sort brackets just in case
         const sortedBrackets = [...scenario.brackets].sort((a,b) => a.threshold - b.threshold);
 
         for (const bracket of sortedBrackets) {
             if (remaining <= 0) break;
-
             const span = bracket.threshold - previousThreshold;
             const taxableInBracket = Math.min(remaining, span);
             
             if (taxableInBracket > 0) {
                 const tax = taxableInBracket * (bracket.rate / 100);
                 totalTax += tax;
-                
                 remaining -= taxableInBracket;
                 const isLast = remaining <= 0;
-
-                steps.push({
-                    threshold: bracket.threshold,
-                    rate: bracket.rate,
-                    amountInBracket: taxableInBracket,
-                    tax: tax,
-                    isLast: isLast,
-                    dealValue: amount
-                });
-                
+                steps.push({ threshold: bracket.threshold, rate: bracket.rate, amountInBracket: taxableInBracket, tax: tax, isLast: isLast, dealValue: amount });
                 previousThreshold = bracket.threshold;
             }
         }
-        
         setResult({ total: totalTax, steps });
     };
 
     return (
         <div className={`mb-20 container mx-auto px-4 rounded-2xl shadow-2xl animate-fade-in-up border-x border-b overflow-hidden relative ${theme.cardBg} border-t-0`}>
-            {/* GRADIENT HEADER BACKGROUND */}
             <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#2EB0D9] to-[#0EA5E9]"></div>
             <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-br from-[#2EB0D9]/10 via-[#2EB0D9]/5 to-transparent pointer-events-none"></div>
-            
             <div className="p-4 md:p-12 relative z-10">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex justify-between items-start mb-6 md:mb-8 border-b border-[#2EB0D9]/20 pb-4 md:pb-6">
@@ -135,19 +118,12 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
                             <button onClick={onClose} className="p-2 bg-black/10 hover:bg-black/20 rounded-full transition-colors"><X size={20} className={`md:w-6 md:h-6 ${theme.textMuted}`}/></button>
                         </div>
                     </div>
-
                     <div className={`p-4 md:p-8 rounded-2xl border shadow-inner space-y-6 md:space-y-8 ${theme.bgMain} ${theme.border}`}>
-                        
-                        {/* INPUTS */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                             <div>
                                 <label className={`block text-xs md:text-sm font-bold mb-2 md:mb-3 ${theme.textMuted}`}>סוג העסקה</label>
                                 <div className="relative">
-                                    <select 
-                                        className={`w-full p-3 md:p-4 pr-8 md:pr-10 border rounded-xl appearance-none font-bold text-base md:text-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition-shadow ${theme.inputBg}`}
-                                        value={selectedScenarioId}
-                                        onChange={(e) => { setSelectedScenarioId(e.target.value); setResult(null); }}
-                                    >
+                                    <select className={`w-full p-3 md:p-4 pr-8 md:pr-10 border rounded-xl appearance-none font-bold text-base md:text-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition-shadow ${theme.inputBg}`} value={selectedScenarioId} onChange={(e) => { setSelectedScenarioId(e.target.value); setResult(null); }}>
                                         {calculator.scenarios.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                                     </select>
                                     <ChevronDown className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 w-4 h-4 md:w-6 md:h-6"/>
@@ -156,24 +132,11 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
                             <div>
                                 <label className={`block text-xs md:text-sm font-bold mb-2 md:mb-3 ${theme.textMuted}`}>שווי הנכס (בש"ח)</label>
                                 <div className="relative">
-                                    <input 
-                                        type="text"
-                                        inputMode="numeric"
-                                        className={`w-full p-3 md:p-4 border rounded-xl font-mono text-lg md:text-xl font-bold focus:ring-2 focus:ring-[#2EB0D9] outline-none transition-shadow ${theme.inputBg}`}
-                                        value={price}
-                                        onChange={handlePriceChange}
-                                        placeholder="0"
-                                        onKeyDown={(e) => e.key === 'Enter' && calculate()}
-                                    />
+                                    <input type="text" inputMode="numeric" className={`w-full p-3 md:p-4 border rounded-xl font-mono text-lg md:text-xl font-bold focus:ring-2 focus:ring-[#2EB0D9] outline-none transition-shadow ${theme.inputBg}`} value={price} onChange={handlePriceChange} placeholder="0" onKeyDown={(e) => e.key === 'Enter' && calculate()}/>
                                 </div>
                             </div>
                         </div>
-
-                        <Button onClick={calculate} size="lg" className="w-full py-3 md:py-5 text-lg md:text-xl font-black tracking-wide shine-effect shadow-xl shadow-[#2EB0D9]/20">
-                            <Calculator className="ml-2 w-5 h-5 md:w-6 md:h-6"/> בצע חישוב
-                        </Button>
-
-                        {/* RESULTS */}
+                        <Button onClick={calculate} size="lg" className="w-full py-3 md:py-5 text-lg md:text-xl font-black tracking-wide shine-effect shadow-xl shadow-[#2EB0D9]/20"><Calculator className="ml-2 w-5 h-5 md:w-6 md:h-6"/> בצע חישוב</Button>
                         {result && (
                             <div className="mt-6 md:mt-8 animate-fade-in-up">
                                 <div className="bg-gradient-to-r from-[#2EB0D9]/20 to-[#0EA5E9]/10 border border-[#2EB0D9]/30 rounded-2xl p-6 md:p-8 mb-6 md:mb-8 text-center relative overflow-hidden">
@@ -183,47 +146,20 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
                                     </div>
                                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                                 </div>
-
                                 <div className="overflow-x-auto rounded-xl border border-slate-700/50">
                                     <table className={`w-full text-xs md:text-sm border-collapse ${theme.textMain}`}>
                                         <thead className="bg-slate-900/50">
-                                            <tr className={`border-b ${theme.border}`}>
-                                                <th className="p-2 md:p-4 text-right font-bold text-slate-400">מדרגה</th>
-                                                <th className="p-2 md:p-4 text-center font-bold text-slate-400">שיעור מס</th>
-                                                <th className="p-2 md:p-4 text-center font-bold text-slate-400">סכום במדרגה</th>
-                                                <th className="p-2 md:p-4 text-left font-bold text-slate-400">מס לתשלום</th>
-                                            </tr>
+                                            <tr className={`border-b ${theme.border}`}><th className="p-2 md:p-4 text-right font-bold text-slate-400">מדרגה</th><th className="p-2 md:p-4 text-center font-bold text-slate-400">שיעור מס</th><th className="p-2 md:p-4 text-center font-bold text-slate-400">סכום במדרגה</th><th className="p-2 md:p-4 text-left font-bold text-slate-400">מס לתשלום</th></tr>
                                         </thead>
                                         <tbody>
                                             {result.steps.map((step, idx) => {
-                                                let bracketLabel = '';
-                                                if (step.isLast) {
-                                                    bracketLabel = `עד ${formatCurrency(step.dealValue)}`;
-                                                } else {
-                                                    bracketLabel = step.threshold > 999999999 
-                                                        ? 'מעל הסכום המרבי' 
-                                                        : `עד ${formatCurrency(step.threshold)}`;
-                                                }
-
-                                                return (
-                                                    <tr key={idx} className={`border-b border-slate-800/50 hover:bg-white/5 transition-colors`}>
-                                                        <td className="p-2 md:p-4 font-mono text-slate-400 border-l border-slate-800/50">
-                                                            {bracketLabel}
-                                                        </td>
-                                                        <td className="p-2 md:p-4 text-center font-bold text-[#2EB0D9] border-l border-slate-800/50">{step.rate}%</td>
-                                                        <td className="p-2 md:p-4 text-center border-l border-slate-800/50">{formatCurrency(step.amountInBracket)}</td>
-                                                        <td className="p-2 md:p-4 text-left font-bold">{formatCurrency(step.tax)}</td>
-                                                    </tr>
-                                                );
+                                                let bracketLabel = step.isLast ? `עד ${formatCurrency(step.dealValue)}` : (step.threshold > 999999999 ? 'מעל הסכום המרבי' : `עד ${formatCurrency(step.threshold)}`);
+                                                return (<tr key={idx} className={`border-b border-slate-800/50 hover:bg-white/5 transition-colors`}><td className="p-2 md:p-4 font-mono text-slate-400 border-l border-slate-800/50">{bracketLabel}</td><td className="p-2 md:p-4 text-center font-bold text-[#2EB0D9] border-l border-slate-800/50">{step.rate}%</td><td className="p-2 md:p-4 text-center border-l border-slate-800/50">{formatCurrency(step.amountInBracket)}</td><td className="p-2 md:p-4 text-left font-bold">{formatCurrency(step.tax)}</td></tr>);
                                             })}
                                         </tbody>
                                     </table>
                                 </div>
-                                
-                                <div className="mt-4 md:mt-6 text-[10px] md:text-xs text-slate-500 text-center flex items-center justify-center gap-2">
-                                    <AlertOctagon size={12}/>
-                                    <span>החישוב הינו להערכה בלבד ואינו מהווה תחליף לייעוץ משפטי או שומה סופית של רשות המיסים.</span>
-                                </div>
+                                <div className="mt-4 md:mt-6 text-[10px] md:text-xs text-slate-500 text-center flex items-center justify-center gap-2"><AlertOctagon size={12}/><span>החישוב הינו להערכה בלבד ואינו מהווה תחליף לייעוץ משפטי או שומה סופית של רשות המיסים.</span></div>
                             </div>
                         )}
                     </div>
@@ -264,6 +200,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const [showLegalDisclaimer, setShowLegalDisclaimer] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', phone: '', message: '' });
   const [contactSending, setContactSending] = useState(false);
+  
+  // STORE PAGINATION & FILTERING STATES
+  const [storePage, setStorePage] = useState(0);
+  const [selectedStoreTags, setSelectedStoreTags] = useState<string[]>([]);
   
   const isDark = state.config.theme === 'dark'; 
   const theme = {
@@ -309,6 +249,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       return t.category.includes(state.currentCategory);
   });
 
+  // Base store products for current category
   const storeProducts = (state.products || []).filter(p => {
       if (p.categories) {
           return state.currentCategory === Category.STORE || p.categories.includes(state.currentCategory);
@@ -316,8 +257,33 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       return state.currentCategory === Category.STORE || (p as any).category === state.currentCategory;
   }).sort((a, b) => (a.order || 99) - (b.order || 99));
 
+  // --- FILTER & PAGINATION LOGIC FOR STORE ---
+  const STORE_PAGE_SIZE = 8;
+  
+  // 1. Get unique tags
+  const uniqueTags = Array.from(new Set(storeProducts.flatMap(p => p.tags || []))).sort();
+
+  // 2. Filter products based on selected tags (OR Logic)
+  const filteredStoreProducts = storeProducts.filter(p => {
+      if (selectedStoreTags.length === 0) return true;
+      // Show if product has AT LEAST ONE of the selected tags
+      return p.tags?.some(tag => selectedStoreTags.includes(tag));
+  });
+
+  // 3. Paginate
+  const totalStorePages = Math.ceil(filteredStoreProducts.length / STORE_PAGE_SIZE);
+  const visibleStoreProducts = filteredStoreProducts.slice(storePage * STORE_PAGE_SIZE, (storePage + 1) * STORE_PAGE_SIZE);
+
+  const toggleStoreTag = (tag: string) => {
+      setStorePage(0); // Reset to first page on filter change
+      if (selectedStoreTags.includes(tag)) {
+          setSelectedStoreTags(selectedStoreTags.filter(t => t !== tag));
+      } else {
+          setSelectedStoreTags([...selectedStoreTags, tag]);
+      }
+  };
+
   // --- MERGE CALCULATORS INTO TIMELINE ITEMS AND SORT ---
-  // This allows calculators to be displayed nicely in the horizontal scroll list with the specific 'generator' styling
   const mixedTimelineItems = [
       ...currentTimelines.map(item => ({ ...item, type: 'timeline', sortOrder: item.order || 99 })),
       ...currentCategoryCalculators.map(calc => ({
@@ -334,13 +300,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       return a.sortOrder - b.sortOrder;
   });
 
-  // DEEP LINKING HANDLER
+  // DEEP LINKING HANDLER (useEffect remains same as previous code)
   useEffect(() => {
     const handleHash = () => {
         const hash = window.location.hash.replace('#', '');
         if (!hash) return;
-
-        // Decode in case of Hebrew chars
         const decodedHash = decodeURIComponent(hash);
         const [type, id] = decodedHash.split(':');
         
@@ -366,11 +330,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             }
         }
     };
-
-    // Run on mount
     handleHash();
-    
-    // Listen for hash changes
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
   }, [state.articles, state.calculators, state.timelines, state.forms]);
@@ -387,16 +347,13 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       }
   }, [selectedArticle]);
 
-  // If there's only one calculator for this category and user just arrived, maybe show it?
-  // Let's stick to showing it if user clicks a timeline or if it's set as active manually.
-
+  // Handlers (same as before)
   const handleTimelineClick = (item: any) => {
     if (item.type === 'calculator') {
         setActiveCalculatorId(item.id);
         setTimeout(() => calculatorRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
         return;
     }
-
     if (item.linkTo === 'wills-generator') {
         setShowWillsModal(true); 
     } else if (item.linkTo && item.linkTo.startsWith('form-')) {
@@ -422,11 +379,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         } else if (Object.values(Category).includes(slide.linkTo)) {
             onCategoryChange(slide.linkTo);
         } else {
-             // If linked to category but we are on home, go there
              if (slide.categories && slide.categories.length > 0) onCategoryChange(slide.categories[0]);
         }
     } else {
-        // Default action
         if (slide.categories && slide.categories.length > 0) onCategoryChange(slide.categories[0]);
     }
   };
@@ -548,41 +503,117 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
 
-        {/* PRODUCTS */}
+        {/* PRODUCTS / STORE */}
         {showProductsSection && (
             <Reveal className="relative z-20 -mt-20 container mx-auto px-4 mb-20">
                  <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
-                     <div className="flex justify-between items-center mb-6"><SectionTitle title={isStorePage ? "החנות המשפטית" : "שירותים לרכישה אונליין"} isDark={isDark} /></div>
-                     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">
-                         {storeProducts.length > 0 ? storeProducts.map((product) => (
-                             <div key={product.id} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col relative`}>
-                                 {/* Only show the top image/placeholder if there is an actual image URL */}
-                                 {product.imageUrl && (
-                                     <div className={`h-32 md:h-48 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                                         <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" />
-                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                                         <div className="absolute inset-0 flex items-center justify-center"><div className="bg-white/10 backdrop-blur-sm p-3 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500"><FileText size={24} className="text-white"/></div></div>
-                                     </div>
+                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                         <SectionTitle title={isStorePage ? "החנות המשפטית" : "שירותים לרכישה אונליין"} isDark={isDark} />
+                         
+                         {/* Tag Filter */}
+                         {uniqueTags.length > 0 && (
+                             <div className="flex flex-wrap gap-2 items-center">
+                                 <span className="text-xs font-bold text-slate-500 flex items-center gap-1"><Filter size={12}/> סנן לפי:</span>
+                                 {uniqueTags.map(tag => (
+                                     <button 
+                                        key={tag} 
+                                        onClick={() => toggleStoreTag(tag)}
+                                        className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${selectedStoreTags.includes(tag) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9] shadow-md' : 'bg-transparent text-slate-500 border-slate-700 hover:border-slate-500'}`}
+                                     >
+                                         {tag}
+                                     </button>
+                                 ))}
+                                 {selectedStoreTags.length > 0 && (
+                                     <button onClick={() => setSelectedStoreTags([])} className="text-[10px] text-red-400 hover:underline">נקה הכל</button>
                                  )}
-                                 
-                                 <div className="absolute top-2 left-2 z-10">
-                                     <ShareMenu variant="inline" title={product.title} text="מצאתי מוצר משפטי באתר:" url={`${window.location.origin}${window.location.pathname}#product:${product.id}`} colorClass="bg-black/30 text-white backdrop-blur-sm hover:bg-black/50"/>
-                                 </div>
-
-                                 <div className="p-3 text-center flex-1 flex flex-col">
-                                     <div className="mb-1 flex flex-wrap justify-center gap-1">
-                                         {product.categories && product.categories.slice(0, 1).map(cat => (
-                                             <span key={cat} className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">{CATEGORY_LABELS[cat]}</span>
-                                         ))}
-                                     </div>
-                                     <h4 className={`font-bold text-base md:text-lg mb-1 line-clamp-1 ${theme.textTitle}`}>{product.title}</h4>
-                                     <p className="text-slate-400 text-xs mb-2 line-clamp-2">{product.description}</p>
-                                     {product.installments && <div className="text-[9px] text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full mb-1 inline-block">{product.installments}</div>}
-                                     <div className={`text-lg font-black mb-3 ${theme.textMuted} flex-1 flex items-center justify-center`}>₪{product.price}</div>
-                                     <Button onClick={() => handleProductClick(product)} className="w-full shine-effect text-xs py-1.5 h-8" variant="secondary">רכוש כעת</Button>
-                                 </div>
                              </div>
-                         )) : <div className="p-8 text-center w-full text-slate-500">לא נמצאו מוצרים בקטגוריה זו.</div>}
+                         )}
+                     </div>
+
+                     <div className="relative">
+                         {/* PAGINATION ARROWS */}
+                         {totalStorePages > 1 && (
+                             <>
+                                <button 
+                                    onClick={() => setStorePage(p => Math.max(0, p - 1))}
+                                    disabled={storePage === 0}
+                                    className={`absolute top-1/2 -left-4 md:-left-6 transform -translate-y-1/2 z-20 p-3 rounded-full shadow-xl transition-all ${storePage === 0 ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed' : 'bg-[#2EB0D9] text-white hover:bg-[#259cc0] hover:scale-110'}`}
+                                >
+                                    <ChevronLeft size={24}/>
+                                </button>
+                                <button 
+                                    onClick={() => setStorePage(p => Math.min(totalStorePages - 1, p + 1))}
+                                    disabled={storePage === totalStorePages - 1}
+                                    className={`absolute top-1/2 -right-4 md:-right-6 transform -translate-y-1/2 z-20 p-3 rounded-full shadow-xl transition-all ${storePage === totalStorePages - 1 ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed' : 'bg-[#2EB0D9] text-white hover:bg-[#259cc0] hover:scale-110'}`}
+                                >
+                                    <ChevronRight size={24}/>
+                                </button>
+                             </>
+                         )}
+
+                         {/* GRID LAYOUT (8 ITEMS) */}
+                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 min-h-[400px]">
+                             {visibleStoreProducts.length > 0 ? visibleStoreProducts.map((product) => (
+                                 <div key={product.id} className={`group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col relative h-full animate-fade-in`}>
+                                     {/* Only show the top image/placeholder if there is an actual image URL */}
+                                     {product.imageUrl && (
+                                         <div className={`h-32 md:h-40 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                                             <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" />
+                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                                             <div className="absolute inset-0 flex items-center justify-center"><div className="bg-white/10 backdrop-blur-sm p-3 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500"><FileText size={24} className="text-white"/></div></div>
+                                         </div>
+                                     )}
+                                     
+                                     <div className="absolute top-2 left-2 z-10">
+                                         <ShareMenu variant="inline" title={product.title} text="מצאתי מוצר משפטי באתר:" url={`${window.location.origin}${window.location.pathname}#product:${product.id}`} colorClass="bg-black/30 text-white backdrop-blur-sm hover:bg-black/50"/>
+                                     </div>
+
+                                     <div className="p-4 text-center flex-1 flex flex-col">
+                                         <div className="mb-2 flex flex-wrap justify-center gap-1">
+                                             {product.categories && product.categories.slice(0, 1).map(cat => (
+                                                 <span key={cat} className="text-[10px] font-bold text-[#2EB0D9] bg-[#2EB0D9]/10 px-2 py-0.5 rounded border border-[#2EB0D9]/20 uppercase tracking-wide">{CATEGORY_LABELS[cat]}</span>
+                                             ))}
+                                         </div>
+                                         <h4 className={`font-bold text-base md:text-lg mb-2 leading-tight ${theme.textTitle}`}>{product.title}</h4>
+                                         <p className="text-slate-400 text-xs mb-3 line-clamp-3 leading-relaxed">{product.description}</p>
+                                         
+                                         {/* Tags Display */}
+                                         {product.tags && product.tags.length > 0 && (
+                                             <div className="flex flex-wrap justify-center gap-1 mb-3">
+                                                 {product.tags.slice(0, 3).map(tag => (
+                                                     <span key={tag} className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">{tag}</span>
+                                                 ))}
+                                             </div>
+                                         )}
+
+                                         {product.installments && <div className="text-[9px] text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full mb-2 inline-block self-center">{product.installments}</div>}
+                                         
+                                         <div className="mt-auto pt-3 border-t border-slate-700/50 w-full">
+                                             <div className={`text-lg font-black mb-3 ${theme.textMuted}`}>₪{product.price}</div>
+                                             <Button onClick={() => handleProductClick(product)} className="w-full shine-effect text-xs py-2" variant="secondary">רכוש כעת</Button>
+                                         </div>
+                                     </div>
+                                 </div>
+                             )) : (
+                                 <div className="col-span-full p-12 text-center w-full text-slate-500 border border-dashed border-slate-700 rounded-xl">
+                                     <p>לא נמצאו מוצרים תואמים לסינון זה.</p>
+                                     <button onClick={() => setSelectedStoreTags([])} className="text-[#2EB0D9] underline text-sm mt-2">נקה סינון</button>
+                                 </div>
+                             )}
+                         </div>
+                         
+                         {/* Page Indicator */}
+                         {totalStorePages > 1 && (
+                             <div className="flex justify-center gap-2 mt-6">
+                                 {Array.from({ length: totalStorePages }).map((_, i) => (
+                                     <button 
+                                        key={i} 
+                                        onClick={() => setStorePage(i)}
+                                        className={`w-2 h-2 rounded-full transition-all ${storePage === i ? 'bg-[#2EB0D9] w-6' : 'bg-slate-700 hover:bg-slate-500'}`}
+                                     />
+                                 ))}
+                             </div>
+                         )}
                      </div>
                  </div>
             </Reveal>
@@ -591,6 +622,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         {/* TIMELINE & TOOLS - NOW INCLUDES CALCULATORS */}
         {showTimelineSection && (
             <Reveal className={`py-20 relative border-b ${isDark ? 'border-slate-800/50' : 'border-slate-100'}`} delay={200}>
+               {/* ... (Existing Timeline Content) ... */}
                <div className="container mx-auto px-4 mb-8 flex justify-between items-end"><SectionTitle title="עדכונים ושירותים דיגיטליים" isDark={isDark} /><div className="hidden md:flex gap-2"><button onClick={() => scrollContainer(timelineScrollRef, 'right')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronRight size={24}/></button><button onClick={() => scrollContainer(timelineScrollRef, 'left')} className={`p-2 rounded-full border hover:opacity-80 transition-all ${theme.cardBg} ${theme.textMain} ${theme.border}`}><ChevronLeft size={24}/></button></div></div>
                <div className="container mx-auto px-4"><div ref={timelineScrollRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x">
                    {mixedTimelineItems.map((item, index) => { 
@@ -625,6 +657,9 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </Reveal>
         )}
         
+        {/* ... Rest of the components (Calculator, Dynamic Form, Articles, Contact, Footer) ... */}
+        {/* ... (Existing Modal Logic) ... */}
+        
         {/* ACTIVE CALCULATOR */}
         {currentCalculator && (
             <div ref={calculatorRef}>
@@ -635,6 +670,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         {/* DYNAMIC FORM */}
         {currentDynamicForm && (
             <div ref={dynamicFormRef} className={`mb-20 container mx-auto px-4 rounded-2xl p-8 md:p-12 shadow-2xl border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
+                 {/* ... Form Content ... */}
                  <div className="max-w-2xl mx-auto">
                      <div className="flex justify-between items-start mb-6">
                          <div>
@@ -684,10 +720,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              currentDynamicForm.fields.forEach(field => {
                                  const val = dynamicFormValues[field.id];
                                  mappedData[field.label] = (val !== undefined && val !== null && val !== '') ? val : "";
-                                 if (field.isClientEmail && val) explicitClientEmail = val;
+                                 if (field.isClientEmail && val) explicitClientEmail = String(val as any);
                              });
                              
-                             if (!explicitClientEmail) explicitClientEmail = dynamicFormValues['email'] || dynamicFormValues['אימייל'];
+                             if (!explicitClientEmail) explicitClientEmail = String(dynamicFormValues['email'] || dynamicFormValues['אימייל'] || '');
                              if (explicitClientEmail) mappedData['email'] = explicitClientEmail;
 
                              try { 
@@ -782,9 +818,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </footer>
       )}
 
+      {/* Floating Widgets & Modals */}
       <FloatingWidgets version={version} dataVersion={dataVersion} />
-
-      {/* MODALS - MOVED TO ROOT */}
+      
+      {/* (Modal Rendering code - same as original) */}
       {selectedArticle && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-fade-in">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setSelectedArticle(null)}></div>
@@ -835,6 +872,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         </div>
       )}
 
+      {/* Other Modals (Timeline, Wills, Team, Forms, Legal) remain as is... */}
       {selectedTimelineItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSelectedTimelineItem(null)}></div>
