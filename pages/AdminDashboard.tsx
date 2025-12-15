@@ -7,7 +7,7 @@ import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
 import { emailService, cloudService } from '../services/api.ts'; 
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin, Eye, EyeOff, CreditCard, Palette, Home, CheckCircle, Calculator, List, ToggleRight, Hash, AtSign, Tag, ArrowRightCircle } from 'lucide-react';
+import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin, Eye, EyeOff, CreditCard, Palette, Home, CheckCircle, Calculator, List, ToggleRight, Hash, AtSign, Tag, ArrowRightCircle, UserPlus, ArrowDown } from 'lucide-react';
 
 interface AdminDashboardProps {
   state: AppState;
@@ -245,6 +245,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const updateFormField = (index: number, updates: Partial<FormField>) => { if(editingForm) { const f = [...editingForm.fields]; f[index] = { ...f[index], ...updates }; setEditingForm({ ...editingForm, fields: f }); }};
   const removeFormField = (index: number) => { if(editingForm) setEditingForm({ ...editingForm, fields: editingForm.fields.filter((_, i) => i !== index) }); };
   const toggleFormCategory = (cat: Category) => { if (!editingForm) return; const current = editingForm.categories || []; if (current.includes(cat)) { setEditingForm({ ...editingForm, categories: current.filter(c => c !== cat) }); } else { setEditingForm({ ...editingForm, categories: [...current, cat] }); } };
+  
+  // -- Form Field Sorting Logic --
+  const moveField = (index: number, direction: 'up' | 'down') => {
+      if (!editingForm) return;
+      const newFields = [...editingForm.fields];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      
+      // Check bounds
+      if (targetIndex < 0 || targetIndex >= newFields.length) return;
+      
+      // Swap
+      [newFields[index], newFields[targetIndex]] = [newFields[targetIndex], newFields[index]];
+      setEditingForm({ ...editingForm, fields: newFields });
+  };
 
   const handleSaveCalculator = () => { if(editingCalculator && editingCalculator.title) { const calculators = state.calculators || []; const exists = calculators.find(c => c.id === editingCalculator.id); updateState({ calculators: exists ? calculators.map(c => c.id === editingCalculator.id ? editingCalculator : c) : [...calculators, editingCalculator] }); setEditingCalculator(null); }};
   const toggleCalculatorCategory = (cat: Category) => { if (!editingCalculator) return; const current = editingCalculator.categories || []; if (current.includes(cat)) { setEditingCalculator({ ...editingCalculator, categories: current.filter(c => c !== cat) }); } else { setEditingCalculator({ ...editingCalculator, categories: [...current, cat] }); } };
@@ -439,8 +453,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                          </div>
                          <div className="space-y-4 pt-4 border-t border-slate-800"><h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide">הגדרות אימייל חוזר</h4><div><label className="block text-xs font-bold text-slate-300 mb-1">נושא האימייל</label><input className="w-full p-2 bg-slate-950 text-white rounded border border-slate-700 text-xs" value={editingForm.emailSubject || ''} onChange={e=>setEditingForm({...editingForm, emailSubject: e.target.value})} placeholder="ברירת מחדל: טופס חדש..."/></div><div><label className="block text-xs font-bold text-slate-300 mb-1">תוכן הודעה (Body)</label><textarea className="w-full p-2 bg-slate-950 text-white rounded border border-slate-700 text-xs h-20" value={editingForm.emailBody || ''} onChange={e=>setEditingForm({...editingForm, emailBody: e.target.value})} placeholder="מלל חופשי שיופיע בגוף המייל..."/></div></div>
                      </div>
-                     <div className="flex-1 bg-slate-950 p-6 overflow-y-auto flex flex-col"><div className="bg-slate-900 p-3 rounded-lg border border-slate-800 mb-6 flex gap-2 flex-wrap items-center shadow-lg"><span className="text-xs font-bold text-slate-500 ml-2">הוסף שדה:</span><button onClick={()=>addFieldToForm('text')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><Type size={14}/> טקסט</button><button onClick={()=>addFieldToForm('number')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><Hash size={14}/> מספר</button><button onClick={()=>addFieldToForm('email')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><AtSign size={14}/> אימייל</button><button onClick={()=>addFieldToForm('select')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><List size={14}/> רשימה</button><button onClick={()=>addFieldToForm('boolean')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><ToggleRight size={14}/> כן/לא</button></div>
-                         <div className="space-y-4 flex-1">{editingForm.fields.length === 0 && (<div className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-slate-800 rounded-lg text-slate-600"><ClipboardList size={40} className="mb-2 opacity-50"/><p>הטופס ריק. הוסף שדות באמצעות הסרגל למעלה.</p></div>)}{editingForm.fields.map((field, i) => (<div key={i} className="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm hover:border-slate-600 transition-colors relative group animate-fade-in-up"><div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={()=>removeFormField(i)} className="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded transition-colors"><Trash size={14}/></button></div><div className="flex gap-4 items-start mb-3"><div className="mt-2 p-2 bg-slate-950 rounded text-slate-500 border border-slate-800">{field.type === 'text' && <Type size={16}/>}{field.type === 'number' && <Hash size={16}/>}{field.type === 'email' && <AtSign size={16}/>}{field.type === 'select' && <List size={16}/>}{field.type === 'boolean' && <ToggleRight size={16}/>}</div><div className="flex-1"><label className="text-[10px] text-slate-500 uppercase font-bold tracking-wide">תווית השדה (Label)</label><input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="w-full bg-transparent border-b border-slate-700 text-white font-bold py-1 focus:border-[#2EB0D9] outline-none placeholder-slate-600" placeholder="שם השדה כפי שיופיע למשתמש"/></div></div><div className="bg-slate-950/50 p-3 rounded border border-slate-800/50 grid grid-cols-1 md:grid-cols-2 gap-4"><div className="flex items-center gap-2"><input type="checkbox" id={`req-${i}`} checked={field.required} onChange={e => updateFormField(i, { required: e.target.checked })} className="accent-red-500 w-4 h-4 rounded"/><label htmlFor={`req-${i}`} className={`text-xs cursor-pointer select-none font-medium ${field.required ? 'text-red-400' : 'text-slate-500'}`}>שדה חובה</label></div>{field.type === 'email' && (<div className="flex items-center gap-2"><input type="checkbox" id={`isEmail-${i}`} checked={field.isClientEmail || false} onChange={e => { const newFields = editingForm.fields.map(f => ({...f, isClientEmail: false})); newFields[i].isClientEmail = e.target.checked; setEditingForm({...editingForm, fields: newFields}); }} className="accent-green-500 w-4 h-4 rounded"/><label htmlFor={`isEmail-${i}`} className={`text-xs cursor-pointer select-none font-medium ${field.isClientEmail ? 'text-green-400' : 'text-slate-500'}`}>זהו המייל של הלקוח</label></div>)}{field.type === 'select' && (<div className="col-span-2"><label className="text-[10px] text-slate-500 block mb-1">אפשרויות בחירה (מופרדות בפסיק)</label><input value={field.options?.join(',')} onChange={e => updateFormField(i, { options: e.target.value.split(',') })} className="w-full bg-slate-800 border border-slate-700 text-white p-1.5 rounded text-xs" placeholder="אפשרות 1, אפשרות 2..."/></div>)}<div className="col-span-2 flex gap-2 items-center"><label className="text-[10px] text-slate-500 whitespace-nowrap flex items-center gap-1"><HelpCircle size={10}/> קישור למאמר עזרה:</label><select value={field.helpArticleId || ''} onChange={e => updateFormField(i, { helpArticleId: e.target.value })} className="bg-slate-800 border border-slate-700 text-white p-1 rounded flex-1 text-xs outline-none"><option value="">-- ללא --</option>{state.articles.map(article => (<option key={article.id} value={article.id}>{article.title}</option>))}</select></div></div></div>))}</div>
+                     <div className="flex-1 bg-slate-950 p-6 overflow-y-auto flex flex-col">
+                         <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 mb-6 flex gap-2 flex-wrap items-center shadow-lg">
+                             <span className="text-xs font-bold text-slate-500 ml-2">הוסף שדה:</span>
+                             <button onClick={()=>addFieldToForm('text')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><Type size={14}/> טקסט</button>
+                             <button onClick={()=>addFieldToForm('number')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><Hash size={14}/> מספר</button>
+                             <button onClick={()=>addFieldToForm('email')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><AtSign size={14}/> אימייל</button>
+                             <button onClick={()=>addFieldToForm('select')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><List size={14}/> רשימה</button>
+                             <button onClick={()=>addFieldToForm('boolean')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><ToggleRight size={14}/> כן/לא</button>
+                             <button onClick={()=>addFieldToForm('composite_name_id')} className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-[#2EB0D9] hover:text-white text-slate-300 text-xs rounded border border-slate-700 transition-colors"><UserPlus size={14}/> שם + ת.ז</button>
+                         </div>
+                         <div className="space-y-4 flex-1">
+                             {editingForm.fields.length === 0 && (<div className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-slate-800 rounded-lg text-slate-600"><ClipboardList size={40} className="mb-2 opacity-50"/><p>הטופס ריק. הוסף שדות באמצעות הסרגל למעלה.</p></div>)}
+                             {editingForm.fields.map((field, i) => (
+                                 <div key={i} className="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm hover:border-slate-600 transition-colors relative group animate-fade-in-up">
+                                     <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                         {i > 0 && <button onClick={()=>moveField(i, 'up')} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded transition-colors"><ArrowUp size={14}/></button>}
+                                         {i < editingForm.fields.length - 1 && <button onClick={()=>moveField(i, 'down')} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded transition-colors"><ArrowDown size={14}/></button>}
+                                         <button onClick={()=>removeFormField(i)} className="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded transition-colors ml-2"><Trash size={14}/></button>
+                                     </div>
+                                     <div className="flex gap-4 items-start mb-3">
+                                         <div className="mt-2 p-2 bg-slate-950 rounded text-slate-500 border border-slate-800">
+                                             {field.type === 'text' && <Type size={16}/>}
+                                             {field.type === 'number' && <Hash size={16}/>}
+                                             {field.type === 'email' && <AtSign size={16}/>}
+                                             {field.type === 'select' && <List size={16}/>}
+                                             {field.type === 'boolean' && <ToggleRight size={16}/>}
+                                             {field.type === 'composite_name_id' && <UserPlus size={16}/>}
+                                         </div>
+                                         <div className="flex-1">
+                                             <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wide">תווית השדה (Label)</label>
+                                             <input value={field.label} onChange={e=>updateFormField(i,{label:e.target.value})} className="w-full bg-transparent border-b border-slate-700 text-white font-bold py-1 focus:border-[#2EB0D9] outline-none placeholder-slate-600" placeholder="שם השדה כפי שיופיע למשתמש"/>
+                                         </div>
+                                     </div>
+                                     <div className="bg-slate-950/50 p-3 rounded border border-slate-800/50 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                         <div className="flex items-center gap-2">
+                                             <input type="checkbox" id={`req-${i}`} checked={field.required} onChange={e => updateFormField(i, { required: e.target.checked })} className="accent-red-500 w-4 h-4 rounded"/>
+                                             <label htmlFor={`req-${i}`} className={`text-xs cursor-pointer select-none font-medium ${field.required ? 'text-red-400' : 'text-slate-500'}`}>שדה חובה</label>
+                                         </div>
+                                         {field.type === 'email' && (
+                                             <div className="flex items-center gap-2">
+                                                 <input type="checkbox" id={`isEmail-${i}`} checked={field.isClientEmail || false} onChange={e => { const newFields = editingForm.fields.map(f => ({...f, isClientEmail: false})); newFields[i].isClientEmail = e.target.checked; setEditingForm({...editingForm, fields: newFields}); }} className="accent-green-500 w-4 h-4 rounded"/>
+                                                 <label htmlFor={`isEmail-${i}`} className={`text-xs cursor-pointer select-none font-medium ${field.isClientEmail ? 'text-green-400' : 'text-slate-500'}`}>זהו המייל של הלקוח</label>
+                                             </div>
+                                         )}
+                                         {field.type === 'select' && (
+                                             <div className="col-span-2"><label className="text-[10px] text-slate-500 block mb-1">אפשרויות בחירה (מופרדות בפסיק)</label><input value={field.options?.join(',')} onChange={e => updateFormField(i, { options: e.target.value.split(',') })} className="w-full bg-slate-800 border border-slate-700 text-white p-1.5 rounded text-xs" placeholder="אפשרות 1, אפשרות 2..."/></div>
+                                         )}
+                                         {field.type === 'composite_name_id' && (
+                                             <div className="col-span-2 text-xs text-slate-500 italic bg-slate-800/50 p-2 rounded">
+                                                 שדה זה יוצג למשתמש כשלושה שדות נפרדים: שם פרטי, שם משפחה, ומספר תעודת זהות.
+                                             </div>
+                                         )}
+                                         <div className="col-span-2 flex gap-2 items-center">
+                                             <label className="text-[10px] text-slate-500 whitespace-nowrap flex items-center gap-1"><HelpCircle size={10}/> קישור למאמר עזרה:</label>
+                                             <select value={field.helpArticleId || ''} onChange={e => updateFormField(i, { helpArticleId: e.target.value })} className="bg-slate-800 border border-slate-700 text-white p-1 rounded flex-1 text-xs outline-none"><option value="">-- ללא --</option>{state.articles.map(article => (<option key={article.id} value={article.id}>{article.title}</option>))}</select>
+                                         </div>
+                                     </div>
+                                 </div>
+                             ))}
+                         </div>
                      </div>
                  </div>
              </div>

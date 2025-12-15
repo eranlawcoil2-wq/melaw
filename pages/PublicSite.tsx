@@ -756,30 +756,100 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                      <div className={`space-y-6 p-8 rounded-xl border shadow-inner ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                          {currentDynamicForm.fields.map(field => (
                              <div key={field.id} className="space-y-2">
-                                 <div className="flex items-center gap-2">
-                                     <label className={`block text-sm font-bold ${theme.textMuted}`}>{field.label} {field.required && <span className="text-red-500">*</span>}</label>
-                                     {field.helpArticleId && <button onClick={() => openHelpArticle(field.helpArticleId!)} className="text-[#2EB0D9] hover:text-[#259cc0] transition-colors"><HelpCircle size={16} /></button>}
-                                 </div>
-                                 {field.type === 'text' && <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
-                                 {field.type === 'email' && <input type="email" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
-                                 {field.type === 'number' && <input type="number" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
-                                 {field.type === 'boolean' && (
-                                     <div className="flex gap-4">
-                                         <label className="flex items-center gap-2 cursor-pointer text-slate-400"><input type="radio" name={field.id} checked={dynamicFormValues[field.id] === 'yes'} onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: 'yes'})} className="accent-[#2EB0D9]"/> כן</label>
-                                         <label className="flex items-center gap-2 cursor-pointer text-slate-400"><input type="radio" name={field.id} checked={dynamicFormValues[field.id] === 'no'} onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: 'no'})} className="accent-[#2EB0D9]"/> לא</label>
+                                 {field.type === 'composite_name_id' ? (
+                                     // COMPOSITE FIELD RENDER
+                                     <div className={`p-4 rounded-lg border ${isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'} space-y-3`}>
+                                         <label className={`block text-sm font-bold ${theme.textMuted}`}>{field.label} {field.required && <span className="text-red-500">*</span>}</label>
+                                         <div className="grid grid-cols-2 gap-3">
+                                             <input
+                                                 type="text"
+                                                 placeholder="שם פרטי"
+                                                 className={`w-full p-3 border rounded-lg text-sm ${theme.inputBg}`}
+                                                 value={dynamicFormValues[`${field.id}_first`] || ''}
+                                                 onChange={e => {
+                                                     const val = e.target.value;
+                                                     const last = dynamicFormValues[`${field.id}_last`] || '';
+                                                     const idNum = dynamicFormValues[`${field.id}_idNum`] || '';
+                                                     setDynamicFormValues({
+                                                         ...dynamicFormValues,
+                                                         [`${field.id}_first`]: val,
+                                                         [field.id]: `${val} ${last} (ת.ז: ${idNum})` // Update composite for simple view
+                                                     });
+                                                 }}
+                                             />
+                                             <input
+                                                 type="text"
+                                                 placeholder="שם משפחה"
+                                                 className={`w-full p-3 border rounded-lg text-sm ${theme.inputBg}`}
+                                                 value={dynamicFormValues[`${field.id}_last`] || ''}
+                                                 onChange={e => {
+                                                     const val = e.target.value;
+                                                     const first = dynamicFormValues[`${field.id}_first`] || '';
+                                                     const idNum = dynamicFormValues[`${field.id}_idNum`] || '';
+                                                     setDynamicFormValues({
+                                                         ...dynamicFormValues,
+                                                         [`${field.id}_last`]: val,
+                                                         [field.id]: `${first} ${val} (ת.ז: ${idNum})`
+                                                     });
+                                                 }}
+                                             />
+                                         </div>
+                                         <input
+                                             type="tel"
+                                             placeholder="מספר תעודת זהות (9 ספרות)"
+                                             maxLength={9}
+                                             className={`w-full p-3 border rounded-lg text-sm ${theme.inputBg}`}
+                                             value={dynamicFormValues[`${field.id}_idNum`] || ''}
+                                             onChange={e => {
+                                                 const val = e.target.value.replace(/[^0-9]/g, '');
+                                                 const first = dynamicFormValues[`${field.id}_first`] || '';
+                                                 const last = dynamicFormValues[`${field.id}_last`] || '';
+                                                 setDynamicFormValues({
+                                                     ...dynamicFormValues,
+                                                     [`${field.id}_idNum`]: val,
+                                                     [field.id]: `${first} ${last} (ת.ז: ${val})`
+                                                 });
+                                             }}
+                                         />
                                      </div>
+                                 ) : (
+                                     // STANDARD FIELD RENDER
+                                     <>
+                                         <div className="flex items-center gap-2">
+                                             <label className={`block text-sm font-bold ${theme.textMuted}`}>{field.label} {field.required && <span className="text-red-500">*</span>}</label>
+                                             {field.helpArticleId && <button onClick={() => openHelpArticle(field.helpArticleId!)} className="text-[#2EB0D9] hover:text-[#259cc0] transition-colors"><HelpCircle size={16} /></button>}
+                                         </div>
+                                         {field.type === 'text' && <input type="text" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
+                                         {field.type === 'email' && <input type="email" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
+                                         {field.type === 'number' && <input type="number" className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
+                                         {field.type === 'boolean' && (
+                                             <div className="flex gap-4">
+                                                 <label className="flex items-center gap-2 cursor-pointer text-slate-400"><input type="radio" name={field.id} checked={dynamicFormValues[field.id] === 'yes'} onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: 'yes'})} className="accent-[#2EB0D9]"/> כן</label>
+                                                 <label className="flex items-center gap-2 cursor-pointer text-slate-400"><input type="radio" name={field.id} checked={dynamicFormValues[field.id] === 'no'} onChange={() => setDynamicFormValues({...dynamicFormValues, [field.id]: 'no'})} className="accent-[#2EB0D9]"/> לא</label>
+                                             </div>
+                                         )}
+                                         {field.type === 'select' && <select className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}><option value="">בחר...</option>{field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>}
+                                     </>
                                  )}
-                                 {field.type === 'select' && <select className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}><option value="">בחר...</option>{field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>}
                              </div>
                          ))}
                          <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect flex justify-center items-center gap-2" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => { 
                              if (!currentDynamicForm) return;
                              setIsSubmittingDynamic(true); 
                              for (const field of currentDynamicForm.fields) {
-                                 if (field.required && !dynamicFormValues[field.id]) {
-                                     alert(`השדה "${field.label}" הוא שדה חובה.`);
-                                     setIsSubmittingDynamic(false);
-                                     return;
+                                 if (field.required) {
+                                     // Special validation for composite field
+                                     if (field.type === 'composite_name_id') {
+                                         if (!dynamicFormValues[`${field.id}_first`] || !dynamicFormValues[`${field.id}_last`] || !dynamicFormValues[`${field.id}_idNum`]) {
+                                             alert(`אנא מלא את כל הפרטים (שם פרטי, שם משפחה ות.ז) בשדה "${field.label}"`);
+                                             setIsSubmittingDynamic(false);
+                                             return;
+                                         }
+                                     } else if (!dynamicFormValues[field.id]) {
+                                         alert(`השדה "${field.label}" הוא שדה חובה.`);
+                                         setIsSubmittingDynamic(false);
+                                         return;
+                                     }
                                  }
                              }
                              const submissionId = generateSubmissionId();
@@ -790,9 +860,17 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              let explicitClientEmail = '';
                              // Map ALL fields (even empty ones) to ensure column consistency in DB
                              currentDynamicForm.fields.forEach(field => {
-                                 const val = dynamicFormValues[field.id];
-                                 mappedData[field.label] = (val !== undefined && val !== null && val !== '') ? val : "";
-                                 if (field.isClientEmail && val) explicitClientEmail = String(val as any);
+                                 // For composite fields, add individual columns as well as the main one
+                                 if (field.type === 'composite_name_id') {
+                                     mappedData[field.label] = dynamicFormValues[field.id] || ""; // Main composite string
+                                     mappedData[`${field.label} (פרטי)`] = dynamicFormValues[`${field.id}_first`] || "";
+                                     mappedData[`${field.label} (משפחה)`] = dynamicFormValues[`${field.id}_last`] || "";
+                                     mappedData[`${field.label} (ת.ז)`] = dynamicFormValues[`${field.id}_idNum`] || "";
+                                 } else {
+                                     const val = dynamicFormValues[field.id];
+                                     mappedData[field.label] = (val !== undefined && val !== null && val !== '') ? val : "";
+                                     if (field.isClientEmail && val) explicitClientEmail = String(val);
+                                 }
                              });
                              
                              if (!explicitClientEmail) explicitClientEmail = String(dynamicFormValues['email'] || dynamicFormValues['אימייל'] || '');
@@ -800,12 +878,12 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
                              try { 
                                  await emailService.sendForm(
-                                    String(currentDynamicForm.title || "Form"), 
+                                    currentDynamicForm.title, 
                                     mappedData, 
-                                    state.config.integrations as any, 
+                                    state.config.integrations, 
                                     currentDynamicForm.pdfTemplate, 
                                     currentDynamicForm.sendClientEmail || false, 
-                                    String(currentDynamicForm.submitEmail || state.config.contactEmail || "")
+                                    currentDynamicForm.submitEmail || state.config.contactEmail || ""
                                  ); 
                                  
                                  // Success Handling
