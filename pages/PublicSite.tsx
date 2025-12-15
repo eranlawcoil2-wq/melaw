@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember, TimelineItem, CATEGORY_LABELS, CalculatorDefinition } from '../types.ts';
 import { Button } from '../components/Button.tsx';
@@ -7,7 +6,7 @@ import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
 import { ShareMenu } from '../components/ShareMenu.tsx';
 import { emailService } from '../services/api.ts'; 
-import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle, Printer, MessageCircle, Calculator, ChevronDown, Filter } from 'lucide-react';
+import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle, Printer, MessageCircle, Calculator, ChevronDown, Filter, Tag } from 'lucide-react';
 
 const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = "", delay = 0 }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -48,7 +47,13 @@ interface TaxCalculatorProps {
 }
 
 const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, onClose }) => {
-    const [selectedScenarioId, setSelectedScenarioId] = useState(calculator.scenarios[0]?.id || '');
+    // Safety check for empty scenarios - CRITICAL FIX FOR BLACK SCREEN
+    if (!calculator || !calculator.scenarios || calculator.scenarios.length === 0) {
+        return null;
+    }
+
+    const initialScenarioId = calculator.scenarios[0].id;
+    const [selectedScenarioId, setSelectedScenarioId] = useState(initialScenarioId);
     const [price, setPrice] = useState<string>('');
     const [result, setResult] = useState<{ total: number, steps: { threshold: number, rate: number, tax: number, amountInBracket: number, isLast: boolean, dealValue: number }[] } | null>(null);
 
@@ -226,6 +231,17 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const articlesScrollRef = useRef<HTMLDivElement>(null);
   const articleContentTopRef = useRef<HTMLDivElement>(null);
 
+  // --- DYNAMIC SEO TITLE UPDATE ---
+  useEffect(() => {
+      let pageTitle = "MeLaw - משרד עורכי דין ונוטריון";
+      if (selectedArticle) {
+          pageTitle = `${selectedArticle.title} | MeLaw`;
+      } else if (state.currentCategory !== Category.HOME) {
+          pageTitle = `${CATEGORY_LABELS[state.currentCategory]} | MeLaw`;
+      }
+      document.title = pageTitle;
+  }, [state.currentCategory, selectedArticle]);
+
   // UPDATED: Slider Filtering Logic (Array inclusion)
   const currentSlides = state.slides.filter(s => {
       // Support legacy 'category' if 'categories' is missing
@@ -238,7 +254,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
   const currentArticles = state.articles.filter(a => state.currentCategory === Category.HOME || state.currentCategory === Category.STORE ? true : a.categories.includes(state.currentCategory)).sort((a, b) => (a.order || 99) - (b.order || 99));
   const currentCategoryForms = state.forms.filter(f => f.categories && f.categories.includes(state.currentCategory)).sort((a, b) => (a.order || 99) - (b.order || 99));
-  // Filter Calculators
+  // Filter Calculators with safety
   const currentCategoryCalculators = (state.calculators || []).filter(c => c.categories && c.categories.includes(state.currentCategory));
   
   const teamMembers = state.teamMembers.sort((a, b) => (a.order || 99) - (b.order || 99));
@@ -300,7 +316,29 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       return a.sortOrder - b.sortOrder;
   });
 
-  // DEEP LINKING HANDLER (useEffect remains same as previous code)
+  // Function to get varied card styles to prevent monotony
+  const getCardVariant = (index: number) => {
+      // Dark Mode Variants
+      const darkVariants = [
+          'bg-slate-900 border-slate-800',
+          'bg-[#0f172a] border-slate-800', // Slightly darker blue-gray
+          'bg-slate-800/50 border-slate-700', // Lighter slate
+          'bg-[#0B1120] border-[#1e293b]' // Very dark blue
+      ];
+      
+      // Light Mode Variants (Subtle differences)
+      const lightVariants = [
+          'bg-white border-slate-200',
+          'bg-[#F0F9FF] border-blue-100', // Alice Blue tint
+          'bg-[#F8FAFC] border-slate-200', // Slate 50
+          'bg-[#eff6ff] border-blue-50' // Blue 50 tint
+      ];
+
+      const variants = isDark ? darkVariants : lightVariants;
+      return variants[index % variants.length];
+  };
+
+  // DEEP LINKING HANDLER
   useEffect(() => {
     const handleHash = () => {
         const hash = window.location.hash.replace('#', '');
@@ -328,12 +366,40 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 setActiveDynamicFormId(id);
                 setTimeout(() => dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
             }
+        } else if (type === 'product') {
+            // Find Product
+            const product = state.products?.find(p => p.id === id);
+            if (product) {
+                onCategoryChange(Category.STORE); // Switch to Store Tab
+                
+                // Calculate which page this product is on (assuming default sort and no active filters initially)
+                // Note: If filters are active, deep linking might not show the product if it's filtered out.
+                // We assume basic deep link hits the main list.
+                const storeProducts = (state.products || []).filter(p => {
+                    // Replicate base filter logic for Store
+                    if (p.categories) {
+                        return p.categories.includes(Category.STORE);
+                    }
+                    return (p as any).category === Category.STORE;
+                }).sort((a, b) => (a.order || 99) - (b.order || 99));
+
+                const productIndex = storeProducts.findIndex(p => p.id === id);
+                if (productIndex !== -1) {
+                    const page = Math.floor(productIndex / STORE_PAGE_SIZE);
+                    setStorePage(page);
+                    // Wait for render then scroll
+                    setTimeout(() => {
+                        const el = document.getElementById(`product-card-${id}`);
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 500);
+                }
+            }
         }
     };
     handleHash();
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
-  }, [state.articles, state.calculators, state.timelines, state.forms]);
+  }, [state.articles, state.calculators, state.timelines, state.forms, state.products]);
 
   useEffect(() => {
     const interval = setInterval(() => { setActiveSlide((prev) => (prev + 1) % currentSlides.length); }, 6000); 
@@ -347,7 +413,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
       }
   }, [selectedArticle]);
 
-  // Handlers (same as before)
+  // Handlers
   const handleTimelineClick = (item: any) => {
     if (item.type === 'calculator') {
         setActiveCalculatorId(item.id);
@@ -398,7 +464,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           await emailService.sendForm('General Contact Form', { ...contactForm, submissionId }, state.config.integrations, undefined, false, state.config.contactEmail);
           alert(`הודעתך נשלחה בהצלחה! מספר פנייה: ${submissionId}\nניצור קשר בהקדם.`);
           setContactForm({ name: '', phone: '', message: '' });
-      } catch (e) {
+      } catch (e: any) {
           alert('שגיאה בשליחה.'); 
       } finally { 
           setContactSending(false); 
@@ -421,7 +487,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
           if (state.config.integrations.googleSheetsUrl) alert("הפרטים נקלטו בהצלחה במערכת! טיוטת הצוואה תופק ותשלח אליך למייל בהקדם."); 
           else alert("הנתונים נשלחו אך לא הוגדר חיבור ל-Google Sheets."); 
           setShowWillsModal(false); setFormStep(0);
-      } catch (error) { 
+      } catch (error: any) { 
           alert("אירעה שגיאה, אנא נסה שנית."); 
       } finally { 
           setIsSubmittingWill(false); 
@@ -507,24 +573,24 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         {showProductsSection && (
             <Reveal className="relative z-20 -mt-20 container mx-auto px-4 mb-20">
                  <div className={`shadow-2xl rounded-2xl p-6 border ${theme.cardBg}`}>
-                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-700/20 pb-4">
                          <SectionTitle title={isStorePage ? "החנות המשפטית" : "שירותים לרכישה אונליין"} isDark={isDark} />
                          
                          {/* Tag Filter */}
                          {uniqueTags.length > 0 && (
-                             <div className="flex flex-wrap gap-2 items-center">
-                                 <span className="text-xs font-bold text-slate-500 flex items-center gap-1"><Filter size={12}/> סנן לפי:</span>
+                             <div className="flex flex-wrap gap-2 items-center justify-end">
+                                 <span className="text-xs font-bold text-slate-500 flex items-center gap-1"><Filter size={14}/> סינון:</span>
                                  {uniqueTags.map(tag => (
                                      <button 
                                         key={tag} 
                                         onClick={() => toggleStoreTag(tag)}
-                                        className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${selectedStoreTags.includes(tag) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9] shadow-md' : 'bg-transparent text-slate-500 border-slate-700 hover:border-slate-500'}`}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all flex items-center gap-1 ${selectedStoreTags.includes(tag) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9] shadow-md' : 'bg-transparent text-slate-500 border-slate-600 hover:border-[#2EB0D9] hover:text-[#2EB0D9]'}`}
                                      >
-                                         {tag}
+                                         <Tag size={10} className={selectedStoreTags.includes(tag) ? "text-white" : "text-slate-500"}/> {tag}
                                      </button>
                                  ))}
                                  {selectedStoreTags.length > 0 && (
-                                     <button onClick={() => setSelectedStoreTags([])} className="text-[10px] text-red-400 hover:underline">נקה הכל</button>
+                                     <button onClick={() => setSelectedStoreTags([])} className="text-[10px] text-red-400 hover:underline px-2">נקה סינון</button>
                                  )}
                              </div>
                          )}
@@ -537,24 +603,28 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                 <button 
                                     onClick={() => setStorePage(p => Math.max(0, p - 1))}
                                     disabled={storePage === 0}
-                                    className={`absolute top-1/2 -left-4 md:-left-6 transform -translate-y-1/2 z-20 p-3 rounded-full shadow-xl transition-all ${storePage === 0 ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed' : 'bg-[#2EB0D9] text-white hover:bg-[#259cc0] hover:scale-110'}`}
+                                    className={`absolute top-1/2 -left-4 md:-left-6 transform -translate-y-1/2 z-20 p-3 rounded-full shadow-xl transition-all ${storePage === 0 ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed opacity-50' : 'bg-[#2EB0D9] text-white hover:bg-[#259cc0] hover:scale-110'}`}
                                 >
                                     <ChevronLeft size={24}/>
                                 </button>
                                 <button 
                                     onClick={() => setStorePage(p => Math.min(totalStorePages - 1, p + 1))}
                                     disabled={storePage === totalStorePages - 1}
-                                    className={`absolute top-1/2 -right-4 md:-right-6 transform -translate-y-1/2 z-20 p-3 rounded-full shadow-xl transition-all ${storePage === totalStorePages - 1 ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed' : 'bg-[#2EB0D9] text-white hover:bg-[#259cc0] hover:scale-110'}`}
+                                    className={`absolute top-1/2 -right-4 md:-right-6 transform -translate-y-1/2 z-20 p-3 rounded-full shadow-xl transition-all ${storePage === totalStorePages - 1 ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed opacity-50' : 'bg-[#2EB0D9] text-white hover:bg-[#259cc0] hover:scale-110'}`}
                                 >
                                     <ChevronRight size={24}/>
                                 </button>
                              </>
                          )}
 
-                         {/* GRID LAYOUT (8 ITEMS) */}
-                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 min-h-[400px]">
-                             {visibleStoreProducts.length > 0 ? visibleStoreProducts.map((product) => (
-                                 <div key={product.id} className={`group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col relative h-full animate-fade-in`}>
+                         {/* GRID LAYOUT (8 ITEMS) - Uses grid-cols-4 but without auto-grow behavior on last items */}
+                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 min-h-[400px] auto-rows-fr">
+                             {visibleStoreProducts.length > 0 ? visibleStoreProducts.map((product, index) => {
+                                 // Generate varied card style based on index to prevent monotony
+                                 const cardStyle = getCardVariant(index + (storePage * STORE_PAGE_SIZE));
+                                 
+                                 return (
+                                 <div id={`product-card-${product.id}`} key={product.id} className={`group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${cardStyle} ${theme.cardHover} flex flex-col relative h-full animate-fade-in`}>
                                      {/* Only show the top image/placeholder if there is an actual image URL */}
                                      {product.imageUrl && (
                                          <div className={`h-32 md:h-40 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
@@ -577,11 +647,11 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                          <h4 className={`font-bold text-base md:text-lg mb-2 leading-tight ${theme.textTitle}`}>{product.title}</h4>
                                          <p className="text-slate-400 text-xs mb-3 line-clamp-3 leading-relaxed">{product.description}</p>
                                          
-                                         {/* Tags Display */}
+                                         {/* Tags Display - SOFTER DESIGN */}
                                          {product.tags && product.tags.length > 0 && (
                                              <div className="flex flex-wrap justify-center gap-1 mb-3">
                                                  {product.tags.slice(0, 3).map(tag => (
-                                                     <span key={tag} className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">{tag}</span>
+                                                     <span key={tag} className={`text-[9px] px-2 py-0.5 rounded-full border ${isDark ? 'bg-slate-800/60 border-slate-700/50 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>{tag}</span>
                                                  ))}
                                              </div>
                                          )}
@@ -594,7 +664,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                          </div>
                                      </div>
                                  </div>
-                             )) : (
+                                 );
+                             }) : (
                                  <div className="col-span-full p-12 text-center w-full text-slate-500 border border-dashed border-slate-700 rounded-xl">
                                      <p>לא נמצאו מוצרים תואמים לסינון זה.</p>
                                      <button onClick={() => setSelectedStoreTags([])} className="text-[#2EB0D9] underline text-sm mt-2">נקה סינון</button>
@@ -702,6 +773,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              </div>
                          ))}
                          <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => { 
+                             if (!currentDynamicForm) return;
                              setIsSubmittingDynamic(true); 
                              for (const field of currentDynamicForm.fields) {
                                  if (field.required && !dynamicFormValues[field.id]) {
@@ -727,11 +799,18 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                              if (explicitClientEmail) mappedData['email'] = explicitClientEmail;
 
                              try { 
-                                 await emailService.sendForm(currentDynamicForm.title, mappedData, state.config.integrations, currentDynamicForm.pdfTemplate, currentDynamicForm.sendClientEmail, currentDynamicForm.submitEmail || state.config.contactEmail); 
+                                 await emailService.sendForm(
+                                    String(currentDynamicForm.title || "Form"), 
+                                    mappedData, 
+                                    state.config.integrations, 
+                                    currentDynamicForm.pdfTemplate, 
+                                    currentDynamicForm.sendClientEmail || false, 
+                                    String(currentDynamicForm.submitEmail || state.config.contactEmail || "")
+                                 ); 
                                  if (state.config.integrations.googleSheetsUrl) alert(`נשלח בהצלחה למערכת!\nמספר אסמכתא: ${submissionId}`); else alert("נשלח בהצלחה! (מצב ללא חיבור לשרת).");
                                  setActiveDynamicFormId(null); 
                                  // REMOVED: setDynamicFormValues({}); -- Data is preserved per user request
-                             } catch (e) { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); } 
+                             } catch (e: any) { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); } 
                          }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button>
                      </div>
                  </div>

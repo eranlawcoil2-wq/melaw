@@ -1,6 +1,5 @@
 
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide, Product, CATEGORY_LABELS, CalculatorDefinition, TaxScenario, TaxBracket } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
@@ -14,7 +13,7 @@ interface AdminDashboardProps {
   state: AppState;
   updateState: (newState: Partial<AppState>) => void;
   onLogout: () => void;
-  version?: string; // Kept for compatibility but ignored
+  version?: string;
 }
 
 const FALLBACK_SUPABASE_URL = 'https://kqjmwwjafypkswkkbncc.supabase.co'; 
@@ -38,8 +37,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
         sheet.appendRow(['Timestamp', 'ID', 'Form Name']); 
       }
 
-      // --- DYNAMIC COLUMN MAPPING ---
-      // 1. Get current headers
       var lastCol = sheet.getLastColumn();
       var headers = [];
       if (lastCol > 0) {
@@ -50,7 +47,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
         lastCol = 3;
       }
 
-      // 2. Identify keys in incoming data that are NOT metadata
       var metadataKeys = ['action','targetSheet','templateSheet','formName','submittedAt','submissionId','officeEmail','clientEmail','sendClientCopy','customEmailSubject','customEmailBody'];
       var dataKeys = [];
       for (var key in data) {
@@ -59,7 +55,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
         }
       }
 
-      // 3. Update headers if new keys are found
       var headerMap = {};
       for (var i = 0; i < headers.length; i++) headerMap[headers[i]] = i;
 
@@ -77,7 +72,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
          sheet.getRange(1, lastCol + 1, 1, newHeaders.length).setValues([newHeaders]);
       }
 
-      // 4. Construct Row Data aligned with headers
       var rowValues = [];
       for (var i = 0; i < headers.length; i++) {
          var header = headers[i];
@@ -89,52 +83,13 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
              rowValues.push(data.formName);
          } else {
              var val = data[header];
-             // If empty, leave empty string (or 0 if preferred, using "" for clean look)
              rowValues.push((val !== undefined && val !== null) ? val : "");
          }
       }
 
       sheet.appendRow(rowValues);
-      
       SpreadsheetApp.flush(); 
       Utilities.sleep(3000); 
-
-      // 5. PDF Generation
-      var attachments = [];
-      if (data.templateSheet === 'WILL') {
-         var willSheet = ss.getSheetByName('WILL');
-         if (willSheet) {
-             var pdfBlob = exportSheetToPdf(ss.getId(), willSheet.getSheetId(), "צוואה_" + (data.submissionId || ''));
-             if (pdfBlob) attachments.push(pdfBlob);
-         }
-      } 
-      
-      if (attachments.length === 0) {
-          var html = "<html><body style='font-family: Arial; direction: rtl; text-align: right;'>";
-          html += "<h1 style='color: #2EB0D9;'>" + data.formName + "</h1>";
-          html += "<div><strong>אסמכתא:</strong> " + (data.submissionId || 'N/A') + "</div><hr>";
-          for (var i = 0; i < headers.length; i++) {
-             if (['Timestamp', 'ID', 'Form Name'].indexOf(headers[i]) === -1) {
-                 var val = data[headers[i]];
-                 if (val) html += "<p><strong>" + headers[i] + ":</strong> " + val + "</p>";
-             }
-          }
-          html += "</body></html>";
-          var genericPdf = Utilities.newBlob(html, MimeType.HTML).getAs(MimeType.PDF).setName(data.formName + ".pdf");
-          attachments.push(genericPdf);
-      }
-
-      // 6. Send Emails
-      var subject = data.customEmailSubject || ("טופס חדש: " + data.formName);
-      var body = data.customEmailBody || "<p>התקבל טופס חדש. מצורף קובץ.</p>";
-      body = "<div style='direction: rtl; text-align: right; font-family: Arial;'>" + body + "</div>";
-
-      if (data.officeEmail) {
-          try { MailApp.sendEmail({ to: data.officeEmail, subject: subject, htmlBody: body, attachments: attachments }); } catch(e){}
-      }
-      if ((data.sendClientCopy === true || data.sendClientCopy === "true") && data.clientEmail) {
-          try { MailApp.sendEmail({ to: data.clientEmail, subject: subject, htmlBody: body, attachments: attachments }); } catch(e){}
-      }
 
       return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
     }
@@ -155,17 +110,6 @@ const GOOGLE_SCRIPT_CODE = `function doPost(e) {
   } finally {
     lock.releaseLock();
   }
-}
-
-function exportSheetToPdf(spreadsheetId, sheetId, filename) {
-  try {
-    var token = ScriptApp.getOAuthToken();
-    var url = "https://docs.google.com/spreadsheets/d/" + spreadsheetId + "/export?";
-    var opts = { format: 'pdf', size: 'A4', portrait: true, fitw: true, gid: sheetId, gridlines: false, attachment: true };
-    var params = [];
-    for (var name in opts) params.push(name + "=" + opts[name]);
-    return UrlFetchApp.fetch(url + params.join("&"), { headers: { 'Authorization': 'Bearer ' + token } }).getBlob().setName(filename + ".pdf");
-  } catch (e) { return null; }
 }`;
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout }) => {
@@ -207,11 +151,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       setIsSavingToCloud(true);
       
       let success = false;
-      // 1. Try Supabase
       if (isSupabaseConfigured) {
           success = await dbService.saveState(supabaseConfig.url, supabaseConfig.key, state);
       }
-      // 2. Fallback to Google Sheets
       if (!success && isGoogleSheetsConfigured) {
           success = await cloudService.saveStateToCloud(state.config.integrations.googleSheetsUrl, state);
       }
@@ -240,7 +182,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
       setIsLoadingFromCloud(false);
       if (data) {
-          // Merge configs carefully
           const newConfig = { ...state.config, ...data.config, integrations: { ...state.config.integrations, ...(data.config?.integrations || {}) } };
           updateState({ ...data, config: newConfig });
           alert('הנתונים נטענו בהצלחה!');
@@ -264,17 +205,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
               title: generated.title || newArticleTopic,
               abstract: generated.abstract || '',
               quote: generated.quote || '',
-              imageUrl: '', // Will be set by user or placeholder
+              imageUrl: '', 
               tabs: generated.tabs || [],
               order: 99
           };
           updateState({ articles: [newArticle, ...state.articles] });
           setEditingArticle(newArticle);
           setNewArticleTopic('');
-          
-          // Open image picker immediately to complete the article
           setTimeout(() => openImagePicker('article', newArticleTopic), 500);
-
       } catch (e: any) {
           alert('שגיאה ביצירת תוכן: ' + e.message);
       } finally {
@@ -325,7 +263,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
   const handleSaveTimelineItem = () => { if(editingTimelineItem) { const exists = state.timelines.find(t => t.id === editingTimelineItem.id); updateState({ timelines: exists ? state.timelines.map(t => t.id === editingTimelineItem.id ? editingTimelineItem : t) : [...state.timelines, editingTimelineItem] }); setEditingTimelineItem(null); }};
   const toggleTimelineCategory = (cat: Category) => { if (!editingTimelineItem) return; const current = editingTimelineItem.category || []; if (current.includes(cat)) { setEditingTimelineItem({ ...editingTimelineItem, category: current.filter(c => c !== cat) }); } else { setEditingTimelineItem({ ...editingTimelineItem, category: [...current, cat] }); } };
 
-  const handleSaveProduct = () => { if(editingProduct) { const currentProducts = state.products || []; const exists = currentProducts.find(p => p.id === editingProduct.id); updateState({ products: exists ? currentProducts.map(p => p.id === editingProduct.id ? editingProduct : p) : [...currentProducts, editingProduct] }); setEditingProduct(null); }};
+  const handleSaveProduct = () => { 
+      if(editingProduct) { 
+          // CLEANUP TAGS HERE: remove empty strings and trim spaces ONLY ON SAVE
+          const cleanedTags = editingProduct.tags ? editingProduct.tags.map(t => t.trim()).filter(t => t) : [];
+          const productToSave = { ...editingProduct, tags: cleanedTags };
+
+          const currentProducts = state.products || []; 
+          const exists = currentProducts.find(p => p.id === productToSave.id); 
+          updateState({ products: exists ? currentProducts.map(p => p.id === productToSave.id ? productToSave : p) : [...currentProducts, productToSave] }); 
+          setEditingProduct(null); 
+      }
+  };
   const toggleProductCategory = (cat: Category) => { if (!editingProduct) return; const current = editingProduct.categories || []; if (current.includes(cat)) { setEditingProduct({ ...editingProduct, categories: current.filter(c => c !== cat) }); } else { setEditingProduct({ ...editingProduct, categories: [...current, cat] }); } };
   
   const updateIntegration = (key: keyof typeof state.config.integrations, value: string) => { updateState({ config: { ...state.config, integrations: { ...state.config.integrations, [key]: value } } }); };
@@ -352,7 +301,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
              </Button>
         </div>
         <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-          {/* Nav Items */}
           <button onClick={() => { setActiveTab('articles'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'articles' ? 'bg-[#2EB0D9] text-white font-bold' : 'text-slate-400 hover:bg-slate-800'}`}><FileText size={20} /> מאמרים</button>
           <button onClick={() => { setActiveTab('sliders'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'sliders' ? 'bg-[#2EB0D9] text-white font-bold' : 'text-slate-400 hover:bg-slate-800'}`}><GalleryHorizontal size={20} /> סליידרים (ראשי)</button>
           <button onClick={() => { setActiveTab('news'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${activeTab === 'news' ? 'bg-[#2EB0D9] text-white font-bold' : 'text-slate-400 hover:bg-slate-800'}`}><Newspaper size={20} /> עדכונים וחדשות</button>
@@ -368,7 +316,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
       </aside>
 
       <main className="flex-1 md:mr-64 p-4 md:p-8 overflow-y-auto min-h-screen">
-        {/* Render content based on activeTab */}
         {activeTab === 'sliders' && (<div className="space-y-6 animate-fade-in"><div className="flex justify-end"><Button onClick={() => setEditingSlide({ id: Date.now().toString(), imageUrl: '', title: 'כותרת חדשה', subtitle: 'תת כותרת', categories: [Category.HOME], order: 99 })}><Plus size={18} className="ml-2"/> סלייד חדש</Button></div><div className="grid grid-cols-1 md:grid-cols-2 gap-6">{state.slides.sort((a,b)=>(a.order||99)-(b.order||99)).map(slide => (<div key={slide.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg group"><div className="h-48 relative"><img src={slide.imageUrl} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-black/50 flex flex-col justify-end p-4"><h4 className="font-bold text-white text-lg">{slide.title}</h4><div className="flex gap-1 mt-1 flex-wrap">{slide.categories?.map(c => <span key={c} className="text-xs bg-[#2EB0D9] text-white px-2 py-0.5 rounded">{CATEGORY_LABELS[c]}</span>)}</div></div></div><div className="p-4 flex justify-between items-center bg-slate-950 border-t border-slate-800"><div className="text-xs text-slate-500">סדר: {slide.order || 99}</div><div className="flex gap-2"><button onClick={() => setEditingSlide(slide)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded text-white"><Edit size={16}/></button><button onClick={() => updateState({ slides: state.slides.filter(s => s.id !== slide.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded text-white"><Trash size={16}/></button></div></div></div>))}</div></div>)}
         {activeTab === 'articles' && (<div className="space-y-8 animate-fade-in"><div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl"><div className="flex flex-col gap-4"><label className="text-sm font-bold text-slate-400">נושא המאמר (ניתן לכתוב תיאור מפורט והנחיות ל-AI)</label><textarea className="flex-1 p-4 border border-slate-700 rounded-lg bg-slate-800 text-white focus:ring-2 focus:ring-[#2EB0D9] h-32 leading-relaxed" placeholder="כתוב כאן על מה המאמר צריך לדבר..." value={newArticleTopic} onChange={(e) => setNewArticleTopic(e.target.value)} /><div className="flex justify-end"><Button onClick={handleGenerateArticle} disabled={isGenerating} className="min-w-[200px] h-12 text-lg">{isGenerating ? <Loader2 className="animate-spin ml-2"/> : <><Sparkles size={18} className="ml-2"/> צור מאמר עם AI</>}</Button></div></div></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{filteredArticles.map(article => (<div key={article.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group"><div className="h-40 relative"><img src={article.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div><div className="p-4"><div className="flex justify-between items-start mb-2"><h4 className="font-bold line-clamp-1 text-white flex-1">{article.title}</h4><span className="text-xs text-slate-500 border border-slate-700 px-1 rounded">#{article.order || 99}</span></div><div className="flex justify-end gap-2"><button onClick={() => handleDuplicateArticle(article)} className="p-2 bg-slate-800 hover:bg-blue-600 rounded-lg text-white"><Copy size={16}/></button><button onClick={() => setEditingArticle(article)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white"><Edit size={16}/></button><button onClick={() => updateState({ articles: state.articles.filter(a => a.id !== article.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white"><Trash size={16}/></button></div></div></div>))}</div></div>)}
         {activeTab === 'news' && (<div className="space-y-6 animate-fade-in"><div className="flex justify-end"><Button onClick={() => setEditingTimelineItem({ id: Date.now().toString(), title: 'עדכון חדש', description: '', imageUrl: '', category: [Category.HOME], order: 99 })}><Plus size={18} className="ml-2"/> עדכון חדש</Button></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{state.timelines.sort((a,b)=>(a.order||99)-(b.order||99)).map(item => (<div key={item.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col h-full"><div className="h-40 relative bg-slate-800">{item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-600"><Newspaper size={40}/></div>}<div className="absolute top-2 right-2 flex flex-wrap gap-1 justify-end">{item.category?.map(c => <span key={c} className="text-[10px] bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded">{CATEGORY_LABELS[c]}</span>)}</div></div><div className="p-4 flex-1 flex flex-col"><h4 className="font-bold text-white text-lg mb-2 line-clamp-2">{item.title}</h4><p className="text-slate-400 text-sm line-clamp-3 mb-4 flex-1">{item.description}</p><div className="flex justify-between items-center pt-2 border-t border-slate-800"><div className="text-xs text-slate-500">סדר: {item.order || 99}</div><div className="flex gap-2"><button onClick={() => setEditingTimelineItem(item)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white transition-colors"><Edit size={16}/></button><button onClick={() => updateState({ timelines: state.timelines.filter(t => t.id !== item.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white transition-colors"><Trash size={16}/></button></div></div></div></div>))}</div></div>)}
@@ -439,7 +386,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                         <div className="w-24"><label className="block text-xs text-slate-400 mb-1">מחיר (₪)</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.price} onChange={e=>setEditingProduct({...editingProduct, price: Number(e.target.value)})}/></div>
                     </div>
                     <div className="bg-slate-950 p-3 rounded border border-slate-800"><label className="block text-xs font-bold text-slate-400 mb-2">קטגוריות</label><div className="flex flex-wrap gap-2">{Object.values(Category).map(cat => (<button key={cat} onClick={() => toggleProductCategory(cat)} className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${editingProduct.categories?.includes(cat) ? 'bg-[#2EB0D9] text-white border-[#2EB0D9]' : 'bg-slate-900 text-slate-500 border-slate-700 hover:border-slate-500'}`}>{CATEGORY_LABELS[cat]} {editingProduct.categories?.includes(cat) && <Check size={12}/>}</button>))}</div></div>
-                    <div><label className="block text-xs text-slate-400 mb-1 flex items-center gap-1"><Tag size={12}/> תגיות (מופרד בפסיק)</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 placeholder-slate-500" value={editingProduct.tags?.join(', ') || ''} onChange={e => setEditingProduct({...editingProduct, tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)})} placeholder="נדלן, משפחה, חוזים..."/></div>
+                    <div><label className="block text-xs text-slate-400 mb-1 flex items-center gap-1"><Tag size={12}/> תגיות (מופרד בפסיק)</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 placeholder-slate-500" value={editingProduct.tags ? editingProduct.tags.join(',') : ''} onChange={e => setEditingProduct({...editingProduct, tags: e.target.value.split(',')})} placeholder="נדלן, משפחה, חוזים..."/></div>
                     <div><label className="block text-xs text-slate-400 mb-1">תיאור קצר</label><textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 h-20" value={editingProduct.description || ''} onChange={e=>setEditingProduct({...editingProduct, description: e.target.value})}/></div>
                     <div><label className="block text-xs text-slate-400 mb-1">לינק לתשלום (Stripe / משולם / אחר)</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.paymentLink} onChange={e=>setEditingProduct({...editingProduct, paymentLink: e.target.value})} placeholder="https://buy.stripe.com/..."/></div>
                     <div><label className="block text-xs text-slate-400 mb-1">פריסת תשלומים (טקסט חופשי)</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.installments || ''} onChange={e=>setEditingProduct({...editingProduct, installments: e.target.value})} placeholder="למשל: עד 12 תשלומים ללא ריבית"/></div>

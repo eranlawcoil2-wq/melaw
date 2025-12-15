@@ -1,15 +1,92 @@
+
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
+    <!-- SEO & Metadata -->
+    <title>MeLaw - משרד עורכי דין ונוטריון</title>
+    <meta name="description" content="משרד עורכי דין מוביל המתמחה בצוואות, ירושות, מקרקעין וייפוי כוח מתמשך. שירותים משפטיים דיגיטליים מתקדמים, מחשבוני מס וייעוץ אישי." />
+    <meta name="keywords" content="עורך דין, צוואות, ירושות, מקרקעין, נדלן, ייפוי כוח מתמשך, הסכם ממון, עורך דין משפחה, מחשבון מס רכישה, עורך דין אונליין" />
+    <meta name="author" content="Mor Eran Kagan & Co" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0f172a" />
+    
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://melaw.co.il/" />
+    <meta property="og:title" content="MeLaw - משרד עורכי דין ונוטריון" />
+    <meta property="og:description" content="ליווי משפטי מקיף, מקצועי ואישי. היכנסו למחולל הצוואות הדיגיטלי ולחנות המשפטית שלנו." />
+    <meta property="og:image" content="https://placehold.co/1200x630/0f172a/2EB0D9?text=MeLaw+Digital+Office" />
+    <meta property="og:locale" content="he_IL" />
+    <meta property="og:site_name" content="MeLaw Digital Office" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://melaw.co.il/" />
+    <meta name="twitter:title" content="MeLaw - משרד עורכי דין ונוטריון" />
+    <meta name="twitter:description" content="פתרונות משפטיים חכמים. צוואות, נדלן וייפוי כוח מתמשך." />
+    <meta name="twitter:image" content="https://placehold.co/1200x630/0f172a/2EB0D9?text=MeLaw+Digital+Office" />
+
+    <!-- Schema.org JSON-LD for AI & Google (GPT/Gemini Optimized) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LegalService",
+      "name": "MeLaw - משרד עורכי דין",
+      "alternateName": "Mor Eran Kagan & Co",
+      "image": "https://placehold.co/600x120/transparent/2EB0D9?text=MOR+ERAN+KAGAN+%26+CO",
+      "@id": "https://melaw.co.il",
+      "url": "https://melaw.co.il",
+      "telephone": "03-1234567",
+      "email": "office@melaw.co.il",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "דרך מנחם בגין 144",
+        "addressLocality": "תל אביב",
+        "postalCode": "61000",
+        "addressCountry": "IL"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 32.0740,
+        "longitude": 34.7925
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday"
+        ],
+        "opens": "09:00",
+        "closes": "18:00"
+      },
+      "priceRange": "$$",
+      "knowsAbout": [
+        "Law",
+        "Real Estate Law",
+        "Wills and Estates",
+        "Power of Attorney",
+        "Family Law",
+        "Digital Legal Services"
+      ],
+      "areaServed": "Israel",
+      "sameAs": [
+        "https://www.facebook.com/melaw",
+        "https://www.instagram.com/melaw"
+      ]
+    }
+    </script>
+
     <!-- Aggressive Cache Busting Meta Tags -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     
-    <title>MeLaw - משרד עורכי דין</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +95,6 @@
       /* --- Custom Logo Font Setup --- */
       @font-face {
         font-family: 'MyLogoFont';
-        /* This expects a file named 'logo-font.ttf' in the root directory */
         src: url('./logo-font.ttf') format('truetype');
         font-weight: normal;
         font-style: normal;
@@ -27,22 +103,20 @@
 
       body {
         font-family: 'Heebo', sans-serif;
-        overflow-y: scroll; /* Forces scrollbar to appear to prevent layout jumping */
+        overflow-y: scroll;
       }
       h1, h2, h3, h4, h5, h6 {
         font-family: 'Rubik', sans-serif;
       }
       
-      /* Aggressive Scrollbar Hiding */
       .scrollbar-hide {
-          -ms-overflow-style: none;  /* IE and Edge */
-          scrollbar-width: none;  /* Firefox */
+          -ms-overflow-style: none;
+          scrollbar-width: none;
       }
       .scrollbar-hide::-webkit-scrollbar {
-          display: none; /* Chrome, Safari and Opera */
+          display: none;
       }
 
-      /* Animations */
       @keyframes ken-burns {
         0% { transform: scale(1); }
         100% { transform: scale(1.15); }
@@ -78,7 +152,6 @@
         animation: fade-in-up 0.8s ease-out forwards;
       }
 
-      /* Animated Background Gradient */
       @keyframes gradient-xy {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
@@ -88,7 +161,6 @@
           animation: gradient-xy 15s ease infinite;
       }
 
-      /* Shine Effect for Buttons */
       @keyframes shine {
         100% { left: 125%; }
       }
@@ -112,7 +184,6 @@
         animation: shine 3s infinite;
       }
 
-      /* Scroll Reveal Classes */
       .reveal {
         opacity: 0;
         transform: translateY(30px);
@@ -123,47 +194,24 @@
         transform: translateY(0);
       }
 
-      /* --- Accessibility Overrides --- */
-      
-      /* Large Text */
-      body.a11y-large-text {
-        font-size: 120%;
-      }
+      /* Accessibility */
+      body.a11y-large-text { font-size: 120%; }
       body.a11y-large-text h1 { font-size: 2.5em; }
       body.a11y-large-text h2 { font-size: 2em; }
-      body.a11y-large-text p, body.a11y-large-text span, body.a11y-large-text a, body.a11y-large-text li {
-          font-size: 1.1em;
-      }
-
-      /* High Contrast Mode */
+      
       body.a11y-high-contrast {
         background-color: #000 !important;
         color: #fff !important;
       }
       body.a11y-high-contrast * {
         background-color: #000 !important;
-        color: #ffff00 !important; /* Yellow text */
+        color: #ffff00 !important;
         border-color: #ffff00 !important;
         box-shadow: none !important;
         text-shadow: none !important;
-        background-image: none !important; /* Remove background images for readability */
+        background-image: none !important;
       }
-      body.a11y-high-contrast img {
-         filter: grayscale(100%) contrast(120%);
-         border: 1px solid #ffff00 !important;
-      }
-      body.a11y-high-contrast button {
-         background-color: #ffff00 !important;
-         color: #000 !important;
-         font-weight: bold !important;
-         border: 2px solid #fff !important;
-      }
-      body.a11y-high-contrast svg {
-         stroke: #ffff00 !important;
-         fill: none !important;
-      }
-
-      /* Stop Animations */
+      
       body.a11y-stop-animations *,
       body.a11y-stop-animations *::before,
       body.a11y-stop-animations *::after {
