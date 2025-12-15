@@ -120,43 +120,43 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
             <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#2EB0D9] to-[#0EA5E9]"></div>
             <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-br from-[#2EB0D9]/10 via-[#2EB0D9]/5 to-transparent pointer-events-none"></div>
             
-            <div className="p-8 md:p-12 relative z-10">
+            <div className="p-4 md:p-12 relative z-10">
                 <div className="max-w-4xl mx-auto">
-                    <div className="flex justify-between items-start mb-8 border-b border-[#2EB0D9]/20 pb-6">
+                    <div className="flex justify-between items-start mb-6 md:mb-8 border-b border-[#2EB0D9]/20 pb-4 md:pb-6">
                         <div>
-                            <h3 className={`text-3xl md:text-4xl font-black mb-2 flex items-center gap-3 ${theme.textTitle}`}>
-                                <div className="bg-[#2EB0D9]/20 p-2 rounded-lg text-[#2EB0D9]"><Calculator size={32}/></div> 
+                            <h3 className={`text-2xl md:text-4xl font-black mb-2 flex items-center gap-3 ${theme.textTitle}`}>
+                                <div className="bg-[#2EB0D9]/20 p-2 rounded-lg text-[#2EB0D9]"><Calculator size={24} className="md:w-8 md:h-8"/></div> 
                                 {calculator.title}
                             </h3>
-                            <p className="text-slate-400 text-lg">מחשבון משפטי מקצועי לחישוב מדרגות מס בזמן אמת</p>
+                            <p className="text-slate-400 text-sm md:text-lg">מחשבון משפטי מקצועי לחישוב מדרגות מס בזמן אמת</p>
                         </div>
-                        <button onClick={onClose} className="p-2 bg-black/10 hover:bg-black/20 rounded-full transition-colors"><X size={24} className={theme.textMuted}/></button>
+                        <button onClick={onClose} className="p-2 bg-black/10 hover:bg-black/20 rounded-full transition-colors"><X size={20} className={`md:w-6 md:h-6 ${theme.textMuted}`}/></button>
                     </div>
 
-                    <div className={`p-8 rounded-2xl border shadow-inner space-y-8 ${theme.bgMain} ${theme.border}`}>
+                    <div className={`p-4 md:p-8 rounded-2xl border shadow-inner space-y-6 md:space-y-8 ${theme.bgMain} ${theme.border}`}>
                         
                         {/* INPUTS */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                             <div>
-                                <label className={`block text-sm font-bold mb-3 ${theme.textMuted}`}>סוג העסקה</label>
+                                <label className={`block text-xs md:text-sm font-bold mb-2 md:mb-3 ${theme.textMuted}`}>סוג העסקה</label>
                                 <div className="relative">
                                     <select 
-                                        className={`w-full p-4 pr-10 border rounded-xl appearance-none font-bold text-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition-shadow ${theme.inputBg}`}
+                                        className={`w-full p-3 md:p-4 pr-8 md:pr-10 border rounded-xl appearance-none font-bold text-base md:text-lg focus:ring-2 focus:ring-[#2EB0D9] outline-none transition-shadow ${theme.inputBg}`}
                                         value={selectedScenarioId}
                                         onChange={(e) => { setSelectedScenarioId(e.target.value); setResult(null); }}
                                     >
                                         {calculator.scenarios.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                                     </select>
-                                    <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500"/>
+                                    <ChevronDown className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 w-4 h-4 md:w-6 md:h-6"/>
                                 </div>
                             </div>
                             <div>
-                                <label className={`block text-sm font-bold mb-3 ${theme.textMuted}`}>שווי הנכס (בש"ח)</label>
+                                <label className={`block text-xs md:text-sm font-bold mb-2 md:mb-3 ${theme.textMuted}`}>שווי הנכס (בש"ח)</label>
                                 <div className="relative">
                                     <input 
                                         type="text"
                                         inputMode="numeric"
-                                        className={`w-full p-4 border rounded-xl font-mono text-xl font-bold focus:ring-2 focus:ring-[#2EB0D9] outline-none transition-shadow ${theme.inputBg}`}
+                                        className={`w-full p-3 md:p-4 border rounded-xl font-mono text-lg md:text-xl font-bold focus:ring-2 focus:ring-[#2EB0D9] outline-none transition-shadow ${theme.inputBg}`}
                                         value={price}
                                         onChange={handlePriceChange}
                                         placeholder="0"
@@ -166,29 +166,29 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
                             </div>
                         </div>
 
-                        <Button onClick={calculate} size="lg" className="w-full py-5 text-xl font-black tracking-wide shine-effect shadow-xl shadow-[#2EB0D9]/20">
-                            <Calculator className="ml-2"/> בצע חישוב
+                        <Button onClick={calculate} size="lg" className="w-full py-3 md:py-5 text-lg md:text-xl font-black tracking-wide shine-effect shadow-xl shadow-[#2EB0D9]/20">
+                            <Calculator className="ml-2 w-5 h-5 md:w-6 md:h-6"/> בצע חישוב
                         </Button>
 
                         {/* RESULTS */}
                         {result && (
-                            <div className="mt-8 animate-fade-in-up">
-                                <div className="bg-gradient-to-r from-[#2EB0D9]/20 to-[#0EA5E9]/10 border border-[#2EB0D9]/30 rounded-2xl p-8 mb-8 text-center relative overflow-hidden">
+                            <div className="mt-6 md:mt-8 animate-fade-in-up">
+                                <div className="bg-gradient-to-r from-[#2EB0D9]/20 to-[#0EA5E9]/10 border border-[#2EB0D9]/30 rounded-2xl p-6 md:p-8 mb-6 md:mb-8 text-center relative overflow-hidden">
                                     <div className="relative z-10">
-                                        <span className="text-sm font-bold block mb-2 text-[#2EB0D9] uppercase tracking-widest">סה"כ מס לתשלום</span>
-                                        <span className="text-5xl md:text-6xl font-black text-white drop-shadow-lg">{formatCurrency(result.total)}</span>
+                                        <span className="text-xs md:text-sm font-bold block mb-2 text-[#2EB0D9] uppercase tracking-widest">סה"כ מס לתשלום</span>
+                                        <span className="text-4xl md:text-6xl font-black text-white drop-shadow-lg">{formatCurrency(result.total)}</span>
                                     </div>
                                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                                 </div>
 
                                 <div className="overflow-x-auto rounded-xl border border-slate-700/50">
-                                    <table className={`w-full text-sm border-collapse ${theme.textMain}`}>
+                                    <table className={`w-full text-xs md:text-sm border-collapse ${theme.textMain}`}>
                                         <thead className="bg-slate-900/50">
                                             <tr className={`border-b ${theme.border}`}>
-                                                <th className="p-4 text-right font-bold text-slate-400">מדרגה</th>
-                                                <th className="p-4 text-center font-bold text-slate-400">שיעור מס</th>
-                                                <th className="p-4 text-center font-bold text-slate-400">סכום במדרגה</th>
-                                                <th className="p-4 text-left font-bold text-slate-400">מס לתשלום</th>
+                                                <th className="p-2 md:p-4 text-right font-bold text-slate-400">מדרגה</th>
+                                                <th className="p-2 md:p-4 text-center font-bold text-slate-400">שיעור מס</th>
+                                                <th className="p-2 md:p-4 text-center font-bold text-slate-400">סכום במדרגה</th>
+                                                <th className="p-2 md:p-4 text-left font-bold text-slate-400">מס לתשלום</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -204,12 +204,12 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
 
                                                 return (
                                                     <tr key={idx} className={`border-b border-slate-800/50 hover:bg-white/5 transition-colors`}>
-                                                        <td className="p-4 font-mono text-slate-400 border-l border-slate-800/50">
+                                                        <td className="p-2 md:p-4 font-mono text-slate-400 border-l border-slate-800/50">
                                                             {bracketLabel}
                                                         </td>
-                                                        <td className="p-4 text-center font-bold text-[#2EB0D9] border-l border-slate-800/50">{step.rate}%</td>
-                                                        <td className="p-4 text-center border-l border-slate-800/50">{formatCurrency(step.amountInBracket)}</td>
-                                                        <td className="p-4 text-left font-bold">{formatCurrency(step.tax)}</td>
+                                                        <td className="p-2 md:p-4 text-center font-bold text-[#2EB0D9] border-l border-slate-800/50">{step.rate}%</td>
+                                                        <td className="p-2 md:p-4 text-center border-l border-slate-800/50">{formatCurrency(step.amountInBracket)}</td>
+                                                        <td className="p-2 md:p-4 text-left font-bold">{formatCurrency(step.tax)}</td>
                                                     </tr>
                                                 );
                                             })}
@@ -217,7 +217,7 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
                                     </table>
                                 </div>
                                 
-                                <div className="mt-6 text-xs text-slate-500 text-center flex items-center justify-center gap-2">
+                                <div className="mt-4 md:mt-6 text-[10px] md:text-xs text-slate-500 text-center flex items-center justify-center gap-2">
                                     <AlertOctagon size={12}/>
                                     <span>החישוב הינו להערכה בלבד ואינו מהווה תחליף לייעוץ משפטי או שומה סופית של רשות המיסים.</span>
                                 </div>
@@ -512,10 +512,15 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">
                          {storeProducts.length > 0 ? storeProducts.map((product) => (
                              <div key={product.id} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col`}>
-                                 <div className={`h-32 md:h-48 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                                     <div className="absolute inset-0 flex items-center justify-center"><div className="bg-white/10 backdrop-blur-sm p-3 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500"><FileText size={24} className="text-white"/></div></div>
-                                 </div>
+                                 {/* Only show the top image/placeholder if there is an actual image URL */}
+                                 {product.imageUrl && (
+                                     <div className={`h-32 md:h-48 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                                         <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" />
+                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                                         <div className="absolute inset-0 flex items-center justify-center"><div className="bg-white/10 backdrop-blur-sm p-3 rounded-full border border-white/20 group-hover:scale-110 transition-transform duration-500"><FileText size={24} className="text-white"/></div></div>
+                                     </div>
+                                 )}
+                                 
                                  <div className="p-3 text-center flex-1 flex flex-col">
                                      <div className="mb-1 flex flex-wrap justify-center gap-1">
                                          {product.categories && product.categories.slice(0, 1).map(cat => (

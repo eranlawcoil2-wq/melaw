@@ -294,6 +294,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
 
   const handleUpdateArticle = () => { if(editingArticle) { updateState({ articles: state.articles.map(a => a.id === editingArticle.id ? editingArticle : a) }); setEditingArticle(null); }};
   
+  // DUPLICATION LOGIC
+  const handleDuplicateArticle = (article: Article) => {
+      const newArticle = { ...article, id: Date.now().toString(), title: `${article.title} (עותק)` };
+      updateState({ articles: [newArticle, ...state.articles] });
+  };
+  const handleDuplicateForm = (form: FormDefinition) => {
+      const newForm = { ...form, id: Date.now().toString(), title: `${form.title} (עותק)` };
+      updateState({ forms: [...state.forms, newForm] });
+  };
+  const handleDuplicateProduct = (product: Product) => {
+      const newProduct = { ...product, id: Date.now().toString(), title: `${product.title} (עותק)` };
+      updateState({ products: [...state.products, newProduct] });
+  };
+
   // ARTICLE TABS LOGIC
   const addArticleTab = () => { if(editingArticle) setEditingArticle({...editingArticle, tabs: [...editingArticle.tabs, { title: 'כותרת חדשה', content: '' }]}); };
   const updateArticleTab = (index: number, field: 'title' | 'content', val: string) => { 
@@ -415,7 +429,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                         </div>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{filteredArticles.map(article => (<div key={article.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group"><div className="h-40 relative"><img src={article.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div><div className="p-4"><div className="flex justify-between items-start mb-2"><h4 className="font-bold line-clamp-1 text-white flex-1">{article.title}</h4><span className="text-xs text-slate-500 border border-slate-700 px-1 rounded">#{article.order || 99}</span></div><div className="flex justify-end gap-2"><button onClick={() => setEditingArticle(article)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white"><Edit size={16}/></button><button onClick={() => updateState({ articles: state.articles.filter(a => a.id !== article.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white"><Trash size={16}/></button></div></div></div>))}</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{filteredArticles.map(article => (
+                    <div key={article.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group">
+                        <div className="h-40 relative"><img src={article.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div>
+                        <div className="p-4">
+                            <div className="flex justify-between items-start mb-2"><h4 className="font-bold line-clamp-1 text-white flex-1">{article.title}</h4><span className="text-xs text-slate-500 border border-slate-700 px-1 rounded">#{article.order || 99}</span></div>
+                            <div className="flex justify-end gap-2">
+                                <button onClick={() => handleDuplicateArticle(article)} className="p-2 bg-slate-800 hover:bg-blue-600 rounded-lg text-white" title="שכפל מאמר"><Copy size={16}/></button>
+                                <button onClick={() => setEditingArticle(article)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white"><Edit size={16}/></button>
+                                <button onClick={() => updateState({ articles: state.articles.filter(a => a.id !== article.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white"><Trash size={16}/></button>
+                            </div>
+                        </div>
+                    </div>
+                ))}</div>
             </div>
         )}
         
@@ -451,7 +477,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
         {activeTab === 'forms' && (
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-end"><Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', categories: [Category.HOME], fields: [], submitEmail: '', sendClientEmail: true, order: 99 })}><Plus size={18} className="ml-2"/> טופס חדש</Button></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{state.forms.map(form => (<div key={form.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 shadow-lg"><div className="flex justify-between items-start"><div><h4 className="font-bold text-white text-lg">{form.title}</h4><div className="flex flex-wrap gap-1 mt-1">{form.categories?.map(c => <span key={c} className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 border border-slate-700">{CATEGORY_LABELS[c]}</span>)}</div></div><div className="flex gap-2"><button onClick={() => setEditingForm(form)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white transition-colors"><Edit size={16}/></button><button onClick={() => updateState({ forms: state.forms.filter(f => f.id !== form.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white transition-colors"><Trash size={16}/></button></div></div><div className="text-xs text-slate-500 bg-slate-950 p-2 rounded border border-slate-800 mt-auto flex justify-between"><span>{form.fields.length} שדות</span><span>#{form.order || 99}</span></div></div>))}</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{state.forms.map(form => (
+                    <div key={form.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 shadow-lg">
+                        <div className="flex justify-between items-start">
+                            <div><h4 className="font-bold text-white text-lg">{form.title}</h4><div className="flex flex-wrap gap-1 mt-1">{form.categories?.map(c => <span key={c} className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 border border-slate-700">{CATEGORY_LABELS[c]}</span>)}</div></div>
+                            <div className="flex gap-2">
+                                <button onClick={() => handleDuplicateForm(form)} className="p-2 bg-slate-800 hover:bg-blue-600 rounded-lg text-white transition-colors" title="שכפל טופס"><Copy size={16}/></button>
+                                <button onClick={() => setEditingForm(form)} className="p-2 bg-slate-800 hover:bg-[#2EB0D9] rounded-lg text-white transition-colors"><Edit size={16}/></button>
+                                <button onClick={() => updateState({ forms: state.forms.filter(f => f.id !== form.id) })} className="p-2 bg-slate-800 hover:bg-red-500 rounded-lg text-white transition-colors"><Trash size={16}/></button>
+                            </div>
+                        </div>
+                        <div className="text-xs text-slate-500 bg-slate-950 p-2 rounded border border-slate-800 mt-auto flex justify-between"><span>{form.fields.length} שדות</span><span>#{form.order || 99}</span></div>
+                    </div>
+                ))}</div>
             </div>
         )}
 
@@ -535,6 +573,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                             <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-800">
                                 <span className="text-[10px] text-slate-600">ID: {product.id}</span>
                                 <div className="flex gap-2">
+                                    <button onClick={() => handleDuplicateProduct(product)} className="p-1.5 bg-slate-800 hover:bg-blue-600 rounded text-white transition-colors" title="שכפל מוצר"><Copy size={14}/></button>
                                     <button onClick={() => setEditingProduct(product)} className="p-1.5 bg-slate-800 hover:bg-[#2EB0D9] rounded text-white transition-colors"><Edit size={14}/></button>
                                     <button onClick={() => updateState({ products: (state.products || []).filter(p => p.id !== product.id) })} className="p-1.5 bg-slate-800 hover:bg-red-500 rounded text-white transition-colors"><Trash size={14}/></button>
                                 </div>
@@ -841,6 +880,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateSta
                     <div><label className="block text-xs text-slate-400 mb-1">תיאור קצר</label><textarea className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700 h-20" value={editingProduct.description || ''} onChange={e=>setEditingProduct({...editingProduct, description: e.target.value})}/></div>
                     <div><label className="block text-xs text-slate-400 mb-1">לינק לתשלום (Stripe / משולם / אחר)</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.paymentLink} onChange={e=>setEditingProduct({...editingProduct, paymentLink: e.target.value})} placeholder="https://buy.stripe.com/..."/></div>
                     <div><label className="block text-xs text-slate-400 mb-1">פריסת תשלומים (טקסט חופשי)</label><input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.installments || ''} onChange={e=>setEditingProduct({...editingProduct, installments: e.target.value})} placeholder="למשל: עד 12 תשלומים ללא ריבית"/></div>
+                    
+                    {/* PRODUCT IMAGE */}
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">תמונת מוצר (אופציונלי)</label>
+                        <div className="flex gap-2">
+                            <input className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.imageUrl || ''} onChange={e=>setEditingProduct({...editingProduct, imageUrl: e.target.value})} placeholder="URL לתמונה"/>
+                            <ImageUploadButton onImageSelected={(url) => setEditingProduct({...editingProduct, imageUrl: url})} googleSheetsUrl={state.config.integrations.googleSheetsUrl} supabaseConfig={supabaseConfig} className="h-8 w-10 px-0"/>
+                        </div>
+                    </div>
+
                     <div className="flex gap-4 items-center">
                         <div className="flex-1"><label className="block text-xs text-slate-400 mb-1">סדר הופעה</label><input type="number" className="w-full p-2 bg-slate-800 text-white rounded border border-slate-700" value={editingProduct.order || 99} onChange={e=>setEditingProduct({...editingProduct, order: Number(e.target.value)})}/></div>
                         <div className="flex items-center gap-2 pt-4">
