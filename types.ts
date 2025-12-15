@@ -155,6 +155,8 @@ export interface FormDefinition {
     order?: number;
     emailSubject?: string;
     emailBody?: string;
+    nextFormId?: string; // ID of the next form to open after submission
+    submitButtonText?: string; // Custom text for the submit button
 }
 
 // --- NEW CALCULATOR TYPES ---

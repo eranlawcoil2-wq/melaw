@@ -270,13 +270,16 @@ export const emailService = {
         } 
         
         // --- 2. ALWAYS OFFER LOCAL PRINT FOR WILLS (Since Email is flaky for user) ---
-        // If it's a WILL or POA, or if the server send failed, open the local print view
-        if (pdfTemplate === 'WILL' || pdfTemplate === 'POA' || !success) {
-             // Slight delay to allow the "Success" alert from the caller to happen (or happen after)
+        // We only open print specifically for Wills if requested, or if the user explicitly wants PDF generation.
+        // The user specifically asked to STOP automatic PDF opening for general forms.
+        // So we removed the automatic "if (success) openLocalPrint" logic that was here.
+        
+        if (pdfTemplate === 'WILL' && !success) {
+             // Only fallback to local print if server failed and it is a will
              setTimeout(() => {
                  this.openLocalPrint(formTitle, data);
              }, 1000);
-             return true; // Mark as "handled" so the UI doesn't think it failed completely
+             return true; 
         }
 
         if (!success && !config?.googleSheetsUrl) {

@@ -6,7 +6,7 @@ import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
 import { ShareMenu } from '../components/ShareMenu.tsx';
 import { emailService } from '../services/api.ts'; 
-import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle, Printer, MessageCircle, Calculator, ChevronDown, Filter, Tag } from 'lucide-react';
+import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle, Printer, MessageCircle, Calculator, ChevronDown, Filter, Tag, ArrowRightCircle } from 'lucide-react';
 
 const Reveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = "", delay = 0 }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -772,7 +772,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                  {field.type === 'select' && <select className={`w-full p-4 border rounded-lg ${theme.inputBg}`} value={dynamicFormValues[field.id] || ''} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}><option value="">בחר...</option>{field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>}
                              </div>
                          ))}
-                         <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => { 
+                         <Button className="w-full mt-6 py-4 text-lg font-bold shine-effect flex justify-center items-center gap-2" variant="secondary" disabled={isSubmittingDynamic} onClick={async () => { 
                              if (!currentDynamicForm) return;
                              setIsSubmittingDynamic(true); 
                              for (const field of currentDynamicForm.fields) {
@@ -802,16 +802,40 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                  await emailService.sendForm(
                                     String(currentDynamicForm.title || "Form"), 
                                     mappedData, 
-                                    state.config.integrations, 
+                                    state.config.integrations as any, 
                                     currentDynamicForm.pdfTemplate, 
                                     currentDynamicForm.sendClientEmail || false, 
                                     String(currentDynamicForm.submitEmail || state.config.contactEmail || "")
                                  ); 
-                                 if (state.config.integrations.googleSheetsUrl) alert(`נשלח בהצלחה למערכת!\nמספר אסמכתא: ${submissionId}`); else alert("נשלח בהצלחה! (מצב ללא חיבור לשרת).");
-                                 setActiveDynamicFormId(null); 
-                                 // REMOVED: setDynamicFormValues({}); -- Data is preserved per user request
-                             } catch (e: any) { alert("שגיאה"); } finally { setIsSubmittingDynamic(false); } 
-                         }}>{isSubmittingDynamic ? 'שולח...' : 'שלח טופס'}</Button>
+                                 
+                                 // Success Handling
+                                 if (state.config.integrations.googleSheetsUrl) alert(`נשלח בהצלחה!\nמספר אסמכתא: ${submissionId}`); 
+                                 else alert("נשלח בהצלחה! (מצב ללא חיבור לשרת).");
+                                 
+                                 // Logic for Next Form OR Close
+                                 if (currentDynamicForm.nextFormId) {
+                                     const nextForm = state.forms.find(f => f.id === currentDynamicForm.nextFormId);
+                                     if (nextForm) {
+                                         setActiveDynamicFormId(nextForm.id);
+                                         setDynamicFormValues({}); // Clear values for next form
+                                         // Scroll to top of form container
+                                         setTimeout(() => dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                                     } else {
+                                         setActiveDynamicFormId(null);
+                                     }
+                                 } else {
+                                     setActiveDynamicFormId(null); 
+                                 }
+
+                             } catch (e: any) { 
+                                 alert("שגיאה בשליחה"); 
+                             } finally { 
+                                 setIsSubmittingDynamic(false); 
+                             } 
+                         }}>
+                             {isSubmittingDynamic ? 'שולח...' : (currentDynamicForm.submitButtonText || 'שלח טופס')}
+                             {!isSubmittingDynamic && currentDynamicForm.nextFormId && <ArrowRightCircle size={20} />}
+                         </Button>
                      </div>
                  </div>
             </div>
