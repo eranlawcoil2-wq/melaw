@@ -4,6 +4,7 @@ import { AppState, Article, Category, WillsFormData, FormDefinition, TeamMember,
 import { Button } from '../components/Button.tsx';
 import { ArticleCard } from '../components/ArticleCard.tsx';
 import { FloatingWidgets } from '../components/FloatingWidgets.tsx';
+import { ShareMenu } from '../components/ShareMenu.tsx';
 import { emailService } from '../services/api.ts'; 
 import { Search, Phone, MapPin, Mail, Menu, X, ArrowLeft, Navigation, FileText, Settings, ChevronLeft, ChevronRight, Loader2, Scale, BookOpen, ClipboardList, Newspaper, AlertOctagon, HelpCircle, Printer, MessageCircle, Calculator, ChevronDown } from 'lucide-react';
 
@@ -52,6 +53,9 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
 
     const scenario = calculator.scenarios.find(s => s.id === selectedScenarioId);
 
+    // Deep link URL for sharing
+    const shareUrl = `${window.location.origin}${window.location.pathname}#calc:${calculator.id}`;
+
     const formatNumberWithCommas = (value: string) => {
         const cleanVal = value.replace(/,/g, '');
         if (!cleanVal) return '';
@@ -61,10 +65,6 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value.replace(/[^0-9]/g, ''); // Allow only numbers
         setPrice(formatNumberWithCommas(val));
-        // We do NOT clear result here based on user request to keep data visible, 
-        // but typically for a calculator, changing input invalidates result. 
-        // Keeping it consistent with "don't clear data" request might be confusing for calculator,
-        // but we will allow re-calculation without clearing the input.
         setResult(null); 
     };
 
@@ -130,7 +130,10 @@ const TaxCalculatorWidget: React.FC<TaxCalculatorProps> = ({ calculator, theme, 
                             </h3>
                             <p className="text-slate-400 text-sm md:text-lg">מחשבון משפטי מקצועי לחישוב מדרגות מס בזמן אמת</p>
                         </div>
-                        <button onClick={onClose} className="p-2 bg-black/10 hover:bg-black/20 rounded-full transition-colors"><X size={20} className={`md:w-6 md:h-6 ${theme.textMuted}`}/></button>
+                        <div className="flex gap-2">
+                            <ShareMenu variant="inline" title={calculator.title} text="מחשבון מס מעולה שמצאתי באתר:" url={shareUrl} colorClass={theme.textMuted} />
+                            <button onClick={onClose} className="p-2 bg-black/10 hover:bg-black/20 rounded-full transition-colors"><X size={20} className={`md:w-6 md:h-6 ${theme.textMuted}`}/></button>
+                        </div>
                     </div>
 
                     <div className={`p-4 md:p-8 rounded-2xl border shadow-inner space-y-6 md:space-y-8 ${theme.bgMain} ${theme.border}`}>
@@ -254,7 +257,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const [activeArticleTab, setActiveArticleTab] = useState(0); 
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
   const [activeDynamicFormId, setActiveDynamicFormId] = useState<string | null>(null);
-  const [activeCalculatorId, setActiveCalculatorId] = useState<string | null>(null); // NEW
+  const [activeCalculatorId, setActiveCalculatorId] = useState<string | null>(null); 
   const [dynamicFormValues, setDynamicFormValues] = useState<Record<string, any>>({});
   const [isSubmittingDynamic, setIsSubmittingDynamic] = useState(false);
   const [showFormsListModal, setShowFormsListModal] = useState(false);
@@ -330,6 +333,47 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   ].sort((a,b) => {
       return a.sortOrder - b.sortOrder;
   });
+
+  // DEEP LINKING HANDLER
+  useEffect(() => {
+    const handleHash = () => {
+        const hash = window.location.hash.replace('#', '');
+        if (!hash) return;
+
+        // Decode in case of Hebrew chars
+        const decodedHash = decodeURIComponent(hash);
+        const [type, id] = decodedHash.split(':');
+        
+        if (!type || !id) return;
+
+        if (type === 'article') {
+            const item = state.articles.find(a => a.id === id);
+            if (item) setSelectedArticle(item);
+        } else if (type === 'calc') {
+            const item = state.calculators?.find(c => c.id === id);
+            if (item) {
+                setActiveCalculatorId(id);
+                setTimeout(() => calculatorRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+            }
+        } else if (type === 'update') {
+            const item = state.timelines.find(t => t.id === id);
+            if (item) setSelectedTimelineItem(item);
+        } else if (type === 'form') {
+            const item = state.forms.find(f => f.id === id);
+            if (item) {
+                setActiveDynamicFormId(id);
+                setTimeout(() => dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+            }
+        }
+    };
+
+    // Run on mount
+    handleHash();
+    
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, [state.articles, state.calculators, state.timelines, state.forms]);
 
   useEffect(() => {
     const interval = setInterval(() => { setActiveSlide((prev) => (prev + 1) % currentSlides.length); }, 6000); 
@@ -511,7 +555,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                      <div className="flex justify-between items-center mb-6"><SectionTitle title={isStorePage ? "החנות המשפטית" : "שירותים לרכישה אונליין"} isDark={isDark} /></div>
                      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x mx-auto w-full">
                          {storeProducts.length > 0 ? storeProducts.map((product) => (
-                             <div key={product.id} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col`}>
+                             <div key={product.id} className={`flex-shrink-0 w-[200px] md:w-[calc(25%-18px)] snap-center lg:snap-start group rounded-xl overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 border ${theme.cardBg} ${theme.cardHover} flex flex-col relative`}>
                                  {/* Only show the top image/placeholder if there is an actual image URL */}
                                  {product.imageUrl && (
                                      <div className={`h-32 md:h-48 w-full flex items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
@@ -521,6 +565,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                      </div>
                                  )}
                                  
+                                 <div className="absolute top-2 left-2 z-10">
+                                     <ShareMenu variant="inline" title={product.title} text="מצאתי מוצר משפטי באתר:" url={`${window.location.origin}${window.location.pathname}#product:${product.id}`} colorClass="bg-black/30 text-white backdrop-blur-sm hover:bg-black/50"/>
+                                 </div>
+
                                  <div className="p-3 text-center flex-1 flex flex-col">
                                      <div className="mb-1 flex flex-wrap justify-center gap-1">
                                          {product.categories && product.categories.slice(0, 1).map(cat => (
@@ -588,7 +636,16 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
         {currentDynamicForm && (
             <div ref={dynamicFormRef} className={`mb-20 container mx-auto px-4 rounded-2xl p-8 md:p-12 shadow-2xl border-t-4 border-[#2EB0D9] animate-fade-in-up border-x border-b ${theme.cardBg}`}>
                  <div className="max-w-2xl mx-auto">
-                     <div className="flex justify-between items-start mb-6"><div><h3 className={`text-3xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3><p className={theme.textMuted}>נא למלא את כל השדות הנדרשים</p></div><button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X size={32}/></button></div>
+                     <div className="flex justify-between items-start mb-6">
+                         <div>
+                             <h3 className={`text-3xl font-bold mb-2 ${theme.textTitle}`}>{currentDynamicForm.title}</h3>
+                             <p className={theme.textMuted}>נא למלא את כל השדות הנדרשים</p>
+                         </div>
+                         <div className="flex gap-2">
+                             <ShareMenu variant="inline" title={currentDynamicForm.title} text="טופס משפטי למילוי:" url={`${window.location.origin}${window.location.pathname}#form:${currentDynamicForm.id}`} colorClass={theme.textMuted}/>
+                             <button onClick={() => setActiveDynamicFormId(null)} className={`${theme.textMuted} hover:opacity-70`}><X size={32}/></button>
+                         </div>
+                     </div>
                      <div className={`space-y-6 p-8 rounded-xl border shadow-inner ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                          {currentDynamicForm.fields.map(field => (
                              <div key={field.id} className="space-y-2">
@@ -739,7 +796,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                 <div className={`flex-1 flex flex-col h-full relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                     <div className={`p-4 border-b flex justify-between items-start flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div><h2 className={`text-xl md:text-2xl font-black leading-tight ${theme.textTitle}`}>{selectedArticle.title}</h2></div>
-                        <button onClick={() => setSelectedArticle(null)} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={20} /></button>
+                        <div className="flex gap-2">
+                            <ShareMenu variant="inline" title={selectedArticle.title} text="מאמר משפטי מעניין שקראתי:" url={`${window.location.origin}${window.location.pathname}#article:${selectedArticle.id}`} colorClass={theme.textMuted}/>
+                            <button onClick={() => setSelectedArticle(null)} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={20} /></button>
+                        </div>
                     </div>
                     <div className={`px-4 pt-4 flex-shrink-0 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                         <div className={`flex gap-2 border-b overflow-x-auto scrollbar-hide ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
@@ -784,7 +844,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                         <h2 className={`text-xl font-black ${theme.textTitle}`}>{selectedTimelineItem.title}</h2>
                         <span className="text-xs text-[#2EB0D9] uppercase tracking-wider">עדכון / פסיקה</span>
                     </div>
-                    <button onClick={() => setSelectedTimelineItem(null)} className={`p-2 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={24} /></button>
+                    <div className="flex gap-2">
+                        <ShareMenu variant="inline" title={selectedTimelineItem.title} text="עדכון משפטי חשוב:" url={`${window.location.origin}${window.location.pathname}#update:${selectedTimelineItem.id}`} colorClass={theme.textMuted}/>
+                        <button onClick={() => setSelectedTimelineItem(null)} className={`p-2 rounded-full hover:bg-black/10 transition-colors ${theme.textMuted}`}><X size={24} /></button>
+                    </div>
                 </div>
                 {selectedTimelineItem.tabs && selectedTimelineItem.tabs.length > 0 ? (
                     <>
