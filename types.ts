@@ -3,7 +3,7 @@ export enum Category {
   HOME = 'HOME',
   WILLS = 'WILLS',
   REAL_ESTATE = 'REAL_ESTATE',
-  POA = 'POA', // Power of Attorney
+  POA = 'POA', 
   STORE = 'STORE',
   CONTACT = 'CONTACT'
 }
@@ -22,7 +22,7 @@ export interface SliderSlide {
   imageUrl: string;
   title: string;
   subtitle: string;
-  categories: Category[]; // CHANGED: From single category to array
+  categories: Category[]; 
   buttonText?: string;
   linkTo?: string; 
   order?: number; 
@@ -33,7 +33,7 @@ export interface TimelineItem {
   title: string;
   description: string;
   imageUrl: string;
-  category: Category[]; // Ensure this is Array
+  category: Category[]; 
   linkTo?: string;
   order?: number; 
   tabs?: ArticleTab[]; 
@@ -78,7 +78,7 @@ export interface Product {
     categories: Category[]; 
     imageUrl?: string;
     isPopular?: boolean;
-    tags?: string[]; // ADDED: Tags for filtering
+    tags?: string[]; 
     order?: number; 
 }
 
@@ -132,7 +132,7 @@ export interface MenuItem {
     order?: number;
 }
 
-export type FieldType = 'text' | 'email' | 'phone' | 'number' | 'boolean' | 'select' | 'repeater' | 'composite_name_id';
+export type FieldType = 'text' | 'email' | 'phone' | 'number' | 'boolean' | 'select' | 'repeater' | 'composite_name_id' | 'children_list';
 
 export interface FormField {
     id: string;
@@ -141,7 +141,7 @@ export interface FormField {
     options?: string[];
     required: boolean;
     helpArticleId?: string; 
-    isClientEmail?: boolean; // NEW: Marks this field as the destination email
+    isClientEmail?: boolean; 
 }
 
 export interface FormDefinition {
@@ -155,21 +155,20 @@ export interface FormDefinition {
     order?: number;
     emailSubject?: string;
     emailBody?: string;
-    nextFormId?: string; // ID of the next form to open after submission
-    submitButtonText?: string; // Custom text for the submit button
+    nextFormId?: string; 
+    submitButtonText?: string; 
 }
 
-// --- NEW CALCULATOR TYPES ---
 export interface TaxBracket {
     id: string;
-    threshold: number; // The "Up to" amount
-    rate: number; // The percentage (e.g. 3.5)
+    threshold: number; 
+    rate: number; 
 }
 
 export interface TaxScenario {
     id: string;
-    title: string; // e.g. "Single Apartment", "Additional Apartment"
-    brackets: TaxBracket[]; // Sorted by threshold
+    title: string; 
+    brackets: TaxBracket[]; 
 }
 
 export interface CalculatorDefinition {
@@ -179,7 +178,6 @@ export interface CalculatorDefinition {
     scenarios: TaxScenario[];
     order?: number;
 }
-// ----------------------------
 
 export interface AppState {
   currentCategory: Category;
@@ -189,7 +187,7 @@ export interface AppState {
   articles: Article[];
   menuItems: MenuItem[];
   forms: FormDefinition[];
-  calculators: CalculatorDefinition[]; // ADDED
+  calculators: CalculatorDefinition[]; 
   teamMembers: TeamMember[];
   products: Product[];
   lastUpdated: string;
