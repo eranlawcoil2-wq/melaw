@@ -10,7 +10,7 @@ import { Loader2, CheckCircle2 } from 'lucide-react';
 const PUBLIC_SUPABASE_URL: string = 'https://kqjmwwjafypkswkkbncc.supabase.co'; 
 const PUBLIC_SUPABASE_KEY: string = 'sb_publishable_ftgAGUontmVJ-BfgzfQJsA_n7npD__t';
 
-const BUILD_TIMESTAMP = new Date().toLocaleString('he-IL') + " (V4.5 - Interactive Modals)";
+const BUILD_TIMESTAMP = new Date().toLocaleString('he-IL') + " (V4.6 - Boolean Fields Fix)";
 
 // --- INITIAL DEFAULT DATA ---
 const initialArticles: Article[] = [
@@ -22,9 +22,8 @@ const initialArticles: Article[] = [
     imageUrl: 'https://picsum.photos/id/1015/800/600',
     quote: 'הצוואה היא המצפן של רצונך האחרון',
     tabs: [
-        { title: 'ניתוח משפטי', content: 'סעיף 8א לחוק הירושה קובע את הכללים לגבי צוואות הדדיות. החידוש העיקרי הוא ההגבלה על יכולת הביטול החד-צדדית של הצוואה לאחר מות אחד מבני הזוג. החוק נועד לאזן בין רצון המצווה לבין הסתמכות בן הזוג.' },
-        { title: 'סיפור מקרה', content: 'מקרה שהיה: בני זוג שלא ערכו הסכם ונאלצו להתמודד עם התנגדויות ירושה קשות מצד ילדים מנישואים קודמים.' },
-        { title: 'המלצות', content: '• לערוך צוואה הדדית בכתב\n• להפקיד אצל רשם הירושות\n• להתייעץ עם עו"ד מומחה' }
+        { title: 'ניתוח משפטי', content: 'סעיף 8א לחוק הירושה קובע את הכללים לגבי צוואות הדדיות.' },
+        { title: 'המלצות', content: '• לערוך צוואה הדדית בכתב\n• להפקיד אצל רשם הירושות' }
     ],
     order: 1
   }
@@ -52,57 +51,20 @@ const initialMenuItems: MenuItem[] = [
     { id: '2', label: 'צוואות וירושות', cat: Category.WILLS },
     { id: '3', label: 'מקרקעין', cat: Category.REAL_ESTATE },
     { id: '4', label: 'ייפוי כוח מתמשך', cat: Category.POA },
-    { id: '5', label: 'חנות משפטית', cat: Category.STORE },
-    { id: '6', label: 'צור קשר', cat: Category.CONTACT },
-];
-
-const initialForms: FormDefinition[] = [
-    {
-        id: 'wills-generator',
-        title: 'מחולל צוואות',
-        categories: [Category.WILLS, Category.HOME], 
-        submitEmail: 'office@melaw.co.il',
-        fields: [
-            { id: 'f1', type: 'composite_name_id', label: 'פרטי המצווה', required: true },
-            { id: 'f2', type: 'children_list', label: 'פרטי הילדים', required: true }
-        ],
-        order: 1
-    }
-];
-
-const initialCalculators: CalculatorDefinition[] = [
-    {
-        id: 'tax-calc-2024',
-        title: 'מחשבון מס רכישה (2024)',
-        categories: [Category.REAL_ESTATE, Category.HOME],
-        scenarios: [
-            {
-                id: 'sc1',
-                title: 'דירה יחידה (תושב ישראל)',
-                brackets: [
-                    { id: 'b1', threshold: 1978745, rate: 0 },
-                    { id: 'b2', threshold: 2347080, rate: 3.5 },
-                    { id: 'b3', threshold: 6055070, rate: 5 },
-                    { id: 'b4', threshold: 20183565, rate: 8 },
-                    { id: 'b5', threshold: 99999999999, rate: 10 }
-                ]
-            }
-        ],
-        order: 1
-    }
+    { id: '5', label: 'צור קשר', cat: Category.CONTACT },
 ];
 
 const defaultState: AppState = {
     currentCategory: Category.HOME,
     isAdminLoggedIn: false,
     config: {
-        officeName: 'MOR ERAN KAGAN & CO',
-        logoUrl: 'https://placehold.co/600x120/transparent/2EB0D9?text=MOR+ERAN+KAGAN+%26+CO', 
+        officeName: 'MeLaw Digital Office',
+        logoUrl: 'https://placehold.co/600x120/transparent/2EB0D9?text=MeLaw+Digital', 
         contactEmail: 'office@melaw.co.il',
         willsEmail: 'wills@melaw.co.il',
         poaEmail: 'poa@melaw.co.il',
         phone: '03-1234567',
-        address: 'דרך מנחם בגין 144, תל אביב',
+        address: 'תל אביב, ישראל',
         theme: 'dark', 
         adminPassword: 'admin',
         passwordHint: 'admin', 
@@ -124,14 +86,14 @@ const defaultState: AppState = {
     timelines: initialTimelines,
     articles: initialArticles,
     menuItems: initialMenuItems,
-    forms: initialForms,
-    calculators: initialCalculators,
+    forms: [],
+    calculators: [],
     teamMembers: [],
     products: [],
     lastUpdated: BUILD_TIMESTAMP, 
 };
 
-const STORAGE_KEY = 'melaw_site_data_v4';
+const STORAGE_KEY = 'melaw_site_data_v4.6';
 
 const App: React.FC = () => {
   const [loadingCloud, setLoadingCloud] = useState(false);
@@ -139,10 +101,8 @@ const App: React.FC = () => {
   const [isAdminView, setIsAdminView] = useState(false);
   const [loginPass, setLoginPass] = useState('');
 
-  // Initial Load (Local + Cloud)
   useEffect(() => {
     const loadData = async () => {
-        // 1. Load Local
         const saved = localStorage.getItem(STORAGE_KEY);
         let workingState = defaultState;
         if (saved) {
@@ -154,7 +114,6 @@ const App: React.FC = () => {
         }
         setAppState(workingState);
 
-        // 2. Sync Cloud
         const { supabaseUrl, supabaseKey } = workingState.config.integrations;
         if (supabaseUrl?.startsWith('http') && supabaseKey) {
             setLoadingCloud(true);
@@ -164,14 +123,13 @@ const App: React.FC = () => {
                     setAppState(prev => ({
                         ...prev,
                         ...dbData,
-                        config: {
-                             ...prev.config,
-                             ...dbData.config,
-                             integrations: {
-                                 ...prev.config.integrations,
-                                 ...(dbData.config?.integrations || {})
-                             }
-                        },
+                        // Force arrays to exist to prevent "black screen" errors
+                        articles: dbData.articles || [],
+                        forms: dbData.forms || [],
+                        slides: dbData.slides || [],
+                        timelines: dbData.timelines || [],
+                        teamMembers: dbData.teamMembers || [],
+                        menuItems: dbData.menuItems || initialMenuItems,
                         lastUpdated: BUILD_TIMESTAMP
                     }));
                 }
@@ -185,7 +143,6 @@ const App: React.FC = () => {
     loadData();
   }, []);
 
-  // Persist State Locally
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
   }, [appState]);
@@ -198,8 +155,8 @@ const App: React.FC = () => {
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4" dir="rtl">
             <div className="bg-slate-900 p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-800">
-                <h2 className="text-2xl font-bold mb-6 text-center text-white">כניסה למערכת ניהול</h2>
-                <input type="password" placeholder={`רמז: ${appState.config.passwordHint || 'admin'}`} className="w-full p-3 border border-slate-700 rounded mb-6 bg-slate-800 text-white" value={loginPass} onChange={e => setLoginPass(e.target.value)} />
+                <h2 className="text-2xl font-bold mb-6 text-center text-white">מערכת ניהול</h2>
+                <input type="password" placeholder={`סיסמא (רמז: ${appState.config.passwordHint || 'admin'})`} className="w-full p-3 border border-slate-700 rounded mb-6 bg-slate-800 text-white" value={loginPass} onChange={e => setLoginPass(e.target.value)} />
                 <button onClick={() => { if (loginPass === appState.config.adminPassword) handleUpdateState({ isAdminLoggedIn: true }); else alert("סיסמא שגויה"); }} className="w-full bg-[#2EB0D9] text-white py-3 rounded font-bold hover:bg-[#259cc0]">התחבר</button>
                 <button onClick={() => setIsAdminView(false)} className="w-full mt-4 text-slate-500 hover:text-white text-sm">חזרה לאתר</button>
             </div>
