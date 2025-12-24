@@ -43,7 +43,7 @@ const ArticleOverlay: React.FC<{ article: Article, onClose: () => void, relatedA
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
             <div className={`relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl border ${theme.border} ${theme.cardBg}`}>
-                <div className="sticky top-0 z-10 p-4 flex justify-between items-center bg-inherit border-b border-white/10">
+                <div className="sticky top-0 z-10 p-4 flex justify-between items-center bg-slate-900 border-b border-white/10">
                     <div className="flex gap-2">
                         <ShareMenu variant="inline" title={article.title} />
                     </div>
@@ -53,8 +53,12 @@ const ArticleOverlay: React.FC<{ article: Article, onClose: () => void, relatedA
                 <div className="p-6 md:p-12">
                     <div className="flex flex-col md:flex-row gap-10">
                         <div className="md:w-1/3">
-                            <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-square">
-                                <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover" />
+                            <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-square bg-slate-800">
+                                {article.imageUrl ? (
+                                    <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center"><Newspaper size={48} className="text-slate-600"/></div>
+                                )}
                                 <div className="absolute top-4 right-4 bg-[#2EB0D9] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
                                     {article.categories.map(c => CATEGORY_LABELS[c]).join(', ')}
                                 </div>
@@ -69,23 +73,29 @@ const ArticleOverlay: React.FC<{ article: Article, onClose: () => void, relatedA
                             <h2 className={`text-3xl md:text-5xl font-black mb-6 leading-tight ${theme.textTitle}`}>{article.title}</h2>
                             
                             {/* Tabs */}
-                            <div className="flex gap-4 border-b border-white/10 mb-8 overflow-x-auto no-scrollbar">
-                                {article.tabs.map((tab, idx) => (
-                                    <button 
-                                        key={idx}
-                                        onClick={() => setActiveTab(idx)}
-                                        className={`pb-4 px-2 font-bold text-sm transition-all whitespace-nowrap ${activeTab === idx ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-500 hover:text-slate-300'}`}
-                                    >
-                                        {tab.title}
-                                    </button>
-                                ))}
-                            </div>
-                            
-                            <div className={`prose prose-invert max-w-none text-lg leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                {article.tabs[activeTab]?.content.split('\n').map((p, i) => (
-                                    <p key={i} className="mb-4">{p}</p>
-                                ))}
-                            </div>
+                            {article.tabs && article.tabs.length > 0 && (
+                                <>
+                                    <div className="flex gap-4 border-b border-white/10 mb-8 overflow-x-auto no-scrollbar">
+                                        {article.tabs.map((tab, idx) => (
+                                            <button 
+                                                key={idx}
+                                                onClick={() => setActiveTab(idx)}
+                                                className={`pb-4 px-2 font-bold text-sm transition-all whitespace-nowrap ${activeTab === idx ? 'text-[#2EB0D9] border-b-2 border-[#2EB0D9]' : 'text-slate-500 hover:text-slate-300'}`}
+                                            >
+                                                {tab.title}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className={`prose prose-invert max-w-none text-lg leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                        {article.tabs[activeTab]?.content.split('\n').map((p, i) => (
+                                            <p key={i} className="mb-4">{p}</p>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                            {(!article.tabs || article.tabs.length === 0) && (
+                                <p className={`text-lg leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{article.abstract}</p>
+                            )}
                         </div>
                     </div>
 
@@ -95,8 +105,8 @@ const ArticleOverlay: React.FC<{ article: Article, onClose: () => void, relatedA
                             <h3 className="text-2xl font-bold mb-8">מאמרים קשורים</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {relatedArticles.map(rel => (
-                                    <div key={rel.id} className="cursor-pointer group" onClick={() => { setActiveTab(0); /* Article transition logic if needed */ }}>
-                                        <div className="aspect-video rounded-xl overflow-hidden mb-3">
+                                    <div key={rel.id} className="cursor-pointer group" onClick={() => { setActiveTab(0); onClose(); }}>
+                                        <div className="aspect-video rounded-xl overflow-hidden mb-3 bg-slate-800">
                                             <img src={rel.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                                         </div>
                                         <h4 className="font-bold text-sm line-clamp-2 group-hover:text-[#2EB0D9]">{rel.title}</h4>
@@ -245,7 +255,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const [isSubmittingDynamic, setIsSubmittingDynamic] = useState(false);
   const [activeCalc, setActiveCalc] = useState<string | null>(null);
   
-  // Safely access state properties to prevent crashes if state/config is missing
+  // Destructure with safe fallbacks to prevent "black screen" errors
   const { currentCategory = Category.HOME, config = {} as any, slides = [], timelines = [], articles = [], menuItems = [], forms = [], calculators = [], teamMembers = [] } = state || {};
   
   const isDark = config?.theme === 'dark'; 
@@ -263,42 +273,49 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
   const dynamicFormRef = useRef<HTMLDivElement>(null);
   const timelineScrollRef = useRef<HTMLDivElement>(null);
 
-  const currentSlides = slides.filter(s => s.categories?.includes(currentCategory) || currentCategory === Category.HOME).sort((a,b) => (a.order||99)-(b.order||99));
+  const currentSlides = (slides || []).filter(s => s.categories?.includes(currentCategory) || currentCategory === Category.HOME).sort((a,b) => (a.order||99)-(b.order||99));
   
-  // Mixed timeline for "Services and Updates"
   const mixedTimelineItems = [
-      ...timelines.filter(t => t.category?.includes(currentCategory) || currentCategory === Category.HOME),
-      ...calculators.filter(c => c.categories?.includes(currentCategory)).map(c => ({ 
+      ...(timelines || []).filter(t => t.category?.includes(currentCategory) || currentCategory === Category.HOME).map(t => ({ ...t, type: 'timeline' as const })),
+      ...(calculators || []).filter(c => c.categories?.includes(currentCategory)).map(c => ({ 
           id: c.id, 
           title: c.title, 
           description: 'חישוב מדרגות מס רכישה מעודכן לשנת 2024.', 
-          type: 'calculator', 
+          type: 'calculator' as const, 
           order: c.order || 99 
       }))
   ].sort((a: any, b: any) => (a.order || 99) - (b.order || 99));
 
-  const filteredArticles = articles.filter(a => a.categories?.includes(currentCategory) || currentCategory === Category.HOME).sort((a,b) => (a.order||99)-(b.order||99));
+  const filteredArticles = (articles || []).filter(a => a.categories?.includes(currentCategory) || currentCategory === Category.HOME).sort((a,b) => (a.order||99)-(b.order||99));
 
   const handleTimelineClick = (item: any) => {
     if (item.type === 'calculator') {
         setActiveCalc(item.id);
         return;
     }
-    // If it's a regular timeline item that might open an article or form
     if (item.linkTo?.startsWith('form-')) {
         const formId = item.linkTo.replace('form-', '');
         setActiveDynamicFormId(formId);
         setDynamicFormValues({});
         setTimeout(() => dynamicFormRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } else if (item.tabs && item.tabs.length > 0) {
-        // Treat as a "news/update" article without main image (spec 4.2)
         setSelectedArticle({
             id: item.id,
             title: item.title,
             abstract: item.description,
             imageUrl: item.imageUrl || '',
-            categories: [currentCategory],
+            categories: item.category || [currentCategory],
             tabs: item.tabs,
+            order: 0
+        });
+    } else {
+        setSelectedArticle({
+            id: item.id,
+            title: item.title,
+            abstract: item.description,
+            imageUrl: item.imageUrl || '',
+            categories: item.category || [currentCategory],
+            tabs: [{ title: 'מידע', content: item.description }],
             order: 0
         });
     }
@@ -314,7 +331,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
               <h1 className="text-xl font-black text-[#2EB0D9]" style={{ fontFamily: "'MyLogoFont', serif" }}>{config?.officeName || 'MOR ERAN KAGAN & CO'}</h1>
           </div>
           <nav className="hidden md:flex gap-6">
-              {(menuItems || []).map(item => (
+              {(menuItems || []).sort((a,b)=>(a.order||0)-(b.order||0)).map(item => (
                   <button key={item.id} onClick={() => onCategoryChange(item.cat)} className={`text-sm font-bold transition-all ${currentCategory === item.cat ? 'text-[#2EB0D9]' : theme.textMuted}`}>
                       {item.label}
                   </button>
@@ -326,10 +343,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex flex-col p-10 space-y-6">
-           <button onClick={() => setMobileMenuOpen(false)} className="self-end p-2"><X size={32}/></button>
+        <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col p-10 space-y-6">
+           <button onClick={() => setMobileMenuOpen(false)} className="self-end p-2 text-white"><X size={32}/></button>
            {(menuItems || []).map(item => (
-              <button key={item.id} onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }} className="text-2xl font-black text-right border-b border-slate-800 pb-2">
+              <button key={item.id} onClick={() => { onCategoryChange(item.cat); setMobileMenuOpen(false); }} className="text-2xl font-black text-right border-b border-slate-800 pb-2 text-white">
                   {item.label}
               </button>
            ))}
@@ -343,10 +360,10 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                     <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${idx === activeSlide ? 'opacity-100' : 'opacity-0'}`}>
                         <img src={slide.imageUrl} className="w-full h-full object-cover opacity-50" alt={slide.title} />
                         <div className="absolute inset-0 flex items-center px-12">
-                            <div className="max-w-2xl text-white">
+                            <div className="max-w-2xl text-white text-right">
                                 <h2 className="text-4xl font-black mb-4">{slide.title}</h2>
                                 <p className="text-xl opacity-90 border-r-4 border-[#2EB0D9] pr-4">{slide.subtitle}</p>
-                                <Button className="mt-8" variant="secondary">{slide.buttonText || 'לפרטים נוספים'}</Button>
+                                {slide.buttonText && <Button className="mt-8" variant="secondary">{slide.buttonText}</Button>}
                             </div>
                         </div>
                     </div>
@@ -363,33 +380,18 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                         <button onClick={() => setActiveDynamicFormId(null)} className="p-2 hover:bg-black/10 rounded-full transition-colors"><X/></button>
                     </div>
                     <div className="space-y-8">
-                        {forms.find(f => f.id === activeDynamicFormId)?.fields.map(field => (
+                        {(forms.find(f => f.id === activeDynamicFormId)?.fields || []).map(field => (
                             <div key={field.id} className="space-y-3">
-                                {/* Composite Field: Name + ID in one row */}
+                                {/* Composite Field: Name + ID in single row - Fixed layout to 3 cols */}
                                 {field.type === 'composite_name_id' && (
                                     <div className="p-5 rounded-xl bg-black/5 border border-slate-700/30 space-y-4">
                                         <label className="block text-sm font-bold opacity-70 flex items-center gap-2">
                                             <UserPlus size={16} className="text-[#2EB0D9]"/> {field.label}
                                         </label>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                            <input 
-                                                type="text" 
-                                                placeholder="שם פרטי" 
-                                                className={`p-3 rounded-lg border text-sm ${theme.inputBg}`} 
-                                                onChange={e => setDynamicFormValues({...dynamicFormValues, [`${field.id}_first`]: e.target.value})} 
-                                            />
-                                            <input 
-                                                type="text" 
-                                                placeholder="שם משפחה" 
-                                                className={`p-3 rounded-lg border text-sm ${theme.inputBg}`} 
-                                                onChange={e => setDynamicFormValues({...dynamicFormValues, [`${field.id}_last`]: e.target.value})} 
-                                            />
-                                            <input 
-                                                type="text" 
-                                                placeholder="ת.ז. (9 ספרות)" 
-                                                className={`p-3 rounded-lg border text-sm font-mono ${theme.inputBg}`} 
-                                                onChange={e => setDynamicFormValues({...dynamicFormValues, [`${field.id}_id`]: e.target.value.replace(/[^0-9]/g, '')})} 
-                                            />
+                                            <input type="text" placeholder="שם פרטי" className={`p-3 rounded-lg border text-sm ${theme.inputBg}`} onChange={e => setDynamicFormValues({...dynamicFormValues, [`${field.id}_first`]: e.target.value})} />
+                                            <input type="text" placeholder="שם משפחה" className={`p-3 rounded-lg border text-sm ${theme.inputBg}`} onChange={e => setDynamicFormValues({...dynamicFormValues, [`${field.id}_last`]: e.target.value})} />
+                                            <input type="text" placeholder="ת.ז. (9 ספרות)" className={`p-3 rounded-lg border text-sm font-mono ${theme.inputBg}`} onChange={e => setDynamicFormValues({...dynamicFormValues, [`${field.id}_id`]: e.target.value.replace(/[^0-9]/g, '')})} />
                                         </div>
                                     </div>
                                 )}
@@ -423,14 +425,21 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                                     </div>
                                 )}
 
-                                {['text', 'email', 'phone', 'number', 'select'].includes(field.type) && (
+                                {/* Rendering logic for new field types */}
+                                {['text', 'email', 'phone', 'number', 'select', 'long_text'].includes(field.type) && (
                                     <>
                                         <label className="block text-sm font-bold opacity-70">{field.label} {field.required && '*'}</label>
                                         {field.type === 'text' && <input type="text" className={`w-full p-4 rounded-lg border ${theme.inputBg}`} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
+                                        {field.type === 'long_text' && <textarea className={`w-full p-4 rounded-lg border h-32 ${theme.inputBg}`} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
                                         {field.type === 'email' && <input type="email" className={`w-full p-4 rounded-lg border ${theme.inputBg}`} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
                                         {field.type === 'phone' && <input type="tel" className={`w-full p-4 rounded-lg border ${theme.inputBg}`} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
                                         {field.type === 'number' && <input type="number" className={`w-full p-4 rounded-lg border ${theme.inputBg}`} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})} />}
-                                        {field.type === 'select' && <select className={`w-full p-4 rounded-lg border ${theme.inputBg}`} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}><option value="">בחר...</option>{field.options?.map(o => <option key={o} value={o}>{o}</option>)}</select>}
+                                        {field.type === 'select' && (
+                                            <select className={`w-full p-4 rounded-lg border ${theme.inputBg}`} onChange={e => setDynamicFormValues({...dynamicFormValues, [field.id]: e.target.value})}>
+                                                <option value="">בחר...</option>
+                                                {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                                            </select>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -475,8 +484,8 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
         {/* Services & Updates Section */}
         <section className="py-20 container mx-auto px-4">
-            <div className="flex justify-between items-end mb-8">
-                <SectionTitle title="עדכונים ושירותים" isDark={isDark} />
+            <div className="flex justify-between items-end mb-8 text-right">
+                <SectionTitle title="עדכונים ושירותים דיגיטליים" isDark={isDark} />
                 <div className="flex gap-2">
                     <button onClick={() => timelineScrollRef.current?.scrollBy({ left: 300, behavior: 'smooth' })} className={`p-2 rounded-full border ${theme.border} hover:bg-[#2EB0D9]/10`}><ChevronRight/></button>
                     <button onClick={() => timelineScrollRef.current?.scrollBy({ left: -300, behavior: 'smooth' })} className={`p-2 rounded-full border ${theme.border} hover:bg-[#2EB0D9]/10`}><ChevronLeft/></button>
@@ -490,7 +499,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
                         </div>
                         <h4 className="text-xl font-bold mb-2">{item.title}</h4>
                         <p className="text-sm opacity-80 line-clamp-3">{item.description}</p>
-                        <div className="mt-6 flex items-center gap-2 font-bold text-sm">לחץ כאן <ArrowLeft size={16}/></div>
+                        <div className="mt-6 flex items-center gap-2 font-bold text-sm">התחל עכשיו <ArrowLeft size={16}/></div>
                     </div>
                 ))}
             </div>
@@ -504,12 +513,15 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
 
         {/* Articles Section */}
         <section className={`py-20 ${isDark ? 'bg-slate-900/50' : 'bg-slate-100'}`}>
-            <div className="container mx-auto px-4">
+            <div className="container mx-auto px-4 text-right">
                 <SectionTitle title="מאמרים ומדריכים" isDark={isDark} />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {filteredArticles.map(article => (
                         <ArticleCard key={article.id} article={article} onClick={() => setSelectedArticle(article)} />
                     ))}
+                    {filteredArticles.length === 0 && (
+                        <div className="col-span-full py-20 text-center opacity-50">אין מאמרים להצגה בקטגוריה זו.</div>
+                    )}
                 </div>
             </div>
         </section>
@@ -539,7 +551,7 @@ export const PublicSite: React.FC<PublicSiteProps> = ({ state, onCategoryChange,
             </div>
         </section>
 
-        {/* Modals */}
+        {/* Modals Rendering */}
         {selectedArticle && (
             <ArticleOverlay 
                 article={selectedArticle} 

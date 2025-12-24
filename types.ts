@@ -132,7 +132,7 @@ export interface MenuItem {
     order?: number;
 }
 
-export type FieldType = 'text' | 'email' | 'phone' | 'number' | 'boolean' | 'select' | 'repeater' | 'composite_name_id' | 'children_list';
+export type FieldType = 'text' | 'long_text' | 'email' | 'phone' | 'number' | 'boolean' | 'select' | 'repeater' | 'composite_name_id' | 'children_list';
 
 export interface FormField {
     id: string;
