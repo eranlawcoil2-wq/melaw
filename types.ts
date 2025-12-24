@@ -3,7 +3,7 @@ export enum Category {
   HOME = 'HOME',
   WILLS = 'WILLS',
   REAL_ESTATE = 'REAL_ESTATE',
-  POA = 'POA', 
+  POA = 'POA', // Power of Attorney
   STORE = 'STORE',
   CONTACT = 'CONTACT'
 }
@@ -22,7 +22,7 @@ export interface SliderSlide {
   imageUrl: string;
   title: string;
   subtitle: string;
-  categories: Category[]; 
+  categories: Category[];
   buttonText?: string;
   linkTo?: string; 
   order?: number; 
@@ -33,7 +33,7 @@ export interface TimelineItem {
   title: string;
   description: string;
   imageUrl: string;
-  category: Category[]; 
+  category: Category[];
   linkTo?: string;
   order?: number; 
   tabs?: ArticleTab[]; 
@@ -78,7 +78,7 @@ export interface Product {
     categories: Category[]; 
     imageUrl?: string;
     isPopular?: boolean;
-    tags?: string[]; 
+    tags?: string[];
     order?: number; 
 }
 
@@ -141,7 +141,7 @@ export interface FormField {
     options?: string[];
     required: boolean;
     helpArticleId?: string; 
-    isClientEmail?: boolean; 
+    isClientEmail?: boolean;
 }
 
 export interface FormDefinition {
@@ -155,20 +155,20 @@ export interface FormDefinition {
     order?: number;
     emailSubject?: string;
     emailBody?: string;
-    nextFormId?: string; 
-    submitButtonText?: string; 
+    nextFormId?: string;
+    submitButtonText?: string;
 }
 
 export interface TaxBracket {
     id: string;
-    threshold: number; 
-    rate: number; 
+    threshold: number;
+    rate: number;
 }
 
 export interface TaxScenario {
     id: string;
-    title: string; 
-    brackets: TaxBracket[]; 
+    title: string;
+    brackets: TaxBracket[];
 }
 
 export interface CalculatorDefinition {
@@ -187,7 +187,7 @@ export interface AppState {
   articles: Article[];
   menuItems: MenuItem[];
   forms: FormDefinition[];
-  calculators: CalculatorDefinition[]; 
+  calculators: CalculatorDefinition[];
   teamMembers: TeamMember[];
   products: Product[];
   lastUpdated: string;

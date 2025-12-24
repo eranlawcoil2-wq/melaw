@@ -1,169 +1,157 @@
 
-import React, { useState, useEffect } from 'react';
-import { AppState, Article, Category, TimelineItem, MenuItem, FormDefinition, FormField, FieldType, TeamMember, SliderSlide, Product, CATEGORY_LABELS, CalculatorDefinition, TaxScenario, TaxBracket } from '../types.ts';
+import React, { useState } from 'react';
+import { AppState, Article, Category, FormDefinition, FormField, FieldType, TeamMember, SliderSlide, CATEGORY_LABELS } from '../types.ts';
 import { Button } from '../components/Button.tsx';
 import { generateArticleContent } from '../services/geminiService.ts';
-import { ImagePickerModal } from '../components/ImagePickerModal.tsx'; 
-import { ImageUploadButton } from '../components/ImageUploadButton.tsx'; 
-import { emailService, cloudService } from '../services/api.ts'; 
+import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { dbService } from '../services/supabase.ts';
-import { Settings, Layout, FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Link as LinkIcon, Copy, Users, Check, Monitor, Sun, Moon, Database, Type, Menu, Download, Upload, AlertTriangle, CloudUpload, CloudOff, Search, Save, Cloud, HelpCircle, ChevronDown, ChevronUp, Lock, File, Shield, Key, ShoppingCart, Newspaper, Image as ImageIcon, ArrowUp, GalleryHorizontal, Phone, MessageCircle, Printer, Mail, MapPin, Eye, EyeOff, CreditCard, Palette, Home, CheckCircle, Calculator, List, ToggleRight, Hash, AtSign, Tag, ArrowRightCircle, UserPlus, ArrowDown } from 'lucide-react';
+import { FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Monitor, Database, Users, Save, ArrowUp, ArrowDown, UserPlus, Type, List, Hash, AtSign, ToggleRight } from 'lucide-react';
 
-interface AdminDashboardProps {
-  state: AppState;
-  updateState: (newState: Partial<AppState>) => void;
-  onLogout: () => void;
-  version?: string;
-}
-
-const FALLBACK_SUPABASE_URL = 'https://kqjmwwjafypkswkkbncc.supabase.co'; 
-const FALLBACK_SUPABASE_KEY = 'sb_publishable_ftgAGUontmVJ-BfgzfQJsA_n7npD__t';
-
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ state, updateState, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'config' | 'integrations' | 'articles' | 'news' | 'sliders' | 'forms' | 'calculators' | 'team' | 'payments'>('articles');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); 
-  const [isSavingToCloud, setIsSavingToCloud] = useState(false); 
-  const [isLoadingFromCloud, setIsLoadingFromCloud] = useState(false); 
-  
-  const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
-  const [showImagePicker, setShowImagePicker] = useState(false);
-  const [imagePickerContext, setImagePickerContext] = useState<{ type: 'article' | 'slide' | 'team' | 'timeline', initialQuery: string } | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [newArticleTopic, setNewArticleTopic] = useState('');
-  
-  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partial<AppState>) => void, onLogout: () => void }> = ({ state, updateState, onLogout }) => {
+  const [activeTab, setActiveTab] = useState<'articles' | 'forms' | 'team' | 'integrations'>('articles');
   const [editingForm, setEditingForm] = useState<FormDefinition | null>(null);
-  const [editingCalculator, setEditingCalculator] = useState<CalculatorDefinition | null>(null); 
-  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
-  const [editingSlide, setEditingSlide] = useState<SliderSlide | null>(null);
-  const [editingTimelineItem, setEditingTimelineItem] = useState<TimelineItem | null>(null);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
-  const [showGoogleCode, setShowGoogleCode] = useState(false);
-
-  const isSupabaseConfigured = state.config.integrations.supabaseUrl && state.config.integrations.supabaseKey;
-  const isGoogleSheetsConfigured = state.config.integrations.googleSheetsUrl && state.config.integrations.googleSheetsUrl.includes("script.google.com");
-  const isCloudConnected = isSupabaseConfigured || isGoogleSheetsConfigured;
-
-  const supabaseConfig = { 
-      url: state.config.integrations.supabaseUrl || FALLBACK_SUPABASE_URL, 
-      key: state.config.integrations.supabaseKey || FALLBACK_SUPABASE_KEY
-  };
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSaveToCloud = async () => {
-      setIsSavingToCloud(true);
-      let success = false;
-      if (isSupabaseConfigured) {
-          success = await dbService.saveState(supabaseConfig.url, supabaseConfig.key, state);
-      }
-      setIsSavingToCloud(false);
-      if (success) alert('האתר נשמר בהצלחה בענן!');
-      else alert('שגיאה בשמירה לענן.');
+      setIsSaving(true);
+      const success = await dbService.saveState(state.config.integrations.supabaseUrl, state.config.integrations.supabaseKey, state);
+      setIsSaving(false);
+      if (success) alert('נשמר בהצלחה!');
+      else alert('שגיאה בשמירה לענן. בדוק הגדרות Supabase.');
   };
 
-  const handleGenerateArticle = async () => {
-      if (!newArticleTopic) return;
-      setIsGenerating(true);
-      try {
-          const generated = await generateArticleContent(newArticleTopic, selectedCategory, state.config.integrations.geminiApiKey);
-          const newArticle: Article = {
-              id: Date.now().toString(),
-              categories: selectedCategory === 'ALL' ? [Category.HOME] : [selectedCategory],
-              title: generated.title || newArticleTopic,
-              abstract: generated.abstract || '',
-              quote: generated.quote || '',
-              imageUrl: '', 
-              tabs: generated.tabs || [],
-              order: 99
-          };
-          updateState({ articles: [newArticle, ...state.articles] });
-          setEditingArticle(newArticle);
-          setNewArticleTopic('');
-      } catch (e: any) {
-          alert('שגיאה ביצירת תוכן');
-      } finally {
-          setIsGenerating(false);
-      }
+  const addField = (type: FieldType) => {
+      if (!editingForm) return;
+      const newField: FormField = { id: Date.now().toString(), type, label: type === 'children_list' ? 'רשימת ילדים' : 'שדה חדש', required: false };
+      setEditingForm({ ...editingForm, fields: [...editingForm.fields, newField] });
   };
 
-  const handleSaveForm = () => { if(editingForm && editingForm.title) { const exists = state.forms.find(f => f.id === editingForm.id); updateState({ forms: exists ? state.forms.map(f => f.id === editingForm.id ? editingForm : f) : [...state.forms, editingForm] }); setEditingForm(null); }};
-  const addFieldToForm = (type: FieldType) => { if(editingForm) setEditingForm({ ...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type, label: type === 'children_list' ? 'רשימת ילדים' : 'שדה חדש', required: false }] }); };
-  const updateFormField = (index: number, updates: Partial<FormField>) => { if(editingForm) { const f = [...editingForm.fields]; f[index] = { ...f[index], ...updates }; setEditingForm({ ...editingForm, fields: f }); }};
-  const removeFormField = (index: number) => { if(editingForm) setEditingForm({ ...editingForm, fields: editingForm.fields.filter((_, i) => i !== index) }); };
-  const toggleFormCategory = (cat: Category) => { if (!editingForm) return; const current = editingForm.categories || []; if (current.includes(cat)) { setEditingForm({ ...editingForm, categories: current.filter(c => c !== cat) }); } else { setEditingForm({ ...editingForm, categories: [...current, cat] }); } };
+  const moveField = (index: number, direction: 'up' | 'down') => {
+      if (!editingForm) return;
+      const fields = [...editingForm.fields];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= fields.length) return;
+      [fields[index], fields[targetIndex]] = [fields[targetIndex], fields[index]];
+      setEditingForm({ ...editingForm, fields });
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex font-sans text-slate-200 overflow-hidden relative" dir="rtl">
-      <aside className={`fixed h-full right-0 z-50 w-64 bg-slate-900 border-l border-slate-800 flex flex-col transition-transform duration-300 transform ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}`}>
-        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-          <div><h2 className="text-2xl font-bold text-white"><span className="text-[#2EB0D9]">Me</span>Law Admin</h2></div>
-          <button className="md:hidden text-slate-400" onClick={() => setMobileMenuOpen(false)}><X/></button>
-        </div>
-        <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-          <button onClick={() => setActiveTab('articles')} className={`w-full flex items-center gap-3 p-3 rounded-lg ${activeTab === 'articles' ? 'bg-[#2EB0D9]' : ''}`}><FileText size={20} /> מאמרים</button>
-          <button onClick={() => setActiveTab('forms')} className={`w-full flex items-center gap-3 p-3 rounded-lg ${activeTab === 'forms' ? 'bg-[#2EB0D9]' : ''}`}><ClipboardList size={20} /> טפסים</button>
-          <button onClick={() => setActiveTab('team')} className={`w-full flex items-center gap-3 p-3 rounded-lg ${activeTab === 'team' ? 'bg-[#2EB0D9]' : ''}`}><Users size={20} /> צוות</button>
-          <button onClick={() => setActiveTab('integrations')} className={`w-full flex items-center gap-3 p-3 rounded-lg ${activeTab === 'integrations' ? 'bg-[#2EB0D9]' : ''}`}><LinkIcon size={20} /> חיבורים</button>
-        </nav>
-        <div className="p-4 border-t border-slate-800">
-            <Button onClick={handleSaveToCloud} className="w-full mb-2" variant="secondary">{isSavingToCloud ? <Loader2 className="animate-spin"/> : 'שמור לענן'}</Button>
-            <button onClick={onLogout} className="w-full text-slate-500 text-sm">יציאה</button>
-        </div>
+    <div className="min-h-screen bg-slate-950 flex text-slate-200">
+      <aside className="w-64 bg-slate-900 border-l border-slate-800 p-6 flex flex-col gap-4">
+          <h2 className="text-2xl font-black text-[#2EB0D9] mb-8">ADMIN</h2>
+          <button onClick={() => setActiveTab('articles')} className={`flex gap-3 p-3 rounded-lg ${activeTab === 'articles' ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-800'}`}><FileText/> מאמרים</button>
+          <button onClick={() => setActiveTab('forms')} className={`flex gap-3 p-3 rounded-lg ${activeTab === 'forms' ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-800'}`}><ClipboardList/> טפסים</button>
+          <button onClick={() => setActiveTab('team')} className={`flex gap-3 p-3 rounded-lg ${activeTab === 'team' ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-800'}`}><Users/> צוות</button>
+          <button onClick={() => setActiveTab('integrations')} className={`flex gap-3 p-3 rounded-lg ${activeTab === 'integrations' ? 'bg-[#2EB0D9] text-white' : 'hover:bg-slate-800'}`}><Database/> חיבורים</button>
+          
+          <div className="mt-auto space-y-2">
+              <Button onClick={handleSaveToCloud} disabled={isSaving} className="w-full gap-2"><Save size={18}/> {isSaving ? 'שומר...' : 'שמור לענן'}</Button>
+              <button onClick={onLogout} className="w-full p-2 text-slate-500 hover:text-red-400">יציאה</button>
+          </div>
       </aside>
 
-      <main className="flex-1 md:mr-64 p-4 md:p-8 overflow-y-auto min-h-screen">
-        {activeTab === 'forms' && (
-            <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                    <h3 className="text-2xl font-bold">ניהול טפסים</h3>
-                    <Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', categories: [Category.HOME], fields: [], submitEmail: '', order: 99 })}>טופס חדש</Button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {state.forms.map(form => (
-                        <div key={form.id} className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                            <h4 className="font-bold text-lg mb-4">{form.title}</h4>
-                            <div className="flex gap-2">
-                                <button onClick={() => setEditingForm(form)} className="p-2 bg-slate-800 rounded"><Edit size={16}/></button>
-                                <button onClick={() => updateState({ forms: state.forms.filter(f => f.id !== form.id) })} className="p-2 bg-red-900 rounded"><Trash size={16}/></button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )}
+      <main className="flex-1 p-12 overflow-y-auto">
+          {activeTab === 'forms' && (
+              <div className="space-y-8">
+                  <div className="flex justify-between items-center">
+                      <h3 className="text-3xl font-black">ניהול טפסים</h3>
+                      <Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', categories: [Category.HOME], fields: [], submitEmail: '', order: 99 })}>טופס חדש</Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                      {state.forms.map(form => (
+                          <div key={form.id} className="bg-slate-900 p-6 rounded-xl border border-slate-800 flex justify-between items-center">
+                              <div>
+                                  <h4 className="font-bold text-lg">{form.title}</h4>
+                                  <span className="text-xs opacity-50">{form.fields.length} שדות</span>
+                              </div>
+                              <div className="flex gap-2">
+                                  <button onClick={() => setEditingForm(form)} className="p-2 hover:bg-[#2EB0D9] rounded transition-colors"><Edit size={18}/></button>
+                                  <button onClick={() => updateState({ forms: state.forms.filter(f => f.id !== form.id) })} className="p-2 hover:bg-red-500 rounded transition-colors"><Trash size={18}/></button>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          )}
 
-        {editingForm && (
-            <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4">
-                <div className="bg-slate-900 rounded-xl border border-slate-700 w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
-                    <div className="p-4 border-b border-slate-800 flex justify-between">
-                        <h3 className="font-bold">עריכת טופס: {editingForm.title}</h3>
-                        <div className="flex gap-2"><Button onClick={handleSaveForm}>שמור</Button><button onClick={() => setEditingForm(null)}><X/></button></div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            <input className="p-2 bg-slate-800 rounded border border-slate-700" value={editingForm.title} onChange={e => setEditingForm({...editingForm, title: e.target.value})} placeholder="כותרת הטופס"/>
-                            <input className="p-2 bg-slate-800 rounded border border-slate-700" value={editingForm.submitEmail} onChange={e => setEditingForm({...editingForm, submitEmail: e.target.value})} placeholder="אימייל לקבלת הטופס"/>
-                        </div>
-                        <div className="bg-slate-800 p-4 rounded-lg flex gap-2 flex-wrap">
-                            <button onClick={() => addFieldToForm('text')} className="px-3 py-1 bg-slate-700 rounded text-xs flex items-center gap-1"><Type size={12}/> טקסט</button>
-                            <button onClick={() => addFieldToForm('composite_name_id')} className="px-3 py-1 bg-slate-700 rounded text-xs flex items-center gap-1"><UserPlus size={12}/> שם+תז</button>
-                            <button onClick={() => addFieldToForm('children_list')} className="px-3 py-1 bg-[#2EB0D9] text-white rounded text-xs flex items-center gap-1"><Users size={12}/> פקד ילדים</button>
-                        </div>
-                        <div className="space-y-4">
-                            {editingForm.fields.map((field, i) => (
-                                <div key={field.id} className="bg-slate-950 p-4 rounded border border-slate-800 flex justify-between items-center">
-                                    <div className="flex-1 flex gap-4">
-                                        <span className="text-[#2EB0D9] text-xs font-bold uppercase">{field.type}</span>
-                                        <input className="bg-transparent border-b border-slate-700 flex-1" value={field.label} onChange={e => updateFormField(i, {label: e.target.value})}/>
-                                    </div>
-                                    <button onClick={() => removeFormField(i)} className="text-red-500 mr-4"><Trash size={16}/></button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
+          {editingForm && (
+              <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-8">
+                  <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl h-full flex flex-col">
+                      <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950 rounded-t-2xl">
+                          <h3 className="text-xl font-bold">עריכת טופס: {editingForm.title}</h3>
+                          <div className="flex gap-4">
+                              <Button onClick={() => { updateState({ forms: state.forms.find(f => f.id === editingForm.id) ? state.forms.map(f => f.id === editingForm.id ? editingForm : f) : [...state.forms, editingForm] }); setEditingForm(null); }}>שמור</Button>
+                              <button onClick={() => setEditingForm(null)} className="p-2 hover:bg-slate-800 rounded-full"><X/></button>
+                          </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                          <div className="space-y-2">
+                              <label className="text-xs font-bold text-slate-500">שם הטופס (למשל: שאלון ירושה)</label>
+                              <input className="w-full bg-slate-800 p-4 rounded-xl border border-slate-700" value={editingForm.title} onChange={e => setEditingForm({...editingForm, title: e.target.value})} placeholder="שם הטופס" />
+                          </div>
+                          
+                          <div className="space-y-2">
+                              <label className="text-xs font-bold text-slate-500">קטגוריות להצגה</label>
+                              <div className="flex gap-2 flex-wrap">
+                                  {Object.values(Category).map(cat => (
+                                      <button 
+                                          key={cat} 
+                                          onClick={() => {
+                                              const current = editingForm.categories || [];
+                                              const next = current.includes(cat) ? current.filter(c => c !== cat) : [...current, cat];
+                                              setEditingForm({...editingForm, categories: next});
+                                          }}
+                                          className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${editingForm.categories?.includes(cat) ? 'bg-[#2EB0D9] text-white' : 'bg-slate-800 text-slate-400'}`}
+                                      >
+                                          {CATEGORY_LABELS[cat]}
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
+                          
+                          <div className="flex gap-2 p-3 bg-black/40 rounded-xl overflow-x-auto no-scrollbar">
+                              <button onClick={() => addField('text')} className="whitespace-nowrap px-4 py-2 hover:bg-[#2EB0D9] rounded-lg flex gap-2 text-xs items-center transition-colors"><Type size={14}/> טקסט</button>
+                              <button onClick={() => addField('email')} className="whitespace-nowrap px-4 py-2 hover:bg-[#2EB0D9] rounded-lg flex gap-2 text-xs items-center transition-colors"><AtSign size={14}/> אימייל</button>
+                              <button onClick={() => addField('composite_name_id')} className="whitespace-nowrap px-4 py-2 hover:bg-[#2EB0D9] rounded-lg flex gap-2 text-xs items-center bg-[#2EB0D9]/20 transition-colors"><UserPlus size={14}/> שם+ת.ז</button>
+                              <button onClick={() => addField('children_list')} className="whitespace-nowrap px-4 py-2 hover:bg-[#2EB0D9] rounded-lg flex gap-2 text-xs items-center bg-[#2EB0D9]/40 border border-[#2EB0D9]/50 transition-colors font-bold"><Users size={14}/> פקד ילדים</button>
+                          </div>
+
+                          <div className="space-y-4">
+                              {editingForm.fields.map((field, idx) => (
+                                  <div key={field.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700 group relative">
+                                      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                                          <button onClick={() => moveField(idx, 'up')} className="p-1 hover:text-[#2EB0D9]" title="הזז למעלה"><ArrowUp size={14}/></button>
+                                          <button onClick={() => moveField(idx, 'down')} className="p-1 hover:text-[#2EB0D9]" title="הזז למטה"><ArrowDown size={14}/></button>
+                                          <button onClick={() => setEditingForm({...editingForm, fields: editingForm.fields.filter(f => f.id !== field.id)})} className="p-1 hover:text-red-500" title="מחק שדה"><Trash size={14}/></button>
+                                      </div>
+                                      <div className="flex gap-4 items-center">
+                                          <div className="opacity-40">
+                                              {field.type === 'children_list' ? <Users size={18}/> : field.type === 'composite_name_id' ? <UserPlus size={18}/> : <Type size={18}/>}
+                                          </div>
+                                          <div className="flex-1 space-y-1">
+                                              <input className="w-full bg-transparent border-b border-slate-700 outline-none text-sm font-bold" value={field.label} onChange={e => {
+                                                  const newFields = [...editingForm.fields];
+                                                  newFields[idx].label = e.target.value;
+                                                  setEditingForm({...editingForm, fields: newFields});
+                                              }} placeholder="תווית השדה" />
+                                              <div className="text-[10px] text-slate-500 uppercase tracking-widest">{field.type}</div>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                              <span className="text-[10px] text-slate-500">חובה?</span>
+                                              <input type="checkbox" checked={field.required} onChange={e => {
+                                                   const newFields = [...editingForm.fields];
+                                                   newFields[idx].required = e.target.checked;
+                                                   setEditingForm({...editingForm, fields: newFields});
+                                              }} />
+                                          </div>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          )}
       </main>
     </div>
   );
