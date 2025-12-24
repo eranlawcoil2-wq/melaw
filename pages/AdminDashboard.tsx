@@ -6,7 +6,7 @@ import { generateArticleContent } from '../services/geminiService.ts';
 import { ImagePickerModal } from '../components/ImagePickerModal.tsx';
 import { ImageUploadButton } from '../components/ImageUploadButton.tsx';
 import { dbService } from '../services/supabase.ts';
-import { FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Monitor, Database, Users, Save, ArrowUp, ArrowDown, UserPlus, Type, List, Hash, AtSign, ToggleRight, Layout, Image as ImageIcon, Settings, ShoppingCart, Calculator, Calendar } from 'lucide-react';
+import { FileText, Plus, Loader2, Sparkles, LogOut, Edit, Trash, X, ClipboardList, Monitor, Database, Users, Save, ArrowUp, ArrowDown, UserPlus, Type, List, Hash, AtSign, ToggleRight, Layout, Image as ImageIcon, Settings, ShoppingCart, Calculator, Calendar, Mail, ChevronDown } from 'lucide-react';
 
 export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partial<AppState>) => void, onLogout: () => void }> = ({ state, updateState, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'articles' | 'sliders' | 'timelines' | 'team' | 'forms' | 'calculators' | 'products' | 'integrations' | 'settings'>('articles');
@@ -20,7 +20,6 @@ export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partia
   const [editingTimeline, setEditingTimeline] = useState<TimelineItem | null>(null);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [editingForm, setEditingForm] = useState<FormDefinition | null>(null);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [imagePicker, setImagePicker] = useState<{ isOpen: boolean, onSelect: (url: string) => void, query: string }>({ isOpen: false, onSelect: () => {}, query: '' });
 
@@ -68,8 +67,6 @@ export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partia
           <button onClick={() => setActiveTab('timelines')} className={`flex items-center gap-3 p-3 rounded-lg text-sm ${activeTab === 'timelines' ? 'bg-[#2EB0D9]' : 'hover:bg-slate-800'}`}><Calendar size={18}/> עדכונים</button>
           <button onClick={() => setActiveTab('team')} className={`flex items-center gap-3 p-3 rounded-lg text-sm ${activeTab === 'team' ? 'bg-[#2EB0D9]' : 'hover:bg-slate-800'}`}><Users size={18}/> צוות</button>
           <button onClick={() => setActiveTab('forms')} className={`flex items-center gap-3 p-3 rounded-lg text-sm ${activeTab === 'forms' ? 'bg-[#2EB0D9]' : 'hover:bg-slate-800'}`}><ClipboardList size={18}/> טפסים</button>
-          <button onClick={() => setActiveTab('products')} className={`flex items-center gap-3 p-3 rounded-lg text-sm ${activeTab === 'products' ? 'bg-[#2EB0D9]' : 'hover:bg-slate-800'}`}><ShoppingCart size={18}/> חנות</button>
-          <button onClick={() => setActiveTab('calculators')} className={`flex items-center gap-3 p-3 rounded-lg text-sm ${activeTab === 'calculators' ? 'bg-[#2EB0D9]' : 'hover:bg-slate-800'}`}><Calculator size={18}/> מחשבונים</button>
           <button onClick={() => setActiveTab('settings')} className={`flex items-center gap-3 p-3 rounded-lg text-sm ${activeTab === 'settings' ? 'bg-[#2EB0D9]' : 'hover:bg-slate-800'}`}><Settings size={18}/> הגדרות</button>
           <button onClick={() => setActiveTab('integrations')} className={`flex items-center gap-3 p-3 rounded-lg text-sm ${activeTab === 'integrations' ? 'bg-[#2EB0D9]' : 'hover:bg-slate-800'}`}><Database size={18}/> חיבורים</button>
           
@@ -94,7 +91,7 @@ export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partia
                       </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {state.articles.sort((a,b)=>(a.order||0)-(b.order||0)).map(art => (
+                      {(state.articles || []).sort((a,b)=>(a.order||0)-(b.order||0)).map(art => (
                           <div key={art.id} className="bg-slate-900 rounded-xl overflow-hidden border border-slate-800 group">
                               <div className="h-40 bg-slate-800 relative">
                                   <img src={art.imageUrl} className="w-full h-full object-cover" />
@@ -105,7 +102,7 @@ export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partia
                               </div>
                               <div className="p-4">
                                   <h4 className="font-bold line-clamp-1">{art.title}</h4>
-                                  <div className="text-[10px] text-slate-500 mt-2">{art.categories.map(c => CATEGORY_LABELS[c]).join(', ')}</div>
+                                  <div className="text-[10px] text-slate-500 mt-2">{(art.categories || []).map(c => CATEGORY_LABELS[c]).join(', ')}</div>
                               </div>
                           </div>
                       ))}
@@ -120,12 +117,12 @@ export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partia
                       <Button onClick={() => setEditingForm({ id: Date.now().toString(), title: 'טופס חדש', categories: [Category.HOME], fields: [], submitEmail: state.config.contactEmail })}>טופס חדש</Button>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                      {state.forms.map(form => (
-                          <div key={form.id} className="bg-slate-900 p-6 rounded-xl border border-slate-800 flex justify-between">
+                      {(state.forms || []).map(form => (
+                          <div key={form.id} className="bg-slate-900 p-6 rounded-xl border border-slate-800 flex justify-between items-center">
                               <div><h4 className="font-bold">{form.title}</h4></div>
                               <div className="flex gap-2">
-                                  <button onClick={() => setEditingForm(form)} className="p-2 bg-slate-800 rounded"><Edit size={16}/></button>
-                                  <button onClick={() => updateState({ forms: state.forms.filter(f => f.id !== form.id) })} className="p-2 bg-red-900 rounded"><Trash size={16}/></button>
+                                  <button onClick={() => setEditingForm(form)} className="p-2 bg-slate-800 rounded hover:bg-slate-700 transition-colors"><Edit size={16}/></button>
+                                  <button onClick={() => updateState({ forms: state.forms.filter(f => f.id !== form.id) })} className="p-2 bg-red-900 rounded hover:bg-red-800 transition-colors"><Trash size={16}/></button>
                               </div>
                           </div>
                       ))}
@@ -133,7 +130,6 @@ export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partia
               </div>
           )}
 
-          {/* Settings Tab Content */}
           {activeTab === 'settings' && (
               <div className="max-w-2xl space-y-6">
                   <h3 className="text-3xl font-black">הגדרות המשרד</h3>
@@ -154,9 +150,9 @@ export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partia
           )}
       </main>
 
-      {/* Form Editor Modal - Updated with List, Number, Long Text */}
+      {/* Form Editor Modal */}
       {editingForm && (
-          <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-8">
+          <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-8" dir="rtl">
               <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl h-full flex flex-col overflow-hidden">
                   <div className="p-6 border-b border-slate-800 flex justify-between bg-slate-950">
                       <h3 className="font-bold">עריכת טופס: {editingForm.title}</h3>
@@ -166,26 +162,27 @@ export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partia
                       <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1">
                               <label className="text-xs text-slate-500">שם הטופס</label>
-                              <input className="w-full bg-slate-800 p-3 rounded" value={editingForm.title} onChange={e => setEditingForm({...editingForm, title: e.target.value})} />
+                              <input className="w-full bg-slate-800 p-3 rounded text-white" value={editingForm.title} onChange={e => setEditingForm({...editingForm, title: e.target.value})} />
                           </div>
                           <div className="space-y-1">
                               <label className="text-xs text-slate-500">אימייל ליעד</label>
-                              <input className="w-full bg-slate-800 p-3 rounded" value={editingForm.submitEmail} onChange={e => setEditingForm({...editingForm, submitEmail: e.target.value})} />
+                              <input className="w-full bg-slate-800 p-3 rounded text-white" value={editingForm.submitEmail} onChange={e => setEditingForm({...editingForm, submitEmail: e.target.value})} />
                           </div>
                       </div>
 
                       <div className="flex gap-2 p-2 bg-black/30 rounded-lg overflow-x-auto no-scrollbar">
-                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'text', label: 'שדה טקסט', required: false }]})} className="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-[#2EB0D9]">טקסט קצר</button>
-                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'long_text', label: 'טקסט ארוך', required: false }]})} className="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-[#2EB0D9]">טקסט ארוך</button>
-                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'number', label: 'מספר', required: false }]})} className="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-[#2EB0D9]">מספר</button>
-                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'select', label: 'רשימה', required: false, options: ['בחירה 1', 'בחירה 2'] }]})} className="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-[#2EB0D9]">רשימה/בחירה</button>
-                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'composite_name_id', label: 'פרטי זיהוי (שם+ת"ז)', required: true }]})} className="px-3 py-1 bg-[#2EB0D9]/20 rounded text-xs border border-[#2EB0D9]/40 hover:bg-[#2EB0D9]/40">שם+ת.ז</button>
-                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'children_list', label: 'רשימת ילדים', required: true }]})} className="px-3 py-1 bg-[#2EB0D9]/40 rounded text-xs border border-[#2EB0D9] hover:bg-[#2EB0D9]">פקד ילדים</button>
+                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'text', label: 'שדה טקסט', required: false }]})} className="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-[#2EB0D9] flex items-center gap-1"><Type size={14}/> טקסט</button>
+                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'long_text', label: 'טקסט ארוך', required: false }]})} className="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-[#2EB0D9] flex items-center gap-1"><List size={14}/> טקסט ארוך</button>
+                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'email', label: 'אימייל', required: true }]})} className="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-[#2EB0D9] flex items-center gap-1"><Mail size={14}/> אימייל</button>
+                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'number', label: 'מספר', required: false }]})} className="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-[#2EB0D9] flex items-center gap-1"><Hash size={14}/> מספר</button>
+                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'select', label: 'רשימה', required: false, options: ['אפשרות 1', 'אפשרות 2'] }]})} className="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-[#2EB0D9] flex items-center gap-1"><ChevronDown size={14}/> רשימה</button>
+                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'composite_name_id', label: 'שם מלא ות.ז.', required: true }]})} className="px-3 py-1 bg-[#2EB0D9]/20 rounded text-xs border border-[#2EB0D9]/40 hover:bg-[#2EB0D9]/40 flex items-center gap-1"><UserPlus size={14}/> שם+ת.ז</button>
+                          <button onClick={() => setEditingForm({...editingForm, fields: [...editingForm.fields, { id: Date.now().toString(), type: 'children_list', label: 'רשימת ילדים', required: true }]})} className="px-3 py-1 bg-[#2EB0D9]/40 rounded text-xs border border-[#2EB0D9] hover:bg-[#2EB0D9] flex items-center gap-1"><Users size={14}/> פקד ילדים</button>
                       </div>
 
                       <div className="space-y-3">
                           {editingForm.fields.map((field, idx) => (
-                              <div key={field.id} className="bg-slate-800 p-4 rounded-lg flex flex-col gap-4 border border-slate-700 group">
+                              <div key={field.id} className="bg-slate-800 p-4 rounded-lg border border-slate-700">
                                   <div className="flex items-center gap-4">
                                       <span className="text-[10px] text-slate-500 font-black uppercase w-20">{field.type}</span>
                                       <input className="flex-1 bg-transparent border-b border-slate-700 text-white font-bold" value={field.label} onChange={e => {
@@ -200,18 +197,13 @@ export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partia
                                       </div>
                                   </div>
                                   {field.type === 'select' && (
-                                      <div className="pl-24 space-y-2">
-                                          <label className="text-[10px] text-slate-500">אפשרויות (מופרדות בפסיק):</label>
-                                          <input 
-                                            className="w-full bg-slate-900 p-2 rounded text-xs border border-slate-700" 
-                                            value={field.options?.join(', ') || ''} 
-                                            onChange={e => {
-                                                const next = [...editingForm.fields];
-                                                next[idx].options = e.target.value.split(',').map(s => s.trim());
-                                                setEditingForm({...editingForm, fields: next});
-                                            }}
-                                            placeholder="בחירה 1, בחירה 2, בחירה 3..."
-                                          />
+                                      <div className="mt-3 pr-24">
+                                          <label className="text-[10px] text-slate-500">אפשרויות להצגה (מופרדות בפסיק):</label>
+                                          <input className="w-full bg-slate-900 p-2 rounded text-xs border border-slate-700 text-white" value={field.options?.join(', ') || ''} onChange={e => {
+                                              const next = [...editingForm.fields];
+                                              next[idx].options = e.target.value.split(',').map(s => s.trim());
+                                              setEditingForm({...editingForm, fields: next});
+                                          }} placeholder="אפשרות 1, אפשרות 2..." />
                                       </div>
                                   )}
                               </div>
@@ -229,47 +221,47 @@ export const AdminDashboard: React.FC<{ state: AppState, updateState: (s: Partia
           </div>
       )}
 
-      {/* Article Editor Modal - Full Restore */}
+      {/* Editor Modal for Articles */}
       {editingArticle && (
-          <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-8">
+          <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-8" dir="rtl">
               <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl h-full flex flex-col overflow-hidden">
                   <div className="p-6 border-b border-slate-800 flex justify-between bg-slate-950">
                       <h3 className="font-bold">עריכת מאמר</h3>
                       <button onClick={() => setEditingArticle(null)}><X/></button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                      <input className="w-full bg-slate-800 border border-slate-700 p-4 rounded-xl text-xl font-bold" value={editingArticle.title} onChange={e => setEditingArticle({...editingArticle, title: e.target.value})} placeholder="כותרת המאמר" />
+                      <input className="w-full bg-slate-800 border border-slate-700 p-4 rounded-xl text-xl font-bold text-white" value={editingArticle.title} onChange={e => setEditingArticle({...editingArticle, title: e.target.value})} placeholder="כותרת המאמר" />
                       <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                               <label className="text-xs font-bold text-slate-500">תמונה (URL)</label>
                               <div className="flex gap-2">
-                                  <input className="flex-1 bg-slate-800 border border-slate-700 p-2 rounded" value={editingArticle.imageUrl} onChange={e => setEditingArticle({...editingArticle, imageUrl: e.target.value})} />
-                                  <button onClick={() => setImagePicker({ isOpen: true, query: editingArticle.title, onSelect: url => setEditingArticle({...editingArticle, imageUrl: url}) })} className="bg-slate-700 p-2 rounded"><Sparkles size={16}/></button>
+                                  <input className="flex-1 bg-slate-800 border border-slate-700 p-2 rounded text-white" value={editingArticle.imageUrl} onChange={e => setEditingArticle({...editingArticle, imageUrl: e.target.value})} />
+                                  <button onClick={() => setImagePicker({ isOpen: true, query: editingArticle.title, onSelect: url => setEditingArticle({...editingArticle, imageUrl: url}) })} className="bg-slate-700 p-2 rounded hover:bg-slate-600 transition-colors"><Sparkles size={16}/></button>
                               </div>
                           </div>
                           <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500">עדיפות הופעה</label>
-                            <input type="number" className="w-full bg-slate-800 border border-slate-700 p-2 rounded" value={editingArticle.order} onChange={e => setEditingArticle({...editingArticle, order: parseInt(e.target.value)})} />
+                            <input type="number" className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white" value={editingArticle.order} onChange={e => setEditingArticle({...editingArticle, order: parseInt(e.target.value)})} />
                           </div>
                       </div>
                       <div className="space-y-2">
                           <label className="text-xs font-bold text-slate-500">קטגוריות</label>
                           <div className="flex gap-2">
                               {Object.values(Category).map(cat => (
-                                  <button key={cat} onClick={() => setEditingArticle({...editingArticle, categories: toggleCategory(editingArticle.categories, cat)})} className={`px-3 py-1 rounded-full text-xs font-bold ${editingArticle.categories.includes(cat) ? 'bg-[#2EB0D9]' : 'bg-slate-800'}`}>{CATEGORY_LABELS[cat]}</button>
+                                  <button key={cat} onClick={() => setEditingArticle({...editingArticle, categories: toggleCategory(editingArticle.categories, cat)})} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${editingArticle.categories.includes(cat) ? 'bg-[#2EB0D9] text-white' : 'bg-slate-800 text-slate-400'}`}>{CATEGORY_LABELS[cat]}</button>
                               ))}
                           </div>
                       </div>
                       <div className="space-y-4">
-                          <h4 className="font-bold">טאבים (תוכן המאמר)</h4>
+                          <h4 className="font-bold">תוכן המאמר (טאבים)</h4>
                           {editingArticle.tabs.map((tab, idx) => (
                               <div key={idx} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                                  <input className="w-full bg-transparent border-b border-slate-800 pb-2 font-bold" value={tab.title} onChange={e => {
+                                  <input className="w-full bg-transparent border-b border-slate-800 pb-2 font-bold text-white" value={tab.title} onChange={e => {
                                       const next = [...editingArticle.tabs];
                                       next[idx].title = e.target.value;
                                       setEditingArticle({...editingArticle, tabs: next});
                                   }} />
-                                  <textarea className="w-full bg-transparent h-32 text-sm opacity-80" value={tab.content} onChange={e => {
+                                  <textarea className="w-full bg-transparent h-32 text-sm opacity-80 text-white" value={tab.content} onChange={e => {
                                       const next = [...editingArticle.tabs];
                                       next[idx].content = e.target.value;
                                       setEditingArticle({...editingArticle, tabs: next});
