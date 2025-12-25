@@ -26,15 +26,19 @@ export const generateArticleContent = async (topic: string, category: Category |
   // Legal article generation is a complex reasoning task.
   const model = 'gemini-3-pro-preview';
 
+  // Fix: Improved prompt to ensure a truly professional and comprehensive legal article (300-500 words) with real value.
   const prompt = `
-      You are a senior partner at a top Israeli law firm.
-      Task: Write a comprehensive legal article in HEBREW about: "${topic}".
-      The content must be professional, authoritative, and structured for digital display.
+      You are a senior partner at a prestigious Israeli law firm.
+      Task: Write a COMPREHENSIVE and PROFESSIONAL legal article in HEBREW about: "${topic}".
       
       Instructions:
-      1. Use professional legal Hebrew (עברית משפטית תקנית).
-      2. Provide detailed and meaningful content for each section.
-      3. Avoid Markdown formatting like asterisks or hashtags in the text fields.
+      1. Length: 300-500 words of high-quality, dense information.
+      2. Style: Professional legal Hebrew (עברית משפטית תקנית). Avoid fluff.
+      3. Structure:
+         - A catchy and professional title in Hebrew.
+         - A concise abstract (3-5 sentences) summarizing the key legal point.
+         - At least 3 detailed sections (tabs) covering: Legal Analysis (ניתוח משפטי), Practical Guidelines (הנחיות מעשיות), and Case Law/Examples (דוגמאות ופסיקה).
+      4. Constraints: Avoid Markdown formatting (like ** or #) in the response text fields. Use plain text with newlines for paragraphs.
   `;
 
   try {
@@ -56,15 +60,15 @@ export const generateArticleContent = async (topic: string, category: Category |
             },
             quote: {
               type: Type.STRING,
-              description: "A strong legal quote in Hebrew",
+              description: "A strong legal quote or maxim in Hebrew",
             },
             tabs: {
               type: Type.ARRAY,
               items: {
                 type: Type.OBJECT,
                 properties: {
-                  title: { type: Type.STRING },
-                  content: { type: Type.STRING }
+                  title: { type: Type.STRING, description: "Section title" },
+                  content: { type: Type.STRING, description: "Detailed section content (minimum 100 words per section)" }
                 },
                 required: ["title", "content"]
               },
@@ -76,6 +80,7 @@ export const generateArticleContent = async (topic: string, category: Category |
       }
     });
 
+    // Fix: Access response.text as a property, not a method.
     const jsonStr = response.text;
     if (!jsonStr) throw new Error("Received empty response from Gemini");
     
